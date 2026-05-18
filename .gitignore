@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.idea/
+
+results/
+tests/results/
+metrics.csv
+
+sequences/*.yuv
+*.bin
+*.yuv
+*.log
+
+binaries/*.exe
