@@ -1,0 +1,49 @@
+Базовий запуск:
+.\vvencFFapp.exe `
+  --InputFile .\sequences\BasketballPass_416x240_50.yuv `
+  --SourceWidth 416 `
+  --SourceHeight 240 `
+  --FrameRate 50 `
+  --FramesToBeEncoded 17 `
+  --QP 32 `
+  --preset medium `
+  --BitstreamFile .\out\baseline.bin `
+  --ReconFile .\out\baseline_rec.yuv
+  
+Увімкнути CSF Scaling List
+.\vvencFFapp.exe `
+  --InputFile .\sequences\BasketballPass_416x240_50.yuv `
+  --SourceWidth 416 `
+  --SourceHeight 240 `
+  --FrameRate 50 `
+  --FramesToBeEncoded 17 `
+  --QP 32 `
+  --preset medium `
+  --CSFScalingList 1 `
+  --BitstreamFile .\out\csf.bin `
+  --ReconFile .\out\csf_rec.yuv
+
+
+Без модифікації (без CSF Scaling List)
+
+.\vvencFFapp.exe `
+  --InputFile .\sequences\BasketballPass_416x240_50.yuv `
+  --SourceWidth 416 `
+  --SourceHeight 240 `
+  --FrameRate 50 `
+  --FramesToBeEncoded 17 `
+  --QP 32 `
+  --preset medium `
+  --CSFScalingList 0 `
+  --BitstreamFile .\out\csf_off.bin `
+  --ReconFile .\out\csf_off_rec.yuv
+  
+  
+Декодування для перевірки
+.\vvdecapp.exe `
+  -b .\out\csf.bin `
+  -o .\out\csf_dec.yuv
+  
+Головна опція
+--CSFScalingList 0   вимкнути модифікацію
+--CSFScalingList 1   увімкнути CSF scaling list
