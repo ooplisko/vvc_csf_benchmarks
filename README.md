@@ -45,9 +45,11 @@ The goal is to verify that the encoder-side CSF modification is controllable, de
 vvenc_csf_tests/
 ├── binaries/        # local vvencFFapp.exe and vvdecapp.exe
 ├── docs/charts/     # SVG charts from the latest full analysis
+├── image_sets/      # deterministic PNG image sets for visual metrics
 ├── metrics/         # metrics, BD-rate, Markdown/SVG report generation
 ├── sequences/       # raw YUV test sequences
 ├── tests/           # smoke, regression, cross-check, QP sweep
+├── tools/           # matrix dump, image benchmark, partition-map helpers
 ├── utils/           # process runner, checks, console helpers
 ├── config.py        # paths, sequence metadata, QP/frame defaults
 ├── run_all.py       # main entry point
@@ -89,6 +91,14 @@ Optional sequence/QP/frame override:
 
 ```powershell
 .\.venv\Scripts\python.exe run_all.py all --sequences BasketballPass FourPeople --qps 22,27,32,37 --frames 33
+```
+
+Research helpers:
+
+```powershell
+.\.venv\Scripts\python.exe tools\dump_csf_matrices.py --output docs\matrices
+.\.venv\Scripts\python.exe tools\generate_synthetic_images.py --output image_sets\synthetic\png
+.\.venv\Scripts\python.exe tools\image_csf_benchmark.py --root results\image_synthetic --png-dir image_sets\synthetic\png --qps 22,27,32,37
 ```
 
 ## Test Sequences
@@ -183,9 +193,11 @@ This test suite is distributed under the [MIT License](LICENSE).
 vvenc_csf_tests/
 ├── binaries/        # локальні vvencFFapp.exe та vvdecapp.exe
 ├── docs/charts/     # SVG-графіки з останнього повного аналізу
+├── image_sets/      # детерміновані PNG-набори для visual metrics
 ├── metrics/         # метрики, BD-rate, Markdown/SVG звіти
 ├── sequences/       # raw YUV тестові послідовності
 ├── tests/           # smoke, regression, cross-check, QP sweep
+├── tools/           # дамп матриць, image benchmark, helpers для partition map
 ├── utils/           # запуск процесів, перевірки, службовий вивід
 ├── config.py        # шляхи, metadata послідовностей, QP/frames defaults
 ├── run_all.py       # головна точка запуску
@@ -227,6 +239,14 @@ py -3 -m venv .venv
 
 ```powershell
 .\.venv\Scripts\python.exe run_all.py all --sequences BasketballPass FourPeople --qps 22,27,32,37 --frames 33
+```
+
+Дослідницькі утиліти:
+
+```powershell
+.\.venv\Scripts\python.exe tools\dump_csf_matrices.py --output docs\matrices
+.\.venv\Scripts\python.exe tools\generate_synthetic_images.py --output image_sets\synthetic\png
+.\.venv\Scripts\python.exe tools\image_csf_benchmark.py --root results\image_synthetic --png-dir image_sets\synthetic\png --qps 22,27,32,37
 ```
 
 ## Тестові послідовності

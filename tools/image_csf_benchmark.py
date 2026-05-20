@@ -80,11 +80,11 @@ def visual_metrics(original_yuv: Path, recon_yuv: Path, width: int, height: int)
     metrics["xpsnr_y"] = float(match.group("y")) if match else 0.0
 
     try:
-      vmaf_out = run(common + ["-lavfi", "libvmaf", "-f", "null", "-"])
-      match = VMAF_RE.search(vmaf_out)
-      metrics["vmaf"] = float(match.group("vmaf")) if match else 0.0
+        vmaf_out = run(common + ["-lavfi", "libvmaf", "-f", "null", "-"])
+        match = VMAF_RE.search(vmaf_out)
+        metrics["vmaf"] = float(match.group("vmaf")) if match else 0.0
     except RuntimeError:
-      metrics["vmaf"] = 0.0
+        metrics["vmaf"] = 0.0
 
     return metrics
 
@@ -94,12 +94,13 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=Path("results/image_kodak"), help="Run directory.")
     parser.add_argument("--encoder", type=Path, default=Path("binaries/vvencFFapp.exe"))
     parser.add_argument("--decoder", type=Path, default=Path("binaries/vvdecapp.exe"))
+    parser.add_argument("--png-dir", type=Path, default=None, help="Directory with input PNG images.")
     parser.add_argument("--download-kodak", action="store_true", help="Download the Kodak PNG suite.")
     parser.add_argument("--qps", default="22,27,32,37", help="Comma-separated QP list.")
     args = parser.parse_args()
 
     root = args.root
-    png_dir = root / "png"
+    png_dir = args.png_dir or (root / "png")
     yuv_dir = root / "yuv"
     enc_dir = root / "encoded"
     qps = [int(item) for item in args.qps.split(",") if item.strip()]

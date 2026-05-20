@@ -37,6 +37,18 @@ poc,ctu_x,ctu_y,type,x,y,width,height,depth,mode,qp
 
 This can then be rendered as an SVG/PNG block map.
 
+Render a collected partition CSV into an SVG map:
+
+```powershell
+.\.venv\Scripts\python.exe tools\render_partition_map.py results\partition_trace.csv `
+  --output results\partition_trace.svg `
+  --frame 0 `
+  --width 416 `
+  --height 240
+```
+
+At the moment this renderer is ready, but the CSV producer still has to come from a tracing build or a small VVenC instrumentation patch. Normal `vvencFFapp.exe` logs do not contain enough final CU/TU rectangle data to reconstruct a true map.
+
 ## Compression degree
 
 For a fixed image/video, fixed preset, fixed frame count, fixed chroma format and fixed bit depth, the single compression-control parameter in the current experiments is:
@@ -56,6 +68,12 @@ For 8-bit 4:2:0 YUV:
 
 ```text
 raw_input_bytes = width * height * 3 / 2 * frames
+```
+
+For 10-bit 4:2:0 YUV stored as little-endian 16-bit samples:
+
+```text
+raw_input_bytes = width * height * 3 * frames
 ```
 
 When QP increases, quantization becomes coarser, bitrate usually decreases, compression ratio increases, and quality metrics usually decrease.
@@ -88,4 +106,17 @@ The output CSV is:
 
 ```text
 results/image_kodak/image_metrics.csv
+```
+
+If network access is not available, generate a deterministic synthetic image set and run the same benchmark on it:
+
+```powershell
+.\.venv\Scripts\python.exe tools\generate_synthetic_images.py --output image_sets\synthetic\png
+
+.\.venv\Scripts\python.exe tools\image_csf_benchmark.py `
+  --root results\image_synthetic `
+  --png-dir image_sets\synthetic\png `
+  --encoder binaries\vvencFFapp.exe `
+  --decoder binaries\vvdecapp.exe `
+  --qps 22,27,32,37
 ```
