@@ -5,10 +5,18 @@ import csv
 import re
 import subprocess
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from metrics.image_quality import calculate_luma_metrics
 
 
 KODAK_URL = "https://r0k.us/graphics/kodak/kodak/kodim{index:02d}.png"
-ENC_RE = re.compile(r"\s*1\s+a\s+(?P<bitrate>[0-9.]+)\s+(?P<y>[0-9.]+)\s+(?P<u>[0-9.]+)\s+(?P<v>[0-9.]+)")
+ENC_RE = re.compile(
+    r"\s*1\s+a\s+(?P<bitrate>[0-9.]+)\s+(?P<y>[0-9.]+|inf|nan)\s+(?P<u>[0-9.]+|inf|nan)\s+(?P<v>[0-9.]+|inf|nan)",
+    re.IGNORECASE,
+)
 SSIM_RE = re.compile(r"All:(?P<all>[0-9.]+)")
 XPSNR_RE = re.compile(r"XPSNR\s+y:\s*(?P<y>[0-9.]+)")
 VMAF_RE = re.compile(r"VMAF score:\s*(?P<vmaf>[0-9.]+)")
@@ -86,17 +94,33 @@ def visual_metrics(original_yuv: Path, recon_yuv: Path, width: int, height: int)
     except RuntimeError:
         metrics["vmaf"] = 0.0
 
+    metrics.update(calculate_luma_metrics(original_yuv, recon_yuv, width, height))
     return metrics
+
+
+def files_equal(left: Path, right: Path) -> bool:
+    if left.stat().st_size != right.stat().st_size:
+        return False
+    with left.open("rb") as left_stream, right.open("rb") as right_stream:
+        while True:
+            left_chunk = left_stream.read(1024 * 1024)
+            right_chunk = right_stream.read(1024 * 1024)
+            if left_chunk != right_chunk:
+                return False
+            if not left_chunk:
+                return True
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run image-only CSF benchmark on PNG images.")
     parser.add_argument("--root", type=Path, default=Path("results/image_kodak"), help="Run directory.")
-    parser.add_argument("--encoder", type=Path, default=Path("binaries/vvencFFapp.exe"))
+    parser.add_argument("--baseline-encoder", type=Path, default=Path("binaries/vvenc_default.exe"))
+    parser.add_argument("--csf-encoder", type=Path, default=Path("binaries/vvenc_csf.exe"))
     parser.add_argument("--decoder", type=Path, default=Path("binaries/vvdecapp.exe"))
     parser.add_argument("--png-dir", type=Path, default=None, help="Directory with input PNG images.")
     parser.add_argument("--download-kodak", action="store_true", help="Download the Kodak PNG suite.")
     parser.add_argument("--qps", default="22,27,32,37", help="Comma-separated QP list.")
+    parser.add_argument("--preset", default="medium", help="VVenC preset used for both encoders.")
     args = parser.parse_args()
 
     root = args.root
@@ -123,7 +147,10 @@ def main() -> int:
 
         raw_bytes = width * height * 3 // 2
         for qp in qps:
-            for mode, flag in (("baseline", "0"), ("csf", "1")):
+            for mode, encoder, csf_enabled in (
+                ("baseline", args.baseline_encoder, False),
+                ("csf", args.csf_encoder, True),
+            ):
                 out_dir = enc_dir / name / f"QP{qp}" / mode
                 bitstream = out_dir / f"{name}_QP{qp}_{mode}.vvc"
                 recon = out_dir / f"{name}_QP{qp}_{mode}_rec.yuv"
@@ -132,33 +159,33 @@ def main() -> int:
                 dec_log = out_dir / f"{name}_QP{qp}_{mode}_dec.log"
                 out_dir.mkdir(parents=True, exist_ok=True)
 
-                text = run(
-                    [
-                        str(args.encoder),
-                        "--InputFile",
-                        str(yuv),
-                        "--SourceWidth",
-                        str(width),
-                        "--SourceHeight",
-                        str(height),
-                        "--FrameRate",
-                        "1",
-                        "--FramesToBeEncoded",
-                        "1",
-                        "--QP",
-                        str(qp),
-                        "--preset",
-                        "medium",
-                        "--CSFScalingList",
-                        flag,
-                        "--BitstreamFile",
-                        str(bitstream),
-                        "--ReconFile",
-                        str(recon),
-                    ],
-                    enc_log,
-                )
+                cmd = [
+                    str(encoder),
+                    "--InputFile",
+                    str(yuv),
+                    "--SourceWidth",
+                    str(width),
+                    "--SourceHeight",
+                    str(height),
+                    "--FrameRate",
+                    "1",
+                    "--FramesToBeEncoded",
+                    "1",
+                    "--QP",
+                    str(qp),
+                    "--preset",
+                    args.preset,
+                    "--BitstreamFile",
+                    str(bitstream),
+                    "--ReconFile",
+                    str(recon),
+                ]
+                if csf_enabled:
+                    cmd.extend(["--CSFScalingList", "1"])
+                text = run(cmd, enc_log)
                 run([str(args.decoder), "-b", str(bitstream), "-o", str(decoded)], dec_log)
+                if not files_equal(recon, decoded):
+                    raise RuntimeError(f"Decoded YUV differs from encoder reconstruction: {decoded}")
                 parsed = parse_encoder_log(text)
                 metrics = visual_metrics(yuv, recon, width, height)
                 bytes_out = bitstream.stat().st_size
