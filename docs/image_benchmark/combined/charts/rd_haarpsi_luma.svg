@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" width="760" height="440">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="58" y="28" font-family="Arial" font-size="18" fill="#111827">haarpsi_luma: average RD curve</text>
+<line x1="58" y1="382" x2="702" y2="382" stroke="#374151"/>
+<line x1="58" y1="58" x2="58" y2="382" stroke="#374151"/>
+<text x="350.0" y="424" font-family="Arial" font-size="13" fill="#374151">bpp</text>
+<text x="12" y="220.0" font-family="Arial" font-size="13" fill="#374151" transform="rotate(-90 12 220.0)">haarpsi_luma</text>
+<path d="M58.00,354.81 L213.63,171.42 L418.42,91.16 L702.00,58.00" fill="none" stroke="#2563eb" stroke-width="2.2"/>
+<circle cx="58.00" cy="354.81" r="4" fill="#2563eb"/>
+<circle cx="213.63" cy="171.42" r="4" fill="#2563eb"/>
+<circle cx="418.42" cy="91.16" r="4" fill="#2563eb"/>
+<circle cx="702.00" cy="58.00" r="4" fill="#2563eb"/>
+<text x="592" y="76" font-family="Arial" font-size="13" fill="#2563eb">baseline</text>
+<path d="M60.84,382.00 L216.44,197.70 L418.91,104.50 L698.83,64.04" fill="none" stroke="#dc2626" stroke-width="2.2"/>
+<circle cx="60.84" cy="382.00" r="4" fill="#dc2626"/>
+<circle cx="216.44" cy="197.70" r="4" fill="#dc2626"/>
+<circle cx="418.91" cy="104.50" r="4" fill="#dc2626"/>
+<circle cx="698.83" cy="64.04" r="4" fill="#dc2626"/>
+<text x="592" y="96" font-family="Arial" font-size="13" fill="#dc2626">csf</text>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" width="760" height="440">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="58" y="28" font-family="Arial" font-size="18" fill="#111827">vmaf: average RD curve</text>
+<line x1="58" y1="382" x2="702" y2="382" stroke="#374151"/>
+<line x1="58" y1="58" x2="58" y2="382" stroke="#374151"/>
+<text x="350.0" y="424" font-family="Arial" font-size="13" fill="#374151">bpp</text>
+<text x="12" y="220.0" font-family="Arial" font-size="13" fill="#374151" transform="rotate(-90 12 220.0)">vmaf</text>
+<path d="M58.00,382.00 L326.51,194.80 L494.73,106.75 L674.36,62.70" fill="none" stroke="#2563eb" stroke-width="2.2"/>
+<circle cx="58.00" cy="382.00" r="4" fill="#2563eb"/>
+<circle cx="326.51" cy="194.80" r="4" fill="#2563eb"/>
+<circle cx="494.73" cy="106.75" r="4" fill="#2563eb"/>
+<circle cx="674.36" cy="62.70" r="4" fill="#2563eb"/>
+<text x="592" y="76" font-family="Arial" font-size="13" fill="#2563eb">baseline</text>
+<path d="M73.96,376.63 L384.69,179.24 L528.94,93.60 L702.00,58.00" fill="none" stroke="#dc2626" stroke-width="2.2"/>
+<circle cx="73.96" cy="376.63" r="4" fill="#dc2626"/>
+<circle cx="384.69" cy="179.24" r="4" fill="#dc2626"/>
+<circle cx="528.94" cy="93.60" r="4" fill="#dc2626"/>
+<circle cx="702.00" cy="58.00" r="4" fill="#dc2626"/>
+<text x="592" y="96" font-family="Arial" font-size="13" fill="#dc2626">csf</text>
+</svg>
