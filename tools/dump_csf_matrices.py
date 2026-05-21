@@ -137,7 +137,7 @@ def main() -> int:
             ]
         )
 
-    (out_dir / "README.md").write_text("\n".join(lines), encoding="utf-8")
+    (out_dir / "matrices.md").write_text("\n".join(lines), encoding="utf-8")
     print(f"Wrote matrices to {out_dir}")
     return 0
 
