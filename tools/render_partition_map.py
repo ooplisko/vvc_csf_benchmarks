@@ -62,7 +62,7 @@ def render_svg(blocks: list[dict[str, str]], width: int, height: int) -> str:
             f'fill="none" stroke="{color}" stroke-width="{stroke_width}" opacity="{opacity:.2f}"/>'
         )
     parts.append("</svg>")
-    return "\n".join(parts)
+    return "".join(parts)
 
 
 def main() -> int:
