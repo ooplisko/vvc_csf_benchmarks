@@ -16,10 +16,10 @@ def _env_path(name: str, default: Path) -> Path:
     return Path(os.environ.get(name, str(default)))
 
 
-# The same current encoder is used for both modes.  Baseline leaves the
-# CSF flag off; CSF mode passes --CSFScalingList 1.
-ENCODER_BASELINE = _env_path("VVENC_ENCODER", BIN_DIR / "vvencFFapp.exe")
-ENCODER_CSF = _env_path("VVENC_CSF_ENCODER", ENCODER_BASELINE)
+ENCODER_BASELINE = _env_path("VVENC_ENCODER", BIN_DIR / "vvenc_default.exe")
+ENCODER_CSF = _env_path("VVENC_CSF_ENCODER", BIN_DIR / "vvenc_csf.exe")
+ENCODER_BASELINE_TRACE = _env_path("VVENC_TRACE_ENCODER", BIN_DIR / "vvenc_default_trace.exe")
+ENCODER_CSF_TRACE = _env_path("VVENC_CSF_TRACE_ENCODER", BIN_DIR / "vvenc_csf_trace.exe")
 
 DECODER_BASELINE = _env_path("VVDEC_DECODER", BIN_DIR / "vvdecapp.exe")
 DECODER_CSF = _env_path("VVDEC_CSF_DECODER", DECODER_BASELINE)

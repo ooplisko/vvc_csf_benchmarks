@@ -14,3 +14,8 @@ sequences/*.yuv
 *.log
 
 binaries/*.exe
+!binaries/vvdecapp.exe
+!binaries/vvenc_default.exe
+!binaries/vvenc_default_trace.exe
+!binaries/vvenc_csf.exe
+!binaries/vvenc_csf_trace.exe

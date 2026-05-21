@@ -1,49 +1,47 @@
-Базовий запуск:
-.\vvencFFapp.exe `
-  --InputFile .\sequences\BasketballPass_416x240_50.yuv `
-  --SourceWidth 416 `
-  --SourceHeight 240 `
-  --FrameRate 50 `
-  --FramesToBeEncoded 17 `
+Image benchmark binaries
+========================
+
+vvenc_default.exe
+  Upstream/default VVenC encoder. It does not know --CSFScalingList.
+
+vvenc_csf.exe
+  CSF-enabled VVenC encoder. Use --CSFScalingList 1 for the custom matrix.
+
+vvenc_csf_trace.exe
+  CSF encoder built with ENABLE_TRACING=1. Use it only when generating
+  partition maps with --tracefile and --tracerule.
+
+vvenc_default_trace.exe
+  Upstream/default encoder built with ENABLE_TRACING=1. Use it only when
+  generating baseline partition maps with --tracefile and --tracerule.
+
+vvdecapp.exe
+  VVdeC decoder used to check that produced bitstreams decode.
+
+Example
+-------
+
+.\vvenc_default.exe `
+  --InputFile input.yuv `
+  --SourceWidth 512 `
+  --SourceHeight 512 `
+  --FrameRate 1 `
+  --FramesToBeEncoded 1 `
   --QP 32 `
   --preset medium `
-  --BitstreamFile .\out\baseline.bin `
-  --ReconFile .\out\baseline_rec.yuv
-  
-Увімкнути CSF Scaling List
-.\vvencFFapp.exe `
-  --InputFile .\sequences\BasketballPass_416x240_50.yuv `
-  --SourceWidth 416 `
-  --SourceHeight 240 `
-  --FrameRate 50 `
-  --FramesToBeEncoded 17 `
+  --BitstreamFile baseline.vvc `
+  --ReconFile baseline_rec.yuv
+
+.\vvenc_csf.exe `
+  --InputFile input.yuv `
+  --SourceWidth 512 `
+  --SourceHeight 512 `
+  --FrameRate 1 `
+  --FramesToBeEncoded 1 `
   --QP 32 `
   --preset medium `
   --CSFScalingList 1 `
-  --BitstreamFile .\out\csf.bin `
-  --ReconFile .\out\csf_rec.yuv
+  --BitstreamFile csf.vvc `
+  --ReconFile csf_rec.yuv
 
-
-Без модифікації (без CSF Scaling List)
-
-.\vvencFFapp.exe `
-  --InputFile .\sequences\BasketballPass_416x240_50.yuv `
-  --SourceWidth 416 `
-  --SourceHeight 240 `
-  --FrameRate 50 `
-  --FramesToBeEncoded 17 `
-  --QP 32 `
-  --preset medium `
-  --CSFScalingList 0 `
-  --BitstreamFile .\out\csf_off.bin `
-  --ReconFile .\out\csf_off_rec.yuv
-  
-  
-Декодування для перевірки
-.\vvdecapp.exe `
-  -b .\out\csf.bin `
-  -o .\out\csf_dec.yuv
-  
-Головна опція
---CSFScalingList 0   вимкнути модифікацію
---CSFScalingList 1   увімкнути CSF scaling list
+.\vvdecapp.exe -b csf.vvc -o csf_dec.yuv
