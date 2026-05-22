@@ -346,9 +346,6 @@ Baseline і CSF карти виводяться з однаковою ширин
 
 Baseline і CSF карти мають той самий canvas для кожного Kodak-зображення. Візуальна різниця пов'язана з кількістю та розмірами CU, а не з різним масштабом відображення.
 
-<details>
-<summary>Показати всі 24 Kodak map pairs</summary>
-
 | Зображення | Оригінал | Baseline | CSF |
 | --- | --- | --- | --- |
 | kodim01 | <img src="image_sets/kodak/png/kodim01.png" width="220"> | <img src="docs/partition_maps/kodak/kodim01_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim01_csf.svg" width="260"> |
@@ -375,8 +372,6 @@ Baseline і CSF карти мають той самий canvas для кожно
 | kodim22 | <img src="image_sets/kodak/png/kodim22.png" width="220"> | <img src="docs/partition_maps/kodak/kodim22_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim22_csf.svg" width="260"> |
 | kodim23 | <img src="image_sets/kodak/png/kodim23.png" width="220"> | <img src="docs/partition_maps/kodak/kodim23_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim23_csf.svg" width="260"> |
 | kodim24 | <img src="image_sets/kodak/png/kodim24.png" width="220"> | <img src="docs/partition_maps/kodak/kodim24_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim24_csf.svg" width="260"> |
-
-</details>
 
 ## 15. Поточний висновок
 
