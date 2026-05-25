@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import html
 import math
 from collections import defaultdict
 from pathlib import Path
@@ -17,6 +18,17 @@ METRICS = [
     "haarpsi_luma",
     "psnr_hvs_m_luma",
 ]
+
+METRIC_LABELS = {
+    "psnr_y": "PSNR-Y, dB",
+    "ssim": "SSIM",
+    "xpsnr_y": "XPSNR-Y, dB",
+    "vmaf": "VMAF",
+    "msssim_luma": "MS-SSIM luma",
+    "fsim_luma": "FSIM luma",
+    "haarpsi_luma": "HaarPSI luma",
+    "psnr_hvs_m_luma": "PSNR-HVS-M luma, dB",
+}
 
 
 def read_rows(path: Path) -> list[dict[str, str]]:
@@ -131,16 +143,16 @@ def aggregate_summary(rows: list[dict[str, object]], output: Path) -> None:
 def render_metric_charts(rows: list[dict[str, str]], output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     for metric in METRICS:
-        points: dict[str, list[tuple[float, float]]] = {"baseline": [], "csf": []}
+        points: dict[str, list[dict[str, float | int]]] = {"baseline": [], "csf": []}
         grouped: dict[tuple[str, int], list[dict[str, str]]] = defaultdict(list)
         for row in rows:
             grouped[(row["mode"], int(row["qp"]))].append(row)
         for (mode, _qp), group in grouped.items():
             bpp = sum(f(row, "bpp") for row in group) / len(group)
             quality = sum(f(row, metric) for row in group) / len(group)
-            points[mode].append((bpp, quality))
+            points[mode].append({"bpp": bpp, "quality": quality, "qp": int(group[0]["qp"])})
         for mode in points:
-            points[mode].sort()
+            points[mode].sort(key=lambda point: float(point["bpp"]))
         (output_dir / f"rd_{metric}.svg").write_text(_svg_chart(metric, points), encoding="utf-8")
 
 
@@ -165,42 +177,146 @@ def _interp_metric(rows: list[dict[str, str]], bpp: float, metric: str) -> float
     return None
 
 
-def _svg_chart(metric: str, points: dict[str, list[tuple[float, float]]]) -> str:
-    width = 760
-    height = 440
-    pad = 58
+def _svg_chart(metric: str, points: dict[str, list[dict[str, float | int]]]) -> str:
+    width, height = 760, 460
+    left, right, top, bottom = 72, 64, 48, 78
+    plot_width = width - left - right
+    plot_height = height - top - bottom
     all_points = points["baseline"] + points["csf"]
-    min_x = min(point[0] for point in all_points)
-    max_x = max(point[0] for point in all_points)
-    min_y = min(point[1] for point in all_points)
-    max_y = max(point[1] for point in all_points)
+    min_x = min(float(point["bpp"]) for point in all_points)
+    max_x = max(float(point["bpp"]) for point in all_points)
+    min_y = min(float(point["quality"]) for point in all_points)
+    max_y = max(float(point["quality"]) for point in all_points)
+    if min_x == max_x:
+        min_x -= 0.01
+        max_x += 0.01
     if min_y == max_y:
         min_y -= 0.01
         max_y += 0.01
 
+    x_pad = (max_x - min_x) * 0.04
+    y_pad = (max_y - min_y) * 0.08
+    min_x = max(0.0, min_x - x_pad)
+    max_x += x_pad
+    min_y -= y_pad
+    max_y += y_pad
+
     def sx(value: float) -> float:
-        return pad + (value - min_x) / (max_x - min_x) * (width - 2 * pad)
+        return left + (value - min_x) * plot_width / (max_x - min_x)
 
     def sy(value: float) -> float:
-        return height - pad - (value - min_y) / (max_y - min_y) * (height - 2 * pad)
+        return top + (max_y - value) * plot_height / (max_y - min_y)
 
+    def clamp_label(x: float, y: float, mode: str) -> tuple[float, float]:
+        x = min(max(x + 6, left + 4), width - right - 34)
+        offset = -8 if mode == "baseline" else 16
+        y = min(max(y + offset, top + 14), height - bottom - 4)
+        return x, y
+
+    colors = {"baseline": "#2563eb", "csf": "#dc2626"}
+    styles = {
+        "baseline": {"width": "3.4", "dash": "", "marker": "circle"},
+        "csf": {"width": "2.6", "dash": ' stroke-dasharray="7 5"', "marker": "diamond"},
+    }
+    y_label = METRIC_LABELS.get(metric, metric)
+    title = y_label.replace(", dB", "")
     lines = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="{width}" height="{height}">',
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
         '<rect width="100%" height="100%" fill="#ffffff"/>',
-        f'<text x="{pad}" y="28" font-family="Arial" font-size="18" fill="#111827">{metric}: average RD curve</text>',
-        f'<line x1="{pad}" y1="{height-pad}" x2="{width-pad}" y2="{height-pad}" stroke="#374151"/>',
-        f'<line x1="{pad}" y1="{pad}" x2="{pad}" y2="{height-pad}" stroke="#374151"/>',
-        f'<text x="{width/2-30}" y="{height-16}" font-family="Arial" font-size="13" fill="#374151">bpp</text>',
-        f'<text x="12" y="{height/2}" font-family="Arial" font-size="13" fill="#374151" transform="rotate(-90 12 {height/2})">{metric}</text>',
+        f'<text x="{left}" y="26" font-family="Arial" font-size="18" font-weight="700">{html.escape(title)} average RD curve</text>',
     ]
-    for mode, color in (("baseline", "#2563eb"), ("csf", "#dc2626")):
-        path = " ".join(("M" if index == 0 else "L") + f"{sx(x):.2f},{sy(y):.2f}" for index, (x, y) in enumerate(points[mode]))
-        lines.append(f'<path d="{path}" fill="none" stroke="{color}" stroke-width="2.2"/>')
-        for x, y in points[mode]:
-            lines.append(f'<circle cx="{sx(x):.2f}" cy="{sy(y):.2f}" r="4" fill="{color}"/>')
-        lines.append(f'<text x="{width-pad-110}" y="{pad + (18 if mode == "baseline" else 38)}" font-family="Arial" font-size="13" fill="{color}">{mode}</text>')
-    lines.append("</svg>")
+
+    for value in _linear_ticks(min_x, max_x):
+        x = sx(value)
+        lines.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{height - bottom}" stroke="#e5e7eb" stroke-width="1"/>')
+    for value in _linear_ticks(min_y, max_y):
+        y = sy(value)
+        lines.append(f'<line x1="{left}" y1="{y:.1f}" x2="{width - right}" y2="{y:.1f}" stroke="#e5e7eb" stroke-width="1"/>')
+
+    lines.extend(
+        [
+            f'<line x1="{left}" y1="{height - bottom}" x2="{width - right}" y2="{height - bottom}" stroke="#111827"/>',
+            f'<line x1="{left}" y1="{top}" x2="{left}" y2="{height - bottom}" stroke="#111827"/>',
+            f'<text x="{width // 2 - 12}" y="{height - 28}" font-family="Arial" font-size="13">bpp</text>',
+            f'<text x="16" y="{height // 2 + 45}" font-family="Arial" font-size="13" transform="rotate(-90 16,{height // 2 + 45})">{html.escape(y_label)}</text>',
+        ]
+    )
+
+    for value in _linear_ticks(min_x, max_x):
+        x = sx(value)
+        lines.extend(
+            [
+                f'<line x1="{x:.1f}" y1="{height - bottom}" x2="{x:.1f}" y2="{height - bottom + 5}" stroke="#111827"/>',
+                f'<text x="{x:.1f}" y="{height - bottom + 20}" font-family="Arial" font-size="11" fill="#374151" text-anchor="middle">{_format_bpp_tick(value)}</text>',
+            ]
+        )
+    for value in _linear_ticks(min_y, max_y):
+        y = sy(value)
+        lines.extend(
+            [
+                f'<line x1="{left - 5}" y1="{y:.1f}" x2="{left}" y2="{y:.1f}" stroke="#111827"/>',
+                f'<text x="{left - 9}" y="{y + 4:.1f}" font-family="Arial" font-size="11" fill="#374151" text-anchor="end">{_format_quality_tick(value)}</text>',
+            ]
+        )
+
+    for mode in ("baseline", "csf"):
+        mode_points = points.get(mode, [])
+        if not mode_points:
+            continue
+        color = colors[mode]
+        style = styles[mode]
+        coords = [(sx(float(point["bpp"])), sy(float(point["quality"]))) for point in mode_points]
+        lines.append(
+            '<polyline fill="none" stroke="{color}" stroke-width="{width}" stroke-linecap="round" '
+            'stroke-linejoin="round"{dash} points="{points}"/>'.format(
+                color=color,
+                width=style["width"],
+                dash=style["dash"],
+                points=" ".join(f"{x:.1f},{y:.1f}" for x, y in coords),
+            )
+        )
+        for point, (x, y) in zip(mode_points, coords):
+            lines.append(_marker_svg(x, y, color, str(style["marker"])))
+            label_x, label_y = clamp_label(x, y, mode)
+            lines.append(f'<text x="{label_x:.1f}" y="{label_y:.1f}" font-family="Arial" font-size="11" fill="#374151">QP{int(point["qp"])}</text>')
+
+    lines.extend(
+        [
+            '<rect x="88" y="54" width="126" height="48" rx="4" fill="#ffffff" stroke="#e5e7eb"/>',
+            f'<line x1="100" y1="72" x2="130" y2="72" stroke="{colors["baseline"]}" stroke-width="{styles["baseline"]["width"]}" stroke-linecap="round"/>',
+            _marker_svg(115, 72, colors["baseline"], str(styles["baseline"]["marker"])),
+            '<text x="140" y="76" font-family="Arial" font-size="12">baseline</text>',
+            f'<line x1="100" y1="90" x2="130" y2="90" stroke="{colors["csf"]}" stroke-width="{styles["csf"]["width"]}" stroke-linecap="round" stroke-dasharray="7 5"/>',
+            _marker_svg(115, 90, colors["csf"], str(styles["csf"]["marker"])),
+            '<text x="140" y="94" font-family="Arial" font-size="12">csf</text>',
+            "</svg>",
+        ]
+    )
     return "\n".join(lines)
+
+
+def _marker_svg(x: float, y: float, color: str, marker: str) -> str:
+    if marker == "diamond":
+        return (
+            f'<rect x="{x - 4:.1f}" y="{y - 4:.1f}" width="8" height="8" '
+            f'transform="rotate(45 {x:.1f} {y:.1f})" fill="#ffffff" stroke="{color}" stroke-width="2"/>'
+        )
+    return f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4.5" fill="#ffffff" stroke="{color}" stroke-width="2"/>'
+
+
+def _linear_ticks(min_value: float, max_value: float, count: int = 5) -> list[float]:
+    if count <= 1 or min_value == max_value:
+        return [min_value]
+    step = (max_value - min_value) / (count - 1)
+    return [min_value + step * index for index in range(count)]
+
+
+def _format_bpp_tick(value: float) -> str:
+    return f"{value:.3f}" if value < 1 else f"{value:.2f}"
+
+
+def _format_quality_tick(value: float) -> str:
+    return f"{value:.1f}" if abs(value) >= 10 else f"{value:.4f}".rstrip("0").rstrip(".")
 
 
 def main() -> int:

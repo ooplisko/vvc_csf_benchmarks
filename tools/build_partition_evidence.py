@@ -137,6 +137,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Build VVenC D_QP partition maps for image datasets.")
     parser.add_argument("--synthetic-dir", type=Path, default=Path("image_sets/synthetic/png"))
     parser.add_argument("--kodak-dir", type=Path, default=Path("image_sets/kodak/png"))
+    parser.add_argument("--standard-grayscale-dir", type=Path, default=Path("image_sets/standard_grayscale/png"))
     parser.add_argument("--output", type=Path, default=Path("docs/partition_maps"))
     parser.add_argument("--work-dir", type=Path, default=Path("results/partition_maps"))
     parser.add_argument("--baseline-trace-encoder", type=Path, default=Path("binaries/vvenc_default_trace.exe"))
@@ -146,7 +147,11 @@ def main() -> int:
     args = parser.parse_args()
 
     all_rows: list[dict[str, object]] = []
-    for dataset, png_dir in (("synthetic", args.synthetic_dir), ("kodak", args.kodak_dir)):
+    for dataset, png_dir in (
+        ("synthetic", args.synthetic_dir),
+        ("kodak", args.kodak_dir),
+        ("standard_grayscale", args.standard_grayscale_dir),
+    ):
         images = sorted(png_dir.glob("*.png"))
         if not images:
             raise RuntimeError(f"No PNG images found in {png_dir}")
