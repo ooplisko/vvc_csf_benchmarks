@@ -1,36 +1,36 @@
 # VVenC CSF Image Benchmark
 
-Цей репозиторій містить image-only перевірку кастомної CSF scaling-list модифікації для VVenC. Тут зібрані бінарники, синтетичні та Kodak-зображення, скрипти прогону, таблиці метрик, RD-чарти й карти розбиття зображень на Coding Unit (CU).
+This repository contains an image-only benchmark for a custom CSF scaling-list modification in VVenC. It includes reproducible encoder/decoder binaries, synthetic images, Kodak images, standard grayscale control images, benchmark scripts, metric tables, RD charts, and Coding Unit (CU) partition maps.
 
-## 1. Структура
+## 1. Repository Layout
 
-| Шлях | Призначення |
+| Path | Purpose |
 | --- | --- |
-| `binaries/` | Відтворювані encoder/decoder binaries для цього експерименту. |
-| `image_sets/synthetic/png/` | 4 синтетичні PNG-зображення: gradient, texture, edges, mixed content. |
-| `image_sets/kodak/png/` | 24 PNG-зображення Kodak image suite. |
-| `tools/` | Скрипти генерації зображень, прогону benchmark, звітів, матриць і partition maps. |
-| `metrics/image_quality.py` | In-repo luma-реалізації MS-SSIM, FSIM, HaarPSI та PSNR-HVS-M-подібних метрик. |
-| `docs/matrices/` | CSV-знімки default/CSF scaling matrices для читання й перевірки; джерелом істини лишається encoder. |
-| `docs/image_benchmark/` | CSV-результати, summary-таблиці й RD-чарти. |
-| `docs/partition_maps/` | CSV/SVG карти CU-розбиття для synthetic і Kodak. |
+| `binaries/` | Reproducible encoder/decoder binaries used by this experiment. |
+| `image_sets/synthetic/png/` | Four deterministic synthetic PNG images. |
+| `image_sets/kodak/png/` | The 24-image Kodak suite. |
+| `image_sets/standard_grayscale/` | BARBARA, BABOON, goldhill, lenna, and peppers as BMP sources and PNG benchmark inputs. |
+| `tools/` | Dataset, benchmark, report, matrix, and partition-map utilities. |
+| `metrics/image_quality.py` | In-repository luma implementations of MS-SSIM, FSIM, HaarPSI, and PSNR-HVS-M-like indicators. |
+| `docs/matrices/` | CSV snapshots of default and CSF scaling matrices. The encoder remains the source of truth. |
+| `docs/image_benchmark/` | CSV results, summary tables, and RD charts. |
+| `docs/partition_maps/` | CSV/SVG CU partition evidence for all image sets. |
 
-## 2. Бінарники
+## 2. Binaries
 
-| Файл | Для чого використовується |
+| File | Purpose |
 | --- | --- |
-| `binaries/vvenc_default.exe` | Чистий upstream/default VVenC encoder, без CSF. |
-| `binaries/vvenc_csf.exe` | Модифікований VVenC encoder; CSF вмикається через `--CSFScalingList 1`. |
-| `binaries/vvenc_default_trace.exe` | Чистий upstream encoder із `VVENC_ENABLE_TRACING=ON`, тільки для карт розбиття. |
-| `binaries/vvenc_csf_trace.exe` | CSF encoder із `VVENC_ENABLE_TRACING=ON`, тільки для карт розбиття. |
-| `binaries/vvdecapp.exe` | VVdeC decoder для перевірки bitstream/decode. |
+| `binaries/vvenc_default.exe` | Clean upstream/default VVenC encoder without CSF. |
+| `binaries/vvenc_csf.exe` | Modified VVenC encoder. CSF is enabled with `--CSFScalingList 1`. |
+| `binaries/vvenc_default_trace.exe` | Default encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only. |
+| `binaries/vvenc_csf_trace.exe` | CSF encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only. |
+| `binaries/vvdecapp.exe` | VVdeC decoder used to verify bitstream decoding. |
 
-Binaries у `binaries/` відповідають двом VVenC деревам: upstream/default VVenC та модифікованій гілці `feature-branch`. Для повторення поточного аналізу достатньо файлів із цієї директорії; локальні шляхи середовища збірки не використовуються.
+The binaries correspond to two VVenC trees: upstream/default VVenC and the modified `feature-branch`. The current benchmark can be reproduced directly from the binaries in this repository; local build directories are not required.
 
-Якщо потрібно перебудувати binaries самостійно:
+To rebuild the default encoder binaries:
 
 ```powershell
-# default encoder
 git clone https://github.com/fraunhoferhhi/vvenc ..\vvenc_upstream
 cd ..\vvenc_upstream
 git checkout 6f76748
@@ -38,19 +38,18 @@ cmake -S . -B build\release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DVV
 cmake --build build\release --target vvencFFapp --parallel 8
 Copy-Item bin\release-static\vvencFFapp.exe ..\vvenc_csf_tests\binaries\vvenc_default.exe
 
-# default trace encoder for partition maps
 cmake -S . -B build\trace -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DVVENC_ENABLE_TRACING=ON -DVVENC_ENABLE_LINK_TIME_OPT=OFF
 cmake --build build\trace --target vvencFFapp --parallel 8
 Copy-Item bin\release-static\vvencFFapp.exe ..\vvenc_csf_tests\binaries\vvenc_default_trace.exe
 ```
 
-Для CSF encoder треба зібрати VVenC fork/branch з реалізацією `--CSFScalingList`, після чого скопіювати release і trace binaries як `vvenc_csf.exe` та `vvenc_csf_trace.exe`.
+The CSF binaries are built from the VVenC fork/branch that implements `--CSFScalingList`, then copied as `vvenc_csf.exe` and `vvenc_csf_trace.exe`.
 
-## 3. Матриці
+## 3. Scaling Matrices
 
-Матриці задаються в encoder. У CSF-гілці базова таблиця лежить у `source/Lib/CommonLib/CSFWeights.h`, а застосування до quant/dequant коефіцієнтів виконується в `source/Lib/CommonLib/Quant.cpp`.
+Scaling matrices are defined in the encoder, not in this Python project. In the CSF branch, the base table is in `source/Lib/CommonLib/CSFWeights.h`; quant/dequant application is implemented in `source/Lib/CommonLib/Quant.cpp`.
 
-`docs/matrices/` містить CSV-знімки default і CSF scaling matrices. Ці файли не керують encoder-ом і не підміняють C++-реалізацію; вони фіксують числовий вигляд матриць для аналізу, порівняння та повторної перевірки результатів. CSV генеруються командою:
+`docs/matrices/` stores CSV snapshots of the default and CSF matrices. These files do not drive the encoder. They record the numerical matrices used for analysis, comparison, and result verification.
 
 ```powershell
 .\.venv\Scripts\python.exe tools\dump_csf_matrices.py --output docs\matrices
@@ -82,11 +81,11 @@ CSF 8x8 matrix:
 40,48,58,72,92,119,155,200
 ```
 
-Для матриць не 8x8 encoder не вставляє окрему вручну задану таблицю. Поточна CSF-логіка бере 8x8 CSF-таблицю і мапить її на потрібний Transform Unit (TU), тобто блок перетворення, до якого застосовується quant/dequant. Для квадратних TU використовується масштабування індексів до `min(size, 8)`. Для прямокутних TU використовується більша сторона блока, співвідношення сторін і окремі `ratioH/ratioW`, щоб отримати координати в базовій CSF-таблиці. Для коефіцієнтів поза zero-out threshold encoder записує нулі, як у стандартній scaling-list логіці.
+For non-8x8 Transform Units (TU), the encoder maps the 8x8 CSF table to the active TU size. Square TUs use scaled indices up to `min(size, 8)`. Rectangular TUs use the longer side and `ratioH`/`ratioW` mapping to select coordinates from the base CSF table. Coefficients outside the zero-out threshold are written as zero, matching the standard scaling-list behavior.
 
-## 4. Розбиття зображення на блоки
+## 4. Image Partitioning
 
-VVenC кодує кадр через Coding Tree Unit (CTU) і рекурсивно вибирає CU-розбиття через RD-пошук. Фінальна структура копіюється в picture-level coding structure:
+VVenC codes a picture through Coding Tree Units (CTU) and recursively selects CU partitions through rate-distortion search. The final partition structure is copied into the picture-level coding structure.
 
 ```cpp
 partitioner->initCtu( area, CH_L, *cs.slice );
@@ -95,7 +94,7 @@ cs.useSubStructure( *bestCS, partitioner->chType, TREE_D,
   CS::getArea( *bestCS, area, partitioner->chType, partitioner->treeType ) );
 ```
 
-Карти в цьому репозиторії взяті не з припущень, а з VVenC trace `D_QP`. У `CABACWriter.cpp` encoder пише фінальні luma CU:
+The maps in this repository come from the VVenC `D_QP` trace, not from a synthetic approximation. The trace records final luma CUs in `CABACWriter.cpp`:
 
 ```cpp
 DTRACE_COND( ( isEncoding() ), g_trace_ctx, D_QP,
@@ -103,76 +102,58 @@ DTRACE_COND( ( isEncoding() ), g_trace_ctx, D_QP,
   cu.Y().x, cu.Y().y, cu.Y().width, cu.Y().height, cu.qp );
 ```
 
-Baseline maps згенеровані `vvenc_default_trace.exe`, CSF maps - `vvenc_csf_trace.exe`. Тобто карта показує фактичний encoder decision при однаковому зображенні, QP і preset.
+Baseline maps are generated with `vvenc_default_trace.exe`; CSF maps are generated with `vvenc_csf_trace.exe`. For each image, both maps use the same canvas size. When a CSF map looks visually smaller or denser, the scale is not different; the encoder selected more small CUs.
 
-## 5. Відтворення прогону
+## 5. Reproducing the Run
 
-Створити локальне Python-оточення:
+Create the local Python environment:
 
 ```powershell
 py -3 -m venv .venv
 .\.venv\Scripts\pip.exe install -r requirements.txt
 ```
 
-`.venv` не є частиною репозиторію; це локальна директорія, яку створює користувач. Також потрібні `ffmpeg`, `ffprobe` і `curl.exe` у PATH.
+The `.venv` directory is local and is not part of the repository. `ffmpeg`, `ffprobe`, and `curl.exe` must be available in `PATH`.
 
-Згенерувати synthetic images:
+Generate or refresh input images:
 
 ```powershell
 .\.venv\Scripts\python.exe tools\generate_synthetic_images.py --output image_sets\synthetic\png
 ```
 
-Запустити benchmark для synthetic:
+Run the three image benchmarks:
 
 ```powershell
-.\.venv\Scripts\python.exe tools\image_csf_benchmark.py `
-  --root results\image_synthetic_full `
-  --png-dir image_sets\synthetic\png `
-  --qps 22,27,32,37
+.\.venv\Scripts\python.exe tools\image_csf_benchmark.py --root results\image_synthetic_full --png-dir image_sets\synthetic\png --qps 22,27,32,37
+.\.venv\Scripts\python.exe tools\image_csf_benchmark.py --root results\image_kodak_full --png-dir image_sets\kodak\png --download-kodak --qps 22,27,32,37
+.\.venv\Scripts\python.exe tools\image_csf_benchmark.py --root results\image_standard_grayscale_full --png-dir image_sets\standard_grayscale\png --qps 22,27,32,37
 ```
 
-Запустити benchmark для Kodak:
+Merge metrics and regenerate reports:
 
 ```powershell
-.\.venv\Scripts\python.exe tools\image_csf_benchmark.py `
-  --root results\image_kodak_full `
-  --png-dir image_sets\kodak\png `
-  --download-kodak `
-  --qps 22,27,32,37
-```
-
-Згенерувати таблиці й чарти:
-
-```powershell
-.\.venv\Scripts\python.exe tools\report_image_benchmark.py `
-  docs\image_benchmark\combined_image_metrics.csv `
-  --output docs\image_benchmark\combined
-```
-
-Згенерувати partition maps:
-
-```powershell
+.\.venv\Scripts\python.exe tools\merge_image_metrics.py results\image_synthetic_full\image_metrics.csv results\image_kodak_full\image_metrics.csv results\image_standard_grayscale_full\image_metrics.csv --output docs\image_benchmark\combined_image_metrics.csv
+.\.venv\Scripts\python.exe tools\report_image_benchmark.py docs\image_benchmark\combined_image_metrics.csv --output docs\image_benchmark\combined
 .\.venv\Scripts\python.exe tools\build_partition_evidence.py --qp 32
+.\.venv\Scripts\python.exe tools\render_readme.py
 ```
 
-## 6. Умови експерименту
+## 6. Experiment Conditions
 
-Фіксовані умови:
-
-| Параметр | Значення |
+| Parameter | Value |
 | --- | --- |
-| Dataset | 4 synthetic + 24 Kodak PNG |
-| Кадри | 1 frame per image |
-| Pixel format для encode | `yuv420p`, 8-bit |
+| Dataset | 4 synthetic + 24 Kodak + 5 standard grayscale images |
+| Frames | 1 frame per image |
+| Encode pixel format | `yuv420p`, 8-bit |
 | QP points | 22, 27, 32, 37 |
 | Preset | `medium` |
-| Baseline mode | `vvenc_default.exe`, без `--CSFScalingList` |
+| Baseline mode | `vvenc_default.exe`, without `--CSFScalingList` |
 | CSF mode | `vvenc_csf.exe --CSFScalingList 1` |
 | Decoder | `vvdecapp.exe` |
 
-Параметр, який керує ступенем стиснення в цьому експерименті, один: `QP`. Усі інші умови зафіксовані. Менший QP дає більший bitrate і кращу якість, більший QP дає сильніше стиснення.
+The compression control parameter in this experiment is `QP`. All other conditions are fixed. Lower QP increases bitrate and quality; higher QP increases compression strength.
 
-Ступінь стиснення для конкретних умов `image + QP + mode` розраховується так:
+Compression ratio is computed per `image + QP + mode` point:
 
 ```text
 raw_bytes = width * height * 3 / 2
@@ -180,131 +161,127 @@ compression_ratio = raw_bytes / bitstream_bytes
 bpp = bitstream_bytes * 8 / (width * height)
 ```
 
-`raw_bytes` відповідає одному 8-bit YUV420 кадру. `bitstream_bytes` береться з розміру `.vvc` bitstream після encode. Усі значення записані в `docs/image_benchmark/combined_image_metrics.csv`: колонки `bitstream_bytes`, `compression_ratio`, `bpp`, `image`, `qp`, `mode`.
+`raw_bytes` corresponds to one 8-bit YUV420 frame. `bitstream_bytes` is the encoded `.vvc` bitstream size. The values are recorded in `docs/image_benchmark/combined_image_metrics.csv`.
 
-## 7. Метрики візуальної якості
+## 7. Visual Quality Metrics
 
-Поведінка encoder-а у стандартних умовах досліджується двома способами:
+Encoder behavior is evaluated in two ways:
 
-1. Same-QP comparison: baseline і CSF порівнюються при однакових QP 22/27/32/37.
-2. Equal-bpp comparison: значення CSF інтерполюється на bpp-точки baseline, щоб оцінити якість при близькому bitrate.
+1. Same-QP comparison: baseline and CSF are compared at identical QP points 22/27/32/37.
+2. Equal-bpp comparison: CSF metric values are interpolated to baseline bpp points to estimate quality at comparable bitrate.
 
-Luma означає яскравісну Y-компоненту у YUV-представленні зображення. У цьому benchmark input і reconstruction зберігаються як YUV420, тому локальні MS-SSIM/FSIM/HaarPSI/PSNR-HVS-M колонки рахуються саме по Y-площині. Такий підхід добре узгоджується з PSNR-Y/XPSNR-Y і дає стабільне порівняння baseline vs CSF для структури, контурів і текстур, які найбільше проявляються в яскравісному каналі.
+Luma means the Y component in the YUV representation. The benchmark stores source and reconstruction frames as YUV420, so the local MS-SSIM, FSIM, HaarPSI, and PSNR-HVS-M columns are computed on the Y plane. This aligns them with PSNR-Y and XPSNR-Y and makes the comparison stable for structures, edges, and textures visible in brightness.
 
-Ці локальні luma-метрики не є повною заміною pinned зовнішніх реалізацій. Вони потрібні для відтворюваного in-repo аналізу без важких залежностей і рахуються однаково для обох encoder modes. Зовнішні реалізації MS-SSIM/FSIM/HaarPSI/PSNR-HVS-M можуть відрізнятися деталями: RGB або YUV input, обробкою chroma, padding, масштабуванням, фільтрами, вагами multi-scale рівнів, реалізацією phase congruency або Haar wavelet частини. Тому поточні колонки треба читати як локальні luma-only індикатори для порівняння всередині цього експерименту, а не як bit-exact відповідність конкретній сторонній бібліотеці.
+The local luma metrics are not bit-exact replacements for pinned external implementations. External implementations can differ by RGB/YUV input handling, chroma use, padding, scaling, filters, multi-scale weights, phase congruency details, and Haar-wavelet details. In this project they are used as reproducible in-repository indicators applied identically to baseline and CSF.
 
-Метрики:
-
-| Метрика | Джерело |
+| Metric | Source |
 | --- | --- |
-| PSNR-Y/U/V | Парситься з VVenC encode log. |
-| SSIM | `ffmpeg -lavfi ssim`. |
-| XPSNR-Y | `ffmpeg -lavfi xpsnr`. |
-| VMAF | `ffmpeg -lavfi libvmaf`, якщо ffmpeg зібраний з libvmaf. |
-| MS-SSIM | Локальний luma-розрахунок у `metrics/image_quality.py`. |
-| FSIM | Локальний luma-розрахунок у `metrics/image_quality.py`. |
-| HaarPSI | Локальний luma-розрахунок у `metrics/image_quality.py`. |
-| PSNR-HVS-M | Локальний luma-розрахунок у `metrics/image_quality.py`. |
+| PSNR-Y/U/V | Parsed from the VVenC encode log. |
+| SSIM | `ffmpeg -lavfi ssim`, parsed as the aggregate `All` score. |
+| XPSNR-Y | `ffmpeg -lavfi xpsnr`, Y score. |
+| VMAF | `ffmpeg -lavfi libvmaf` when the local ffmpeg build provides libvmaf. |
+| MS-SSIM | Local luma implementation in `metrics/image_quality.py`. |
+| FSIM | Local luma implementation in `metrics/image_quality.py`. |
+| HaarPSI | Local luma implementation in `metrics/image_quality.py`. |
+| PSNR-HVS-M | Local luma implementation in `metrics/image_quality.py`. |
 
-## 8. Підсумок same-QP
+## 8. Same-QP Summary
 
 CSV: `docs/image_benchmark/combined/same_qp_summary.csv`
 
-| Метрика | Mean | Min | Max |
+| Metric | Mean | Min | Max |
 | --- | --- | --- | --- |
-| psnr_y_delta | -0.515987 | -1.286700 | 0.498400 |
-| ssim_delta | -0.002323 | -0.011512 | 0.000771 |
-| xpsnr_y_delta | -0.473405 | -1.281300 | 0.286200 |
-| vmaf_delta | -0.019329 | -1.386822 | 1.076791 |
+| psnr_y_delta | -0.542548 | -1.437300 | 0.498400 |
+| ssim_delta | -0.002447 | -0.011512 | 0.000771 |
+| xpsnr_y_delta | -0.500045 | -1.377400 | 0.286200 |
+| vmaf_delta | -0.039329 | -1.386822 | 1.076791 |
 | msssim_luma_delta | -0.000044 | -0.000349 | 0.000008 |
-| fsim_luma_delta | -0.003933 | -0.015175 | 0.003091 |
-| haarpsi_luma_delta | -0.003413 | -0.018561 | 0.001788 |
-| psnr_hvs_m_luma_delta | -0.476527 | -1.255171 | 0.456938 |
+| fsim_luma_delta | -0.003970 | -0.015175 | 0.003091 |
+| haarpsi_luma_delta | -0.003477 | -0.018561 | 0.001788 |
+| psnr_hvs_m_luma_delta | -0.501798 | -1.352777 | 0.456938 |
 
-## 9. Підсумок equal-bpp
+## 9. Equal-bpp Summary
 
 CSV: `docs/image_benchmark/combined/equal_bpp_metric_summary.csv`
 
-| Метрика | Mean | Min | Max |
+| Metric | Mean | Min | Max |
 | --- | --- | --- | --- |
-| psnr_y_equal_bpp_delta | -0.867397 | -6.534639 | 0.000000 |
-| ssim_equal_bpp_delta | -0.002734 | -0.009478 | 0.000000 |
-| xpsnr_y_equal_bpp_delta | -0.765944 | -5.767764 | 0.000000 |
-| vmaf_equal_bpp_delta | -0.055951 | -0.821547 | 0.198170 |
-| msssim_luma_equal_bpp_delta | -0.000066 | -0.000703 | 0.000000 |
-| fsim_luma_equal_bpp_delta | -0.004466 | -0.012932 | 0.000000 |
-| haarpsi_luma_equal_bpp_delta | -0.003950 | -0.013726 | 0.000000 |
-| psnr_hvs_m_luma_equal_bpp_delta | -0.701116 | -4.082148 | 0.000000 |
+| psnr_y_equal_bpp_delta | -0.825877 | -6.534639 | 0.000000 |
+| ssim_equal_bpp_delta | -0.002743 | -0.009478 | 0.000000 |
+| xpsnr_y_equal_bpp_delta | -0.733665 | -5.767764 | 0.000000 |
+| vmaf_equal_bpp_delta | -0.071758 | -0.821547 | 0.198170 |
+| msssim_luma_equal_bpp_delta | -0.000062 | -0.000703 | 0.000000 |
+| fsim_luma_equal_bpp_delta | -0.004360 | -0.012932 | 0.000000 |
+| haarpsi_luma_equal_bpp_delta | -0.003864 | -0.013726 | 0.000000 |
+| psnr_hvs_m_luma_equal_bpp_delta | -0.678115 | -4.082148 | 0.000000 |
 
-## 10. Таблиця по всіх зображеннях
+## 10. Per-Image Summary
 
-Таблиця нижче агрегує 4 QP-точки для кожного зображення. Повний per-image/QP/mode CSV лежить у `docs/image_benchmark/combined_image_metrics.csv`, а per-image summary - у `docs/image_benchmark/combined/per_image_summary.csv`.
+The table aggregates four QP points for each image. The full per-image/QP/mode table is stored in `docs/image_benchmark/combined_image_metrics.csv`; the summarized table is stored in `docs/image_benchmark/combined/per_image_summary.csv`.
 
-| Зображення | bpp CSF vs base, % | Compression ratio CSF vs base, % | PSNR-Y | SSIM | XPSNR-Y | VMAF | MS-SSIM | FSIM | HaarPSI | PSNR-HVS-M |
+| Image | bpp CSF vs base, % | Compression ratio CSF vs base, % | PSNR-Y | SSIM | XPSNR-Y | VMAF | MS-SSIM | FSIM | HaarPSI | PSNR-HVS-M |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| fine_texture_512x512 | 10.39 | -9.07 | -0.898 | -0.00398 | -0.878 | 0.489 | -0.000102 | -0.00541 | -0.00653 | -0.853 |
-| kodim01 | -0.93 | 0.96 | -0.810 | -0.00429 | -0.741 | 0.093 | -0.000132 | -0.00580 | -0.00583 | -0.767 |
-| kodim02 | 1.30 | -1.14 | -0.409 | -0.00251 | -0.369 | 0.196 | -0.000098 | -0.00563 | -0.00341 | -0.384 |
-| kodim03 | 2.96 | -2.82 | -0.380 | -0.00140 | -0.302 | 0.288 | -0.000023 | -0.00449 | -0.00288 | -0.348 |
-| kodim04 | -0.80 | 0.87 | -0.574 | -0.00308 | -0.535 | 0.280 | -0.000058 | -0.00620 | -0.00437 | -0.546 |
-| kodim05 | -0.77 | 0.78 | -0.575 | -0.00181 | -0.529 | -0.085 | -0.000043 | -0.00251 | -0.00265 | -0.538 |
-| kodim06 | 0.51 | -0.50 | -0.673 | -0.00339 | -0.620 | -0.106 | -0.000031 | -0.00491 | -0.00488 | -0.622 |
-| kodim07 | 1.92 | -1.83 | -0.282 | -0.00039 | -0.252 | -0.092 | -0.000022 | -0.00151 | -0.00131 | -0.253 |
-| kodim08 | -1.07 | 1.08 | -0.751 | -0.00246 | -0.695 | -0.035 | -0.000033 | -0.00275 | -0.00360 | -0.700 |
-| kodim09 | 1.21 | -1.08 | -0.351 | -0.00112 | -0.316 | -0.164 | -0.000029 | -0.00248 | -0.00211 | -0.308 |
-| kodim10 | 1.57 | -1.43 | -0.300 | -0.00090 | -0.263 | 0.140 | -0.000022 | -0.00199 | -0.00156 | -0.269 |
-| kodim11 | -0.49 | 0.51 | -0.603 | -0.00336 | -0.538 | -0.183 | -0.000056 | -0.00444 | -0.00374 | -0.557 |
-| kodim12 | 1.04 | -0.91 | -0.448 | -0.00228 | -0.415 | -0.239 | -0.000025 | -0.00393 | -0.00244 | -0.415 |
-| kodim13 | -1.44 | 1.48 | -0.990 | -0.00590 | -0.955 | -0.092 | -0.000087 | -0.00649 | -0.00711 | -0.937 |
-| kodim14 | -1.17 | 1.20 | -0.631 | -0.00325 | -0.583 | -0.194 | -0.000051 | -0.00472 | -0.00373 | -0.594 |
-| kodim15 | -0.38 | 0.47 | -0.612 | -0.00273 | -0.529 | 0.019 | -0.000009 | -0.00612 | -0.00424 | -0.562 |
-| kodim16 | 0.21 | -0.19 | -0.594 | -0.00325 | -0.554 | -0.190 | -0.000046 | -0.00568 | -0.00439 | -0.559 |
-| kodim17 | 0.98 | -0.89 | -0.340 | -0.00112 | -0.249 | -0.405 | -0.000016 | -0.00250 | -0.00197 | -0.301 |
-| kodim18 | -2.49 | 2.56 | -0.801 | -0.00381 | -0.705 | -0.072 | -0.000115 | -0.00551 | -0.00524 | -0.758 |
-| kodim19 | -1.41 | 1.48 | -0.629 | -0.00340 | -0.619 | -0.120 | -0.000049 | -0.00500 | -0.00397 | -0.589 |
-| kodim20 | 0.60 | -0.53 | -0.584 | -0.00227 | -0.570 | -0.008 | -0.000008 | -0.00576 | -0.00401 | -0.529 |
-| kodim21 | -0.12 | 0.12 | -0.607 | -0.00193 | -0.566 | -0.057 | -0.000062 | -0.00445 | -0.00474 | -0.544 |
-| kodim22 | -1.52 | 1.56 | -0.632 | -0.00392 | -0.581 | -0.034 | -0.000067 | -0.00697 | -0.00518 | -0.594 |
-| kodim23 | 3.34 | -3.09 | -0.264 | -0.00050 | -0.207 | -0.282 | -0.000010 | -0.00189 | -0.00152 | -0.221 |
-| kodim24 | -0.07 | 0.07 | -0.647 | -0.00230 | -0.541 | 0.116 | -0.000036 | -0.00371 | -0.00455 | -0.569 |
-| mixed_content_512x512 | 33.52 | -24.53 | -0.019 | 0.00019 | -0.049 | 0.152 | -0.000001 | -0.00001 | -0.00003 | -0.039 |
-| sharp_edges_512x512 | 30.36 | -23.11 | -0.043 | 0.00012 | -0.092 | 0.043 | 0.000001 | 0.00075 | 0.00043 | 0.012 |
-| smooth_gradient_512x512 | 262.71 | -70.55 | 0.000 | 0.00000 | 0.000 | 0.000 | 0.000000 | 0.00000 | 0.00000 | 0.000 |
+| baboon | 0.75 | -0.74 | -0.907 | -0.004020 | -0.877 | -0.105 | -0.000074 | -0.004722 | -0.006154 | -0.843083 |
+| barbara | -0.10 | 0.11 | -0.837 | -0.002742 | -0.722 | -0.187 | -0.000064 | -0.004608 | -0.004363 | -0.758940 |
+| fine_texture_512x512 | 10.39 | -9.07 | -0.898 | -0.003980 | -0.878 | 0.489 | -0.000102 | -0.005406 | -0.006529 | -0.852831 |
+| goldhill | -0.53 | 0.65 | -0.632 | -0.003304 | -0.603 | -0.234 | -0.000041 | -0.005045 | -0.003634 | -0.603223 |
+| kodim01 | -0.93 | 0.96 | -0.810 | -0.004287 | -0.741 | 0.093 | -0.000132 | -0.005796 | -0.005827 | -0.766701 |
+| kodim02 | 1.30 | -1.14 | -0.409 | -0.002509 | -0.369 | 0.196 | -0.000098 | -0.005634 | -0.003412 | -0.383767 |
+| kodim03 | 2.96 | -2.82 | -0.380 | -0.001405 | -0.302 | 0.288 | -0.000023 | -0.004494 | -0.002884 | -0.348112 |
+| kodim04 | -0.80 | 0.87 | -0.574 | -0.003082 | -0.535 | 0.280 | -0.000058 | -0.006197 | -0.004366 | -0.545942 |
+| kodim05 | -0.77 | 0.78 | -0.575 | -0.001811 | -0.529 | -0.085 | -0.000043 | -0.002512 | -0.002650 | -0.538104 |
+| kodim06 | 0.51 | -0.50 | -0.673 | -0.003388 | -0.620 | -0.106 | -0.000031 | -0.004911 | -0.004882 | -0.622344 |
+| kodim07 | 1.92 | -1.83 | -0.282 | -0.000394 | -0.252 | -0.092 | -0.000022 | -0.001513 | -0.001305 | -0.252857 |
+| kodim08 | -1.07 | 1.08 | -0.751 | -0.002456 | -0.695 | -0.035 | -0.000033 | -0.002754 | -0.003604 | -0.699844 |
+| kodim09 | 1.21 | -1.08 | -0.351 | -0.001118 | -0.316 | -0.164 | -0.000029 | -0.002482 | -0.002106 | -0.307622 |
+| kodim10 | 1.57 | -1.43 | -0.300 | -0.000902 | -0.263 | 0.140 | -0.000022 | -0.001991 | -0.001559 | -0.268724 |
+| kodim11 | -0.49 | 0.51 | -0.603 | -0.003359 | -0.538 | -0.183 | -0.000056 | -0.004442 | -0.003744 | -0.556585 |
+| kodim12 | 1.04 | -0.91 | -0.448 | -0.002280 | -0.415 | -0.239 | -0.000025 | -0.003930 | -0.002439 | -0.415406 |
+| kodim13 | -1.44 | 1.48 | -0.990 | -0.005901 | -0.955 | -0.092 | -0.000087 | -0.006487 | -0.007109 | -0.937136 |
+| kodim14 | -1.17 | 1.20 | -0.631 | -0.003252 | -0.583 | -0.194 | -0.000051 | -0.004723 | -0.003730 | -0.593605 |
+| kodim15 | -0.38 | 0.47 | -0.612 | -0.002731 | -0.529 | 0.019 | -0.000009 | -0.006119 | -0.004243 | -0.562263 |
+| kodim16 | 0.21 | -0.19 | -0.594 | -0.003249 | -0.554 | -0.190 | -0.000046 | -0.005679 | -0.004391 | -0.559220 |
+| kodim17 | 0.98 | -0.89 | -0.340 | -0.001118 | -0.249 | -0.405 | -0.000016 | -0.002504 | -0.001971 | -0.301259 |
+| kodim18 | -2.49 | 2.56 | -0.801 | -0.003808 | -0.705 | -0.072 | -0.000115 | -0.005511 | -0.005240 | -0.757806 |
+| kodim19 | -1.41 | 1.48 | -0.629 | -0.003395 | -0.619 | -0.120 | -0.000049 | -0.005001 | -0.003974 | -0.589388 |
+| kodim20 | 0.60 | -0.53 | -0.584 | -0.002268 | -0.570 | -0.008 | -0.000008 | -0.005765 | -0.004013 | -0.529037 |
+| kodim21 | -0.12 | 0.12 | -0.607 | -0.001931 | -0.566 | -0.057 | -0.000062 | -0.004447 | -0.004740 | -0.543732 |
+| kodim22 | -1.52 | 1.56 | -0.632 | -0.003923 | -0.581 | -0.034 | -0.000067 | -0.006965 | -0.005176 | -0.593885 |
+| kodim23 | 3.34 | -3.09 | -0.264 | -0.000501 | -0.207 | -0.282 | -0.000010 | -0.001893 | -0.001521 | -0.220639 |
+| kodim24 | -0.07 | 0.07 | -0.647 | -0.002300 | -0.541 | 0.116 | -0.000036 | -0.003707 | -0.004554 | -0.569061 |
+| lenna | 2.02 | -1.53 | -0.430 | -0.001643 | -0.420 | -0.024 | -0.000020 | -0.002915 | -0.001961 | -0.397827 |
+| mixed_content_512x512 | 33.52 | -24.53 | -0.019 | 0.000189 | -0.049 | 0.152 | -6.517e-07 | -0.000014 | -0.000031 | -0.039002 |
+| peppers | 1.00 | 0.11 | -0.651 | -0.004001 | -0.624 | -0.207 | -0.000011 | -0.003587 | -0.003058 | -0.613511 |
+| sharp_edges_512x512 | 30.36 | -23.11 | -0.043 | 0.000121 | -0.092 | 0.043 | 9.171e-07 | 0.000750 | 0.000431 | 0.012121 |
+| smooth_gradient_512x512 | 262.71 | -70.55 | 0.000 | 0.000000 | 0.000 | 0.000 | 0.000000 | 0.000000 | 0.000000 | 0.000000 |
 
-## 11. RD-чарти
+## 11. RD Charts
 
-![PSNR-Y RD](docs/image_benchmark/combined/charts/rd_psnr_y.svg)
+The charts show average RD curves over the combined dataset. Numeric axis ticks, QP labels, and the in-plot legend are embedded in the SVG files. Dataset-specific charts are also available under `docs/image_benchmark/synthetic/charts/`, `docs/image_benchmark/kodak/charts/`, and `docs/image_benchmark/standard_grayscale/charts/`.
 
-![SSIM RD](docs/image_benchmark/combined/charts/rd_ssim.svg)
+| Chart | Chart |
+| --- | --- |
+| **PSNR-Y**<br><img src="docs/image_benchmark/combined/charts/rd_psnr_y.svg" width="360"> | **SSIM**<br><img src="docs/image_benchmark/combined/charts/rd_ssim.svg" width="360"> |
+| **XPSNR-Y**<br><img src="docs/image_benchmark/combined/charts/rd_xpsnr_y.svg" width="360"> | **VMAF**<br><img src="docs/image_benchmark/combined/charts/rd_vmaf.svg" width="360"> |
+| **MS-SSIM luma**<br><img src="docs/image_benchmark/combined/charts/rd_msssim_luma.svg" width="360"> | **FSIM luma**<br><img src="docs/image_benchmark/combined/charts/rd_fsim_luma.svg" width="360"> |
+| **HaarPSI luma**<br><img src="docs/image_benchmark/combined/charts/rd_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma**<br><img src="docs/image_benchmark/combined/charts/rd_psnr_hvs_m_luma.svg" width="360"> |
 
-![XPSNR-Y RD](docs/image_benchmark/combined/charts/rd_xpsnr_y.svg)
+## 12. Partition Map Summary
 
-![VMAF RD](docs/image_benchmark/combined/charts/rd_vmaf.svg)
+Each map shows final luma CUs encoded at `QP=32`, `preset=medium`, and `1 frame`.
 
-![MS-SSIM RD](docs/image_benchmark/combined/charts/rd_msssim_luma.svg)
+### Synthetic
 
-![FSIM RD](docs/image_benchmark/combined/charts/rd_fsim_luma.svg)
-
-![HaarPSI RD](docs/image_benchmark/combined/charts/rd_haarpsi_luma.svg)
-
-![PSNR-HVS-M RD](docs/image_benchmark/combined/charts/rd_psnr_hvs_m_luma.svg)
-
-## 12. Partition maps: summary
-
-Карта показує фінальні luma CU, які encoder реально закодував при `QP=32`, `preset=medium`, `1 frame`.
-
-Synthetic:
-
-| Зображення | Розмір | CU baseline | CU CSF | Delta, % | Домінуючі baseline | Домінуючі CSF |
+| Image | Size | CU baseline | CU CSF | Delta, % | Dominant baseline | Dominant CSF |
 | --- | --- | --- | --- | --- | --- | --- |
 | fine_texture_512x512 | 512x512 | 351 | 16094 | 4485.19 | 32x32:191; 16x32:58; 16x16:53; 32x16:43; 32x8:2; 8x16:2 | 4x4:15820; 4x8:160; 8x4:106; 4x16:8 |
 | mixed_content_512x512 | 512x512 | 549 | 540 | -1.64 | 16x16:107; 32x32:82; 8x8:61; 4x4:38; 4x16:32; 8x16:31 | 16x16:116; 32x32:63; 8x8:61; 4x4:46; 4x16:37; 64x64:30 |
 | sharp_edges_512x512 | 512x512 | 577 | 576 | -0.17 | 16x16:115; 32x32:114; 16x32:67; 8x8:56; 16x8:40; 4x32:36 | 16x16:145; 32x32:112; 16x32:67; 8x8:55; 4x32:36; 8x16:33 |
 | smooth_gradient_512x512 | 512x512 | 64 | 64 | 0.00 | 64x64:64 | 64x64:64 |
 
-Kodak:
+### Kodak
 
-| Зображення | Розмір | CU baseline | CU CSF | Delta, % | Домінуючі baseline | Домінуючі CSF |
+| Image | Size | CU baseline | CU CSF | Delta, % | Dominant baseline | Dominant CSF |
 | --- | --- | --- | --- | --- | --- | --- |
 | kodim01 | 768x512 | 5627 | 12897 | 129.20 | 8x8:1162; 8x4:870; 4x4:862; 4x8:645; 16x4:639; 16x8:445 | 4x4:8890; 8x4:1494; 4x8:781; 8x8:577; 16x4:349; 4x16:280 |
 | kodim02 | 768x512 | 3739 | 4614 | 23.40 | 8x8:769; 4x4:462; 8x4:425; 4x8:344; 16x4:315; 4x16:294 | 4x4:1268; 8x8:607; 8x4:554; 4x8:408; 16x4:406; 4x16:327 |
@@ -331,50 +308,72 @@ Kodak:
 | kodim23 | 768x512 | 2111 | 2473 | 17.15 | 8x8:394; 4x4:274; 8x16:256; 16x16:239; 4x8:172; 8x4:135 | 4x4:572; 8x8:365; 16x16:250; 8x4:237; 4x8:217; 8x16:212 |
 | kodim24 | 768x512 | 5728 | 9720 | 69.69 | 8x8:1348; 4x4:1288; 8x4:757; 4x8:711; 8x16:395; 4x16:324 | 4x4:5834; 8x8:936; 4x8:932; 8x4:769; 4x16:289; 16x16:279 |
 
-## 13. Partition maps: synthetic
+### Standard grayscale
 
-Baseline і CSF карти виводяться з однаковою шириною. Якщо CSF-карта візуально здається дрібнішою, це не означає інший масштаб зображення. У таких випадках encoder вибрав більше дрібних CU, тому сітка виглядає щільнішою.
+| Image | Size | CU baseline | CU CSF | Delta, % | Dominant baseline | Dominant CSF |
+| --- | --- | --- | --- | --- | --- | --- |
+| baboon | 512x512 | 2575 | 9956 | 286.64 | 8x8:543; 4x4:392; 8x4:298; 4x8:248; 16x4:230; 16x8:216 | 4x4:7900; 8x4:923; 4x8:345; 8x8:315; 16x16:131; 8x16:91 |
+| barbara | 512x512 | 1716 | 2870 | 67.25 | 8x8:380; 16x16:209; 8x16:205; 4x16:181; 4x8:171; 4x4:112 | 4x4:698; 4x8:618; 8x8:395; 4x16:294; 16x16:206; 8x16:188 |
+| goldhill | 512x512 | 2864 | 3569 | 24.62 | 8x8:614; 4x4:434; 4x8:350; 8x4:323; 4x16:204; 16x4:197 | 4x4:1048; 8x8:555; 4x8:472; 8x4:456; 16x4:220; 4x16:197 |
+| lenna | 512x512 | 1777 | 2276 | 28.08 | 8x8:378; 16x16:239; 4x8:197; 4x4:188; 8x16:176; 4x16:138 | 4x4:518; 8x8:375; 4x8:323; 16x16:236; 4x16:196; 8x16:177 |
+| peppers | 512x512 | 2286 | 2556 | 11.81 | 8x8:551; 16x16:260; 4x4:258; 8x16:222; 8x4:213; 4x8:186 | 4x4:508; 8x8:479; 4x8:267; 8x4:261; 16x16:246; 8x16:230 |
 
-| Зображення | Оригінал | Baseline | CSF |
+## 13. Partition Maps: Synthetic
+
+Original images, baseline maps, and CSF maps are shown with fixed display widths. A denser CSF map indicates more small CUs, not a different image scale.
+
+| Image | Original | Baseline | CSF |
 | --- | --- | --- | --- |
-| fine_texture_512x512 | <img src="image_sets/synthetic/png/fine_texture_512x512.png" width="220"> | <img src="docs/partition_maps/synthetic/fine_texture_512x512_baseline.svg" width="260"> | <img src="docs/partition_maps/synthetic/fine_texture_512x512_csf.svg" width="260"> |
-| mixed_content_512x512 | <img src="image_sets/synthetic/png/mixed_content_512x512.png" width="220"> | <img src="docs/partition_maps/synthetic/mixed_content_512x512_baseline.svg" width="260"> | <img src="docs/partition_maps/synthetic/mixed_content_512x512_csf.svg" width="260"> |
-| sharp_edges_512x512 | <img src="image_sets/synthetic/png/sharp_edges_512x512.png" width="220"> | <img src="docs/partition_maps/synthetic/sharp_edges_512x512_baseline.svg" width="260"> | <img src="docs/partition_maps/synthetic/sharp_edges_512x512_csf.svg" width="260"> |
-| smooth_gradient_512x512 | <img src="image_sets/synthetic/png/smooth_gradient_512x512.png" width="220"> | <img src="docs/partition_maps/synthetic/smooth_gradient_512x512_baseline.svg" width="260"> | <img src="docs/partition_maps/synthetic/smooth_gradient_512x512_csf.svg" width="260"> |
+| fine_texture_512x512 | <img src="image_sets/synthetic/png/fine_texture_512x512.png" width="180"> | <img src="docs/partition_maps/synthetic/fine_texture_512x512_baseline.svg" width="240"> | <img src="docs/partition_maps/synthetic/fine_texture_512x512_csf.svg" width="240"> |
+| mixed_content_512x512 | <img src="image_sets/synthetic/png/mixed_content_512x512.png" width="180"> | <img src="docs/partition_maps/synthetic/mixed_content_512x512_baseline.svg" width="240"> | <img src="docs/partition_maps/synthetic/mixed_content_512x512_csf.svg" width="240"> |
+| sharp_edges_512x512 | <img src="image_sets/synthetic/png/sharp_edges_512x512.png" width="180"> | <img src="docs/partition_maps/synthetic/sharp_edges_512x512_baseline.svg" width="240"> | <img src="docs/partition_maps/synthetic/sharp_edges_512x512_csf.svg" width="240"> |
+| smooth_gradient_512x512 | <img src="image_sets/synthetic/png/smooth_gradient_512x512.png" width="180"> | <img src="docs/partition_maps/synthetic/smooth_gradient_512x512_baseline.svg" width="240"> | <img src="docs/partition_maps/synthetic/smooth_gradient_512x512_csf.svg" width="240"> |
 
-## 14. Partition maps: Kodak
+## 14. Partition Maps: Kodak
 
-Baseline і CSF карти мають той самий canvas для кожного Kodak-зображення. Візуальна різниця пов'язана з кількістю та розмірами CU, а не з різним масштабом відображення.
+Original images, baseline maps, and CSF maps are shown with fixed display widths. A denser CSF map indicates more small CUs, not a different image scale.
 
-| Зображення | Оригінал | Baseline | CSF |
+| Image | Original | Baseline | CSF |
 | --- | --- | --- | --- |
-| kodim01 | <img src="image_sets/kodak/png/kodim01.png" width="220"> | <img src="docs/partition_maps/kodak/kodim01_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim01_csf.svg" width="260"> |
-| kodim02 | <img src="image_sets/kodak/png/kodim02.png" width="220"> | <img src="docs/partition_maps/kodak/kodim02_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim02_csf.svg" width="260"> |
-| kodim03 | <img src="image_sets/kodak/png/kodim03.png" width="220"> | <img src="docs/partition_maps/kodak/kodim03_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim03_csf.svg" width="260"> |
-| kodim04 | <img src="image_sets/kodak/png/kodim04.png" width="220"> | <img src="docs/partition_maps/kodak/kodim04_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim04_csf.svg" width="260"> |
-| kodim05 | <img src="image_sets/kodak/png/kodim05.png" width="220"> | <img src="docs/partition_maps/kodak/kodim05_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim05_csf.svg" width="260"> |
-| kodim06 | <img src="image_sets/kodak/png/kodim06.png" width="220"> | <img src="docs/partition_maps/kodak/kodim06_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim06_csf.svg" width="260"> |
-| kodim07 | <img src="image_sets/kodak/png/kodim07.png" width="220"> | <img src="docs/partition_maps/kodak/kodim07_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim07_csf.svg" width="260"> |
-| kodim08 | <img src="image_sets/kodak/png/kodim08.png" width="220"> | <img src="docs/partition_maps/kodak/kodim08_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim08_csf.svg" width="260"> |
-| kodim09 | <img src="image_sets/kodak/png/kodim09.png" width="220"> | <img src="docs/partition_maps/kodak/kodim09_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim09_csf.svg" width="260"> |
-| kodim10 | <img src="image_sets/kodak/png/kodim10.png" width="220"> | <img src="docs/partition_maps/kodak/kodim10_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim10_csf.svg" width="260"> |
-| kodim11 | <img src="image_sets/kodak/png/kodim11.png" width="220"> | <img src="docs/partition_maps/kodak/kodim11_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim11_csf.svg" width="260"> |
-| kodim12 | <img src="image_sets/kodak/png/kodim12.png" width="220"> | <img src="docs/partition_maps/kodak/kodim12_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim12_csf.svg" width="260"> |
-| kodim13 | <img src="image_sets/kodak/png/kodim13.png" width="220"> | <img src="docs/partition_maps/kodak/kodim13_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim13_csf.svg" width="260"> |
-| kodim14 | <img src="image_sets/kodak/png/kodim14.png" width="220"> | <img src="docs/partition_maps/kodak/kodim14_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim14_csf.svg" width="260"> |
-| kodim15 | <img src="image_sets/kodak/png/kodim15.png" width="220"> | <img src="docs/partition_maps/kodak/kodim15_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim15_csf.svg" width="260"> |
-| kodim16 | <img src="image_sets/kodak/png/kodim16.png" width="220"> | <img src="docs/partition_maps/kodak/kodim16_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim16_csf.svg" width="260"> |
-| kodim17 | <img src="image_sets/kodak/png/kodim17.png" width="220"> | <img src="docs/partition_maps/kodak/kodim17_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim17_csf.svg" width="260"> |
-| kodim18 | <img src="image_sets/kodak/png/kodim18.png" width="220"> | <img src="docs/partition_maps/kodak/kodim18_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim18_csf.svg" width="260"> |
-| kodim19 | <img src="image_sets/kodak/png/kodim19.png" width="220"> | <img src="docs/partition_maps/kodak/kodim19_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim19_csf.svg" width="260"> |
-| kodim20 | <img src="image_sets/kodak/png/kodim20.png" width="220"> | <img src="docs/partition_maps/kodak/kodim20_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim20_csf.svg" width="260"> |
-| kodim21 | <img src="image_sets/kodak/png/kodim21.png" width="220"> | <img src="docs/partition_maps/kodak/kodim21_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim21_csf.svg" width="260"> |
-| kodim22 | <img src="image_sets/kodak/png/kodim22.png" width="220"> | <img src="docs/partition_maps/kodak/kodim22_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim22_csf.svg" width="260"> |
-| kodim23 | <img src="image_sets/kodak/png/kodim23.png" width="220"> | <img src="docs/partition_maps/kodak/kodim23_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim23_csf.svg" width="260"> |
-| kodim24 | <img src="image_sets/kodak/png/kodim24.png" width="220"> | <img src="docs/partition_maps/kodak/kodim24_baseline.svg" width="260"> | <img src="docs/partition_maps/kodak/kodim24_csf.svg" width="260"> |
+| kodim01 | <img src="image_sets/kodak/png/kodim01.png" width="180"> | <img src="docs/partition_maps/kodak/kodim01_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim01_csf.svg" width="240"> |
+| kodim02 | <img src="image_sets/kodak/png/kodim02.png" width="180"> | <img src="docs/partition_maps/kodak/kodim02_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim02_csf.svg" width="240"> |
+| kodim03 | <img src="image_sets/kodak/png/kodim03.png" width="180"> | <img src="docs/partition_maps/kodak/kodim03_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim03_csf.svg" width="240"> |
+| kodim04 | <img src="image_sets/kodak/png/kodim04.png" width="180"> | <img src="docs/partition_maps/kodak/kodim04_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim04_csf.svg" width="240"> |
+| kodim05 | <img src="image_sets/kodak/png/kodim05.png" width="180"> | <img src="docs/partition_maps/kodak/kodim05_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim05_csf.svg" width="240"> |
+| kodim06 | <img src="image_sets/kodak/png/kodim06.png" width="180"> | <img src="docs/partition_maps/kodak/kodim06_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim06_csf.svg" width="240"> |
+| kodim07 | <img src="image_sets/kodak/png/kodim07.png" width="180"> | <img src="docs/partition_maps/kodak/kodim07_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim07_csf.svg" width="240"> |
+| kodim08 | <img src="image_sets/kodak/png/kodim08.png" width="180"> | <img src="docs/partition_maps/kodak/kodim08_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim08_csf.svg" width="240"> |
+| kodim09 | <img src="image_sets/kodak/png/kodim09.png" width="180"> | <img src="docs/partition_maps/kodak/kodim09_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim09_csf.svg" width="240"> |
+| kodim10 | <img src="image_sets/kodak/png/kodim10.png" width="180"> | <img src="docs/partition_maps/kodak/kodim10_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim10_csf.svg" width="240"> |
+| kodim11 | <img src="image_sets/kodak/png/kodim11.png" width="180"> | <img src="docs/partition_maps/kodak/kodim11_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim11_csf.svg" width="240"> |
+| kodim12 | <img src="image_sets/kodak/png/kodim12.png" width="180"> | <img src="docs/partition_maps/kodak/kodim12_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim12_csf.svg" width="240"> |
+| kodim13 | <img src="image_sets/kodak/png/kodim13.png" width="180"> | <img src="docs/partition_maps/kodak/kodim13_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim13_csf.svg" width="240"> |
+| kodim14 | <img src="image_sets/kodak/png/kodim14.png" width="180"> | <img src="docs/partition_maps/kodak/kodim14_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim14_csf.svg" width="240"> |
+| kodim15 | <img src="image_sets/kodak/png/kodim15.png" width="180"> | <img src="docs/partition_maps/kodak/kodim15_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim15_csf.svg" width="240"> |
+| kodim16 | <img src="image_sets/kodak/png/kodim16.png" width="180"> | <img src="docs/partition_maps/kodak/kodim16_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim16_csf.svg" width="240"> |
+| kodim17 | <img src="image_sets/kodak/png/kodim17.png" width="180"> | <img src="docs/partition_maps/kodak/kodim17_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim17_csf.svg" width="240"> |
+| kodim18 | <img src="image_sets/kodak/png/kodim18.png" width="180"> | <img src="docs/partition_maps/kodak/kodim18_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim18_csf.svg" width="240"> |
+| kodim19 | <img src="image_sets/kodak/png/kodim19.png" width="180"> | <img src="docs/partition_maps/kodak/kodim19_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim19_csf.svg" width="240"> |
+| kodim20 | <img src="image_sets/kodak/png/kodim20.png" width="180"> | <img src="docs/partition_maps/kodak/kodim20_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim20_csf.svg" width="240"> |
+| kodim21 | <img src="image_sets/kodak/png/kodim21.png" width="180"> | <img src="docs/partition_maps/kodak/kodim21_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim21_csf.svg" width="240"> |
+| kodim22 | <img src="image_sets/kodak/png/kodim22.png" width="180"> | <img src="docs/partition_maps/kodak/kodim22_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim22_csf.svg" width="240"> |
+| kodim23 | <img src="image_sets/kodak/png/kodim23.png" width="180"> | <img src="docs/partition_maps/kodak/kodim23_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim23_csf.svg" width="240"> |
+| kodim24 | <img src="image_sets/kodak/png/kodim24.png" width="180"> | <img src="docs/partition_maps/kodak/kodim24_baseline.svg" width="240"> | <img src="docs/partition_maps/kodak/kodim24_csf.svg" width="240"> |
 
-## 15. Поточний висновок
+## 15. Partition Maps: Standard grayscale
 
-Поточна CSF-інтеграція поводиться стабільно як механізм. Encoder приймає `--CSFScalingList 1`, bitstream декодується, матриці сигналізуються, а таблиці, RD-чарти й карти розбиття відтворюються скриптами з цього репозиторію.
+Original images, baseline maps, and CSF maps are shown with fixed display widths. A denser CSF map indicates more small CUs, not a different image scale.
 
-У середньому same-QP та equal-bpp дельти для більшості quality metrics залишаються негативними, тому поточна форма матриці не дає переваги над baseline.
+| Image | Original | Baseline | CSF |
+| --- | --- | --- | --- |
+| baboon | <img src="image_sets/standard_grayscale/png/baboon.png" width="180"> | <img src="docs/partition_maps/standard_grayscale/baboon_baseline.svg" width="240"> | <img src="docs/partition_maps/standard_grayscale/baboon_csf.svg" width="240"> |
+| barbara | <img src="image_sets/standard_grayscale/png/barbara.png" width="180"> | <img src="docs/partition_maps/standard_grayscale/barbara_baseline.svg" width="240"> | <img src="docs/partition_maps/standard_grayscale/barbara_csf.svg" width="240"> |
+| goldhill | <img src="image_sets/standard_grayscale/png/goldhill.png" width="180"> | <img src="docs/partition_maps/standard_grayscale/goldhill_baseline.svg" width="240"> | <img src="docs/partition_maps/standard_grayscale/goldhill_csf.svg" width="240"> |
+| lenna | <img src="image_sets/standard_grayscale/png/lenna.png" width="180"> | <img src="docs/partition_maps/standard_grayscale/lenna_baseline.svg" width="240"> | <img src="docs/partition_maps/standard_grayscale/lenna_csf.svg" width="240"> |
+| peppers | <img src="image_sets/standard_grayscale/png/peppers.png" width="180"> | <img src="docs/partition_maps/standard_grayscale/peppers_baseline.svg" width="240"> | <img src="docs/partition_maps/standard_grayscale/peppers_csf.svg" width="240"> |
+
+## 16. Current Conclusion
+
+The CSF integration is mechanically stable for this benchmark: `--CSFScalingList 1` is accepted, generated bitstreams decode through VVdeC, encoder reconstruction matches decoded output, matrices are signaled, and the tables, RD charts, and CU partition maps are reproducible from repository scripts.
+
+Across the current synthetic, Kodak, and standard grayscale datasets, the average same-QP and equal-bpp deltas remain negative for most quality metrics. This means the current CSF matrix shape does not outperform the default encoder configuration under the fixed conditions used here.
