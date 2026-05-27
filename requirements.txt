@@ -1,2 +1,2 @@
-bjontegaard>=0.2.0
-pytest>=7.4.0
+# No mandatory Python packages are required by the current image-only pipeline.
+# External command-line tools are still required: ffmpeg, ffprobe, and curl.exe.

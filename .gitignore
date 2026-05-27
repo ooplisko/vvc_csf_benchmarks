@@ -5,13 +5,13 @@ __pycache__/
 .idea/
 
 results/
-tests/results/
 metrics.csv
 
-sequences/*.yuv
+sequences/
 *.bin
 *.yuv
 *.log
+*.bak
 
 binaries/*.exe
 !binaries/vvdecapp.exe

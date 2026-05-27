@@ -22,7 +22,7 @@ jobs:
         run: |
           $name = "vvenc-csf-tests-${{ github.ref_name }}"
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Compress-Archive -Path README.md,LICENSE,requirements.txt,config.py,run_all.py,metrics,tests,utils,docs -DestinationPath "dist/$name.zip" -Force
+          Compress-Archive -Path README.md,LICENSE,requirements.txt,run_all.py,binaries,image_sets,metrics,tools,docs -DestinationPath "dist/$name.zip" -Force
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
