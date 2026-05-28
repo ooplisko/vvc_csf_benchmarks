@@ -319,23 +319,32 @@ def _format_quality_tick(value: float) -> str:
     return f"{value:.1f}" if abs(value) >= 10 else f"{value:.4f}".rstrip("0").rstrip(".")
 
 
+class ImageBenchmarkReportBuilder:
+    def __init__(self, metrics_csv: Path, output: Path) -> None:
+        self.metrics_csv = metrics_csv
+        self.output = output
+
+    def build(self) -> None:
+        rows = read_rows(self.metrics_csv)
+        same_qp = same_qp_deltas(rows)
+        equal_bpp = equal_bpp_summary(rows)
+        write_csv(self.output / "same_qp_deltas.csv", same_qp)
+        write_csv(self.output / "per_image_summary.csv", per_image_summary(same_qp))
+        write_csv(self.output / "equal_bpp_summary.csv", equal_bpp)
+        if same_qp:
+            aggregate_summary(same_qp, self.output / "same_qp_summary.csv")
+        if equal_bpp:
+            aggregate_summary(equal_bpp, self.output / "equal_bpp_metric_summary.csv")
+        render_metric_charts(rows, self.output / "charts")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Create summary CSVs and SVG charts for image CSF benchmark metrics.")
     parser.add_argument("metrics_csv", type=Path)
     parser.add_argument("--output", type=Path, default=Path("docs/image_benchmark"))
     args = parser.parse_args()
 
-    rows = read_rows(args.metrics_csv)
-    same_qp = same_qp_deltas(rows)
-    equal_bpp = equal_bpp_summary(rows)
-    write_csv(args.output / "same_qp_deltas.csv", same_qp)
-    write_csv(args.output / "per_image_summary.csv", per_image_summary(same_qp))
-    write_csv(args.output / "equal_bpp_summary.csv", equal_bpp)
-    if same_qp:
-        aggregate_summary(same_qp, args.output / "same_qp_summary.csv")
-    if equal_bpp:
-        aggregate_summary(equal_bpp, args.output / "equal_bpp_metric_summary.csv")
-    render_metric_charts(rows, args.output / "charts")
+    ImageBenchmarkReportBuilder(args.metrics_csv, args.output).build()
     print(f"Wrote image benchmark report files to {args.output}")
     return 0
 

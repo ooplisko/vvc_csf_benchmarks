@@ -298,28 +298,37 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> int:
-    args = parse_args()
-    for name in (
-        "root",
-        "smoke_dir",
-        "vvenc_root",
-        "baseline_encoder",
-        "csf_encoder",
-        "decoder",
-        "baseline_trace_encoder",
-        "csf_trace_encoder",
-    ):
-        setattr(args, name, project_path(getattr(args, name)))
+class RunAllPipeline:
+    def __init__(self, args: argparse.Namespace) -> None:
+        self.args = args
 
-    if args.clean and args.root.exists():
-        shutil.rmtree(args.root)
-    args.root.mkdir(parents=True, exist_ok=True)
+    def run(self) -> None:
+        self.prepare()
+        smoke_check(self.args)
+        neutral_check(self.args)
+        if self.args.suite == "full":
+            self.run_full_suite()
+        print("\nPASS run_all")
 
-    smoke_check(args)
-    neutral_check(args)
+    def prepare(self) -> None:
+        for name in (
+            "root",
+            "smoke_dir",
+            "vvenc_root",
+            "baseline_encoder",
+            "csf_encoder",
+            "decoder",
+            "baseline_trace_encoder",
+            "csf_trace_encoder",
+        ):
+            setattr(self.args, name, project_path(getattr(self.args, name)))
 
-    if args.suite == "full":
+        if self.args.clean and self.args.root.exists():
+            shutil.rmtree(self.args.root)
+        self.args.root.mkdir(parents=True, exist_ok=True)
+
+    def run_full_suite(self) -> None:
+        args = self.args
         run([sys.executable, "tools/generate_synthetic_images.py", "--output", str(SYNTHETIC_DIR)], "generate synthetic images", args.root / "logs" / "generate_synthetic_images.log")
         named_metric_csvs = [
             ("standard_grayscale", benchmark(args, "standard_grayscale", STANDARD_DIR)),
@@ -332,7 +341,9 @@ def main() -> int:
         generate_partition_maps(args)
         print_summary(Path("docs/image_benchmark/combined/same_qp_summary.csv"))
 
-    print("\nPASS run_all")
+
+def main() -> int:
+    RunAllPipeline(parse_args()).run()
     return 0
 
 

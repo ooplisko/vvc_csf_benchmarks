@@ -1,114 +1,13 @@
 from __future__ import annotations
 
 import argparse
-import csv
-import re
-import subprocess
-from pathlib import Path
 import sys
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from metrics.image_quality import calculate_luma_metrics
-
-
-KODAK_URL = "https://r0k.us/graphics/kodak/kodak/kodim{index:02d}.png"
-ENC_RE = re.compile(
-    r"\s*1\s+a\s+(?P<bitrate>[0-9.]+)\s+(?P<y>[0-9.]+|inf|nan)\s+(?P<u>[0-9.]+|inf|nan)\s+(?P<v>[0-9.]+|inf|nan)",
-    re.IGNORECASE,
-)
-SSIM_RE = re.compile(r"All:(?P<all>[0-9.]+)")
-XPSNR_RE = re.compile(r"XPSNR\s+y:\s*(?P<y>[0-9.]+)")
-VMAF_RE = re.compile(r"VMAF score:\s*(?P<vmaf>[0-9.]+)")
-
-
-def run(cmd: list[str], log_file: Path | None = None) -> str:
-    result = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    if log_file is not None:
-        log_file.parent.mkdir(parents=True, exist_ok=True)
-        log_file.write_text(result.stdout, encoding="utf-8", errors="replace")
-    if result.returncode != 0:
-        raise RuntimeError(f"Command failed ({result.returncode}): {' '.join(cmd)}\n{result.stdout}")
-    return result.stdout
-
-
-def ffprobe_size(path: Path) -> tuple[int, int]:
-    out = run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=s=x:p=0", str(path)])
-    width, height = out.strip().split("x")
-    return int(width), int(height)
-
-
-def download_kodak(png_dir: Path) -> None:
-    png_dir.mkdir(parents=True, exist_ok=True)
-    for index in range(1, 25):
-        out = png_dir / f"kodim{index:02d}.png"
-        if out.exists() and out.stat().st_size > 0:
-            continue
-        run(["curl.exe", "-L", KODAK_URL.format(index=index), "-o", str(out)])
-
-
-def parse_encoder_log(text: str) -> dict[str, float]:
-    match = ENC_RE.search(text)
-    if not match:
-        return {"bitrate_kbps": 0.0, "psnr_y": 0.0, "psnr_u": 0.0, "psnr_v": 0.0}
-    return {
-        "bitrate_kbps": float(match.group("bitrate")),
-        "psnr_y": float(match.group("y")),
-        "psnr_u": float(match.group("u")),
-        "psnr_v": float(match.group("v")),
-    }
-
-
-def visual_metrics(original_yuv: Path, recon_yuv: Path, width: int, height: int) -> dict[str, float]:
-    common = [
-        "ffmpeg",
-        "-v",
-        "info",
-        "-s",
-        f"{width}x{height}",
-        "-pix_fmt",
-        "yuv420p",
-        "-i",
-        str(original_yuv),
-        "-s",
-        f"{width}x{height}",
-        "-pix_fmt",
-        "yuv420p10le",
-        "-i",
-        str(recon_yuv),
-    ]
-    metrics: dict[str, float] = {}
-
-    ssim_out = run(common + ["-lavfi", "ssim", "-f", "null", "-"])
-    match = SSIM_RE.search(ssim_out)
-    metrics["ssim"] = float(match.group("all")) if match else 0.0
-
-    xpsnr_out = run(common + ["-lavfi", "xpsnr", "-f", "null", "-"])
-    match = XPSNR_RE.search(xpsnr_out)
-    metrics["xpsnr_y"] = float(match.group("y")) if match else 0.0
-
-    try:
-        vmaf_out = run(common + ["-lavfi", "libvmaf", "-f", "null", "-"])
-        match = VMAF_RE.search(vmaf_out)
-        metrics["vmaf"] = float(match.group("vmaf")) if match else 0.0
-    except RuntimeError:
-        metrics["vmaf"] = 0.0
-
-    metrics.update(calculate_luma_metrics(original_yuv, recon_yuv, width, height))
-    return metrics
-
-
-def files_equal(left: Path, right: Path) -> bool:
-    if left.stat().st_size != right.stat().st_size:
-        return False
-    with left.open("rb") as left_stream, right.open("rb") as right_stream:
-        while True:
-            left_chunk = left_stream.read(1024 * 1024)
-            right_chunk = right_stream.read(1024 * 1024)
-            if left_chunk != right_chunk:
-                return False
-            if not left_chunk:
-                return True
+from vvenc_csf.benchmark import ImageBenchmarkConfig, ImageBenchmarkRunner, KodakDownloader
+from vvenc_csf.core import parse_qps
 
 
 def main() -> int:
@@ -123,93 +22,21 @@ def main() -> int:
     parser.add_argument("--preset", default="medium", help="VVenC preset used for both encoders.")
     args = parser.parse_args()
 
-    root = args.root
-    png_dir = args.png_dir or (root / "png")
-    yuv_dir = root / "yuv"
-    enc_dir = root / "encoded"
-    qps = [int(item) for item in args.qps.split(",") if item.strip()]
-
+    png_dir = args.png_dir or (args.root / "png")
     if args.download_kodak:
-        download_kodak(png_dir)
+        KodakDownloader().download(png_dir)
 
-    images = sorted(png_dir.glob("*.png"))
-    if not images:
-        raise RuntimeError(f"No PNG files found in {png_dir}")
-
-    rows: list[dict] = []
-    for image in images:
-        width, height = ffprobe_size(image)
-        name = image.stem
-        yuv = yuv_dir / f"{name}_{width}x{height}_1.yuv"
-        if not yuv.exists():
-            yuv.parent.mkdir(parents=True, exist_ok=True)
-            run(["ffmpeg", "-y", "-v", "error", "-i", str(image), "-pix_fmt", "yuv420p", "-frames:v", "1", str(yuv)])
-
-        raw_bytes = width * height * 3 // 2
-        for qp in qps:
-            for mode, encoder, csf_enabled in (
-                ("baseline", args.baseline_encoder, False),
-                ("csf", args.csf_encoder, True),
-            ):
-                out_dir = enc_dir / name / f"QP{qp}" / mode
-                bitstream = out_dir / f"{name}_QP{qp}_{mode}.vvc"
-                recon = out_dir / f"{name}_QP{qp}_{mode}_rec.yuv"
-                decoded = out_dir / f"{name}_QP{qp}_{mode}_dec.yuv"
-                enc_log = out_dir / f"{name}_QP{qp}_{mode}_enc.log"
-                dec_log = out_dir / f"{name}_QP{qp}_{mode}_dec.log"
-                out_dir.mkdir(parents=True, exist_ok=True)
-
-                cmd = [
-                    str(encoder),
-                    "--InputFile",
-                    str(yuv),
-                    "--SourceWidth",
-                    str(width),
-                    "--SourceHeight",
-                    str(height),
-                    "--FrameRate",
-                    "1",
-                    "--FramesToBeEncoded",
-                    "1",
-                    "--QP",
-                    str(qp),
-                    "--preset",
-                    args.preset,
-                    "--BitstreamFile",
-                    str(bitstream),
-                    "--ReconFile",
-                    str(recon),
-                ]
-                if csf_enabled:
-                    cmd.extend(["--CSFScalingList", "1"])
-                text = run(cmd, enc_log)
-                run([str(args.decoder), "-b", str(bitstream), "-o", str(decoded)], dec_log)
-                if not files_equal(recon, decoded):
-                    raise RuntimeError(f"Decoded YUV differs from encoder reconstruction: {decoded}")
-                parsed = parse_encoder_log(text)
-                metrics = visual_metrics(yuv, recon, width, height)
-                bytes_out = bitstream.stat().st_size
-                rows.append(
-                    {
-                        "image": name,
-                        "width": width,
-                        "height": height,
-                        "qp": qp,
-                        "mode": mode,
-                        "bitstream_bytes": bytes_out,
-                        "compression_ratio": raw_bytes / bytes_out if bytes_out else 0,
-                        "bpp": (bytes_out * 8) / (width * height),
-                        **parsed,
-                        **metrics,
-                    }
-                )
-
-    root.mkdir(parents=True, exist_ok=True)
-    csv_path = root / "image_metrics.csv"
-    with csv_path.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
+    csv_path = ImageBenchmarkRunner(
+        ImageBenchmarkConfig(
+            root=args.root,
+            png_dir=png_dir,
+            baseline_encoder=args.baseline_encoder,
+            csf_encoder=args.csf_encoder,
+            decoder=args.decoder,
+            qps=parse_qps(args.qps),
+            preset=args.preset,
+        )
+    ).run()
     print(f"Wrote {csv_path}")
     return 0
 

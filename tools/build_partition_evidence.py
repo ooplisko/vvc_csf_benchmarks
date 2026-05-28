@@ -133,6 +133,29 @@ def write_summary(rows: list[dict[str, object]], output: Path) -> None:
         writer.writerows(rows)
 
 
+class PartitionEvidenceBuilder:
+    def __init__(self, args: argparse.Namespace) -> None:
+        self.args = args
+
+    def build(self) -> None:
+        all_rows: list[dict[str, object]] = []
+        for dataset, png_dir in (
+            ("synthetic", self.args.synthetic_dir),
+            ("kodak", self.args.kodak_dir),
+            ("standard_grayscale", self.args.standard_grayscale_dir),
+        ):
+            images = sorted(png_dir.glob("*.png"))
+            if not images:
+                raise RuntimeError(f"No PNG images found in {png_dir}")
+            dataset_rows: list[dict[str, object]] = []
+            for image in images:
+                build_for_image(image, dataset, self.args, dataset_rows)
+            write_summary(dataset_rows, self.args.output / dataset / "summary.csv")
+            all_rows.extend({"dataset": dataset, **row} for row in dataset_rows)
+
+        write_summary(all_rows, self.args.output / "summary.csv")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build VVenC D_QP partition maps for image datasets.")
     parser.add_argument("--synthetic-dir", type=Path, default=Path("image_sets/synthetic/png"))
@@ -146,22 +169,7 @@ def main() -> int:
     parser.add_argument("--preset", default="medium")
     args = parser.parse_args()
 
-    all_rows: list[dict[str, object]] = []
-    for dataset, png_dir in (
-        ("synthetic", args.synthetic_dir),
-        ("kodak", args.kodak_dir),
-        ("standard_grayscale", args.standard_grayscale_dir),
-    ):
-        images = sorted(png_dir.glob("*.png"))
-        if not images:
-            raise RuntimeError(f"No PNG images found in {png_dir}")
-        dataset_rows: list[dict[str, object]] = []
-        for image in images:
-            build_for_image(image, dataset, args, dataset_rows)
-        write_summary(dataset_rows, args.output / dataset / "summary.csv")
-        all_rows.extend({"dataset": dataset, **row} for row in dataset_rows)
-
-    write_summary(all_rows, args.output / "summary.csv")
+    PartitionEvidenceBuilder(args).build()
     print(f"Wrote partition evidence to {args.output}")
     return 0
 
