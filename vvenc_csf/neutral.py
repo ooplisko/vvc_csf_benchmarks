@@ -16,6 +16,11 @@ COMMON_DEF_URL = (
 )
 
 
+# ====================================================================================================================
+# Practical neutral-16 control
+# ====================================================================================================================
+
+
 @dataclass(frozen=True)
 class Neutral16ControlConfig:
     root: Path
@@ -29,6 +34,8 @@ class Neutral16ControlConfig:
 
 
 class Neutral16ControlRunner:
+    """Checks that CSF-disabled encoding is byte-identical to the default encoder."""
+
     def __init__(self, config: Neutral16ControlConfig, runner: CommandRunner | None = None) -> None:
         self.config = config
         self.runner = runner or CommandRunner()
@@ -111,6 +118,8 @@ class Neutral16ControlRunner:
 
 
 class Neutral16ControlReport:
+    """Writes the Markdown summary for the neutral-16 practical control."""
+
     def write(self, markdown_path: Path, csv_path: Path, rows: list[dict[str, object]]) -> None:
         total = len(rows)
         bitstream_matches = sum(1 for row in rows if row["bitstream_identical"])
@@ -156,7 +165,14 @@ class Neutral16ControlReport:
         markdown_path.write_text("\n".join(lines), encoding="utf-8", newline="\n")
 
 
+# ====================================================================================================================
+# Source-level neutral-value verification
+# ====================================================================================================================
+
+
 class NeutralScalingVerifier:
+    """Verifies the neutral scaling-list value from VVenC source constants."""
+
     def __init__(self, vvenc_root: Path) -> None:
         self.vvenc_root = vvenc_root
 
@@ -246,4 +262,3 @@ class NeutralScalingVerifier:
             "max": max(values),
             "all_neutral": all(value == neutral_value for value in values),
         }
-

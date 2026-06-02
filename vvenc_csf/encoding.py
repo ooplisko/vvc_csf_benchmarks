@@ -6,6 +6,11 @@ from pathlib import Path
 from vvenc_csf.core import CommandRunner
 
 
+# ====================================================================================================================
+# Encoding data
+# ====================================================================================================================
+
+
 @dataclass(frozen=True)
 class ImageInfo:
     path: Path
@@ -31,7 +36,14 @@ class EncodeJob:
     extra_args: tuple[str, ...] = ()
 
 
+# ====================================================================================================================
+# External VVenC/VVdeC commands
+# ====================================================================================================================
+
+
 class ImageConverter:
+    """Converts benchmark input images to the YUV format expected by VVenC."""
+
     def __init__(self, runner: CommandRunner | None = None) -> None:
         self.runner = runner or CommandRunner()
 
@@ -43,6 +55,8 @@ class ImageConverter:
 
 
 class EncoderRunner:
+    """Builds and executes one VVenC encode command."""
+
     def __init__(self, runner: CommandRunner | None = None) -> None:
         self.runner = runner or CommandRunner()
 
@@ -74,6 +88,8 @@ class EncoderRunner:
 
 
 class DecoderRunner:
+    """Runs VVdeC for reconstruction-vs-decoder consistency checks."""
+
     def __init__(self, decoder: Path, runner: CommandRunner | None = None) -> None:
         self.decoder = decoder
         self.runner = runner or CommandRunner()
@@ -81,4 +97,3 @@ class DecoderRunner:
     def decode(self, bitstream: Path, output: Path, log: Path) -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
         self.runner.run([str(self.decoder), "-b", str(bitstream), "-o", str(output)], log)
-

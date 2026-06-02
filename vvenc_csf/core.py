@@ -9,6 +9,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 
+# ====================================================================================================================
+# Command execution
+# ====================================================================================================================
+
+
 @dataclass(frozen=True)
 class CommandResult:
     command: list[str]
@@ -17,6 +22,8 @@ class CommandResult:
 
 
 class CommandRunner:
+    """Runs external tools and optionally captures their output into log files."""
+
     def __init__(self, cwd: Path = ROOT) -> None:
         self.cwd = cwd
 
@@ -28,6 +35,11 @@ class CommandRunner:
         if result.returncode != 0:
             raise RuntimeError(f"Command failed ({result.returncode}): {' '.join(cmd)}\n{result.stdout}")
         return CommandResult(cmd, result.stdout, result.returncode)
+
+
+# ====================================================================================================================
+# Repository and file helpers
+# ====================================================================================================================
 
 
 def repo_path(path: Path) -> str:
@@ -88,4 +100,3 @@ def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
         writer = csv.DictWriter(stream, fieldnames=list(rows[0].keys()))
         writer.writeheader()
         writer.writerows(rows)
-

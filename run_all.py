@@ -8,6 +8,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from vvenc_csf.config import load_benchmark_config
+
 
 ROOT = Path(__file__).resolve().parent
 STANDARD_DIR = Path("image_sets/standard_grayscale/png")
@@ -251,11 +253,11 @@ def generate_partition_maps(args: argparse.Namespace) -> None:
             "--qp",
             str(args.partition_qp),
             "--standard-grayscale-dir",
-            str(STANDARD_DIR),
+            str(args.smoke_dir),
             "--synthetic-dir",
-            str(SYNTHETIC_DIR),
+            str(args.synthetic_dir),
             "--kodak-dir",
-            str(KODAK_DIR),
+            str(args.kodak_dir),
             "--baseline-trace-encoder",
             str(args.baseline_trace_encoder),
             "--csf-trace-encoder",
@@ -283,9 +285,12 @@ def project_path(path: Path) -> Path:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the image-only VVenC CSF checks and report generators.")
     parser.add_argument("suite", nargs="?", default="quick", choices=["quick", "full"], help="quick runs console sanity checks. full runs all image benchmarks and regenerates docs.")
+    parser.add_argument("--config", type=Path, default=Path("configs/image_benchmark.ini"))
     parser.add_argument("--root", type=Path, default=Path("results/run_all"))
     parser.add_argument("--qps", default=QPS)
     parser.add_argument("--smoke-dir", type=Path, default=STANDARD_DIR)
+    parser.add_argument("--synthetic-dir", type=Path, default=SYNTHETIC_DIR)
+    parser.add_argument("--kodak-dir", type=Path, default=KODAK_DIR)
     parser.add_argument("--smoke-qp", type=int, default=32)
     parser.add_argument("--partition-qp", type=int, default=32)
     parser.add_argument("--vvenc-root", type=Path, default=ROOT.parent / "vvenc")
@@ -299,6 +304,8 @@ def parse_args() -> argparse.Namespace:
 
 
 class RunAllPipeline:
+    """Coordinates smoke checks, benchmarks, report generation, and partition evidence."""
+
     def __init__(self, args: argparse.Namespace) -> None:
         self.args = args
 
@@ -311,9 +318,28 @@ class RunAllPipeline:
         print("\nPASS run_all")
 
     def prepare(self) -> None:
+        self.args.config = project_path(self.args.config)
+        if self.args.config.exists():
+            config = load_benchmark_config(self.args.config)
+            self.args.root = config.run_root if self.args.root == Path("results/run_all") else self.args.root
+            self.args.smoke_dir = config.standard_grayscale_dir if self.args.smoke_dir == STANDARD_DIR else self.args.smoke_dir
+            self.args.synthetic_dir = config.synthetic_dir if self.args.synthetic_dir == SYNTHETIC_DIR else self.args.synthetic_dir
+            self.args.kodak_dir = config.kodak_dir if self.args.kodak_dir == KODAK_DIR else self.args.kodak_dir
+            self.args.vvenc_root = config.vvenc_root if self.args.vvenc_root == ROOT.parent / "vvenc" else self.args.vvenc_root
+            self.args.baseline_encoder = config.baseline_encoder if self.args.baseline_encoder == Path("binaries/vvenc_default.exe") else self.args.baseline_encoder
+            self.args.csf_encoder = config.csf_encoder if self.args.csf_encoder == Path("binaries/vvenc_csf.exe") else self.args.csf_encoder
+            self.args.decoder = config.decoder if self.args.decoder == Path("binaries/vvdecapp.exe") else self.args.decoder
+            self.args.baseline_trace_encoder = config.baseline_trace_encoder if self.args.baseline_trace_encoder == Path("binaries/vvenc_default_trace.exe") else self.args.baseline_trace_encoder
+            self.args.csf_trace_encoder = config.csf_trace_encoder if self.args.csf_trace_encoder == Path("binaries/vvenc_csf_trace.exe") else self.args.csf_trace_encoder
+            self.args.qps = config.qps if self.args.qps == QPS else self.args.qps
+            self.args.smoke_qp = config.smoke_qp if self.args.smoke_qp == 32 else self.args.smoke_qp
+            self.args.partition_qp = config.partition_qp if self.args.partition_qp == 32 else self.args.partition_qp
+
         for name in (
             "root",
             "smoke_dir",
+            "synthetic_dir",
+            "kodak_dir",
             "vvenc_root",
             "baseline_encoder",
             "csf_encoder",
@@ -329,11 +355,11 @@ class RunAllPipeline:
 
     def run_full_suite(self) -> None:
         args = self.args
-        run([sys.executable, "tools/generate_synthetic_images.py", "--output", str(SYNTHETIC_DIR)], "generate synthetic images", args.root / "logs" / "generate_synthetic_images.log")
+        run([sys.executable, "tools/generate_synthetic_images.py", "--output", str(args.synthetic_dir)], "generate synthetic images", args.root / "logs" / "generate_synthetic_images.log")
         named_metric_csvs = [
-            ("standard_grayscale", benchmark(args, "standard_grayscale", STANDARD_DIR)),
-            ("synthetic", benchmark(args, "synthetic", SYNTHETIC_DIR)),
-            ("kodak", benchmark(args, "kodak", KODAK_DIR, ["--download-kodak"])),
+            ("standard_grayscale", benchmark(args, "standard_grayscale", args.smoke_dir)),
+            ("synthetic", benchmark(args, "synthetic", args.synthetic_dir)),
+            ("kodak", benchmark(args, "kodak", args.kodak_dir, ["--download-kodak"])),
         ]
         for name, metrics_csv in named_metric_csvs:
             write_image_report(name, metrics_csv, args)

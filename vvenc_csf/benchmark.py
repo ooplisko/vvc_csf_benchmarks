@@ -19,6 +19,11 @@ XPSNR_RE = re.compile(r"XPSNR\s+y:\s*(?P<y>[0-9.]+)")
 VMAF_RE = re.compile(r"VMAF score:\s*(?P<vmaf>[0-9.]+)")
 
 
+# ====================================================================================================================
+# Benchmark configuration
+# ====================================================================================================================
+
+
 @dataclass(frozen=True)
 class ImageBenchmarkConfig:
     root: Path
@@ -30,7 +35,14 @@ class ImageBenchmarkConfig:
     preset: str = "medium"
 
 
+# ====================================================================================================================
+# Input preparation and metric extraction
+# ====================================================================================================================
+
+
 class KodakDownloader:
+    """Downloads the Kodak PNG suite when it is not already available locally."""
+
     def __init__(self, runner: CommandRunner | None = None) -> None:
         self.runner = runner or CommandRunner()
 
@@ -44,6 +56,8 @@ class KodakDownloader:
 
 
 class EncoderLogParser:
+    """Extracts bitrate and PSNR values from VVenC text logs."""
+
     def parse(self, text: str) -> dict[str, float]:
         match = ENC_RE.search(text)
         if not match:
@@ -57,6 +71,8 @@ class EncoderLogParser:
 
 
 class VisualMetricCalculator:
+    """Computes ffmpeg-backed and local luma metrics for one reconstructed image."""
+
     def __init__(self, runner: CommandRunner | None = None) -> None:
         self.runner = runner or CommandRunner()
 
@@ -99,7 +115,14 @@ class VisualMetricCalculator:
         return metrics
 
 
+# ====================================================================================================================
+# Image benchmark runner
+# ====================================================================================================================
+
+
 class ImageBenchmarkRunner:
+    """Runs baseline and CSF encodes for each image/QP and writes image_metrics.csv."""
+
     def __init__(
         self,
         config: ImageBenchmarkConfig,
@@ -189,4 +212,3 @@ class ImageBenchmarkRunner:
                 }
             )
         return rows
-
