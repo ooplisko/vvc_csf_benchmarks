@@ -225,10 +225,65 @@ The charts are rendered by `tools/report_image_benchmark.py` from `docs/image_be
 
 | Chart | Chart |
 | --- | --- |
-| **PSNR-Y**<br><img src="../docs/image_benchmark/combined/charts/rd_psnr_y.svg" width="360"> | **SSIM**<br><img src="../docs/image_benchmark/combined/charts/rd_ssim.svg" width="360"> |
-| **XPSNR-Y**<br><img src="../docs/image_benchmark/combined/charts/rd_xpsnr_y.svg" width="360"> | **VMAF**<br><img src="../docs/image_benchmark/combined/charts/rd_vmaf.svg" width="360"> |
-| **MS-SSIM luma**<br><img src="../docs/image_benchmark/combined/charts/rd_msssim_luma.svg" width="360"> | **FSIM luma**<br><img src="../docs/image_benchmark/combined/charts/rd_fsim_luma.svg" width="360"> |
-| **HaarPSI luma**<br><img src="../docs/image_benchmark/combined/charts/rd_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma**<br><img src="../docs/image_benchmark/combined/charts/rd_psnr_hvs_m_luma.svg" width="360"> |
+| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/combined/charts/rd_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/combined/charts/rd_ssim.svg" width="360"> |
+| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/combined/charts/rd_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/combined/charts/rd_vmaf.svg" width="360"> |
+| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/combined/charts/rd_msssim_luma.svg" width="360"> | **FSIM luma index**<br><img src="../docs/image_benchmark/combined/charts/rd_fsim_luma.svg" width="360"> |
+| **HaarPSI luma index**<br><img src="../docs/image_benchmark/combined/charts/rd_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma, dB**<br><img src="../docs/image_benchmark/combined/charts/rd_psnr_hvs_m_luma.svg" width="360"> |
+
+</details>
+
+## Standard Grayscale Metric-vs-QP Charts
+
+The following charts use only the `standard_grayscale` benchmark rows. They are rendered from `docs/image_benchmark/standard_grayscale/` and show one measured metric as a function of QP for one image.
+
+<details>
+<summary>Show standard grayscale metric-vs-QP charts</summary>
+
+### baboon
+
+| Metric vs QP | Metric vs QP |
+| --- | --- |
+| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_ssim.svg" width="360"> |
+| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_vmaf.svg" width="360"> |
+| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_msssim_luma.svg" width="360"> | **FSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_fsim_luma.svg" width="360"> |
+| **HaarPSI luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_psnr_hvs_m_luma.svg" width="360"> |
+
+### barbara
+
+| Metric vs QP | Metric vs QP |
+| --- | --- |
+| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_ssim.svg" width="360"> |
+| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_vmaf.svg" width="360"> |
+| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_msssim_luma.svg" width="360"> | **FSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_fsim_luma.svg" width="360"> |
+| **HaarPSI luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_psnr_hvs_m_luma.svg" width="360"> |
+
+### goldhill
+
+| Metric vs QP | Metric vs QP |
+| --- | --- |
+| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_ssim.svg" width="360"> |
+| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_vmaf.svg" width="360"> |
+| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_msssim_luma.svg" width="360"> | **FSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_fsim_luma.svg" width="360"> |
+| **HaarPSI luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_psnr_hvs_m_luma.svg" width="360"> |
+
+### lenna
+
+| Metric vs QP | Metric vs QP |
+| --- | --- |
+| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_ssim.svg" width="360"> |
+| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_vmaf.svg" width="360"> |
+| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_msssim_luma.svg" width="360"> | **FSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_fsim_luma.svg" width="360"> |
+| **HaarPSI luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_psnr_hvs_m_luma.svg" width="360"> |
+
+### peppers
+
+| Metric vs QP | Metric vs QP |
+| --- | --- |
+| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_ssim.svg" width="360"> |
+| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_vmaf.svg" width="360"> |
+| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_msssim_luma.svg" width="360"> | **FSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_fsim_luma.svg" width="360"> |
+| **HaarPSI luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_psnr_hvs_m_luma.svg" width="360"> |
+
 
 </details>
 

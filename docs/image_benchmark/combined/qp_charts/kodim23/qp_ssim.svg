@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="420" viewBox="0 0 760 420">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="72" y="26" font-family="Arial" font-size="18" font-weight="700">kodim23: SSIM index vs QP</text>
+<line x1="72.0" y1="48" x2="72.0" y2="350" stroke="#e5e7eb" stroke-width="1"/>
+<line x1="280.0" y1="48" x2="280.0" y2="350" stroke="#e5e7eb" stroke-width="1"/>
+<line x1="488.0" y1="48" x2="488.0" y2="350" stroke="#e5e7eb" stroke-width="1"/>
+<line x1="696.0" y1="48" x2="696.0" y2="350" stroke="#e5e7eb" stroke-width="1"/>
+<line x1="72" y1="350.0" x2="696" y2="350.0" stroke="#e5e7eb" stroke-width="1"/>
+<line x1="72" y1="274.5" x2="696" y2="274.5" stroke="#e5e7eb" stroke-width="1"/>
+<line x1="72" y1="199.0" x2="696" y2="199.0" stroke="#e5e7eb" stroke-width="1"/>
+<line x1="72" y1="123.5" x2="696" y2="123.5" stroke="#e5e7eb" stroke-width="1"/>
+<line x1="72" y1="48.0" x2="696" y2="48.0" stroke="#e5e7eb" stroke-width="1"/>
+<line x1="72" y1="350" x2="696" y2="350" stroke="#111827"/>
+<line x1="72" y1="48" x2="72" y2="350" stroke="#111827"/>
+<text x="368" y="394" font-family="Arial" font-size="13">QP</text>
+<text x="16" y="255" font-family="Arial" font-size="13" transform="rotate(-90 16,255)">SSIM index</text>
+<line x1="72.0" y1="350" x2="72.0" y2="355" stroke="#111827"/>
+<text x="72.0" y="370" font-family="Arial" font-size="11" fill="#374151" text-anchor="middle">22</text>
+<line x1="280.0" y1="350" x2="280.0" y2="355" stroke="#111827"/>
+<text x="280.0" y="370" font-family="Arial" font-size="11" fill="#374151" text-anchor="middle">27</text>
+<line x1="488.0" y1="350" x2="488.0" y2="355" stroke="#111827"/>
+<text x="488.0" y="370" font-family="Arial" font-size="11" fill="#374151" text-anchor="middle">32</text>
+<line x1="696.0" y1="350" x2="696.0" y2="355" stroke="#111827"/>
+<text x="696.0" y="370" font-family="Arial" font-size="11" fill="#374151" text-anchor="middle">37</text>
+<line x1="67" y1="350.0" x2="72" y2="350.0" stroke="#111827"/>
+<text x="63" y="354.0" font-family="Arial" font-size="11" fill="#374151" text-anchor="end">0.943</text>
+<line x1="67" y1="274.5" x2="72" y2="274.5" stroke="#111827"/>
+<text x="63" y="278.5" font-family="Arial" font-size="11" fill="#374151" text-anchor="end">0.9538</text>
+<line x1="67" y1="199.0" x2="72" y2="199.0" stroke="#111827"/>
+<text x="63" y="203.0" font-family="Arial" font-size="11" fill="#374151" text-anchor="end">0.9646</text>
+<line x1="67" y1="123.5" x2="72" y2="123.5" stroke="#111827"/>
+<text x="63" y="127.5" font-family="Arial" font-size="11" fill="#374151" text-anchor="end">0.9754</text>
+<line x1="67" y1="48.0" x2="72" y2="48.0" stroke="#111827"/>
+<text x="63" y="52.0" font-family="Arial" font-size="11" fill="#374151" text-anchor="end">0.9862</text>
+<polyline fill="none" stroke="#2563eb" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" points="72.0,68.8 280.0,122.5 488.0,202.6 696.0,329.2"/>
+<circle cx="72.0" cy="68.8" r="4.5" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+<circle cx="280.0" cy="122.5" r="4.5" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+<circle cx="488.0" cy="202.6" r="4.5" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+<circle cx="696.0" cy="329.2" r="4.5" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+<polyline fill="none" stroke="#dc2626" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 5" points="72.0,75.2 280.0,127.1 488.0,207.5 696.0,327.3"/>
+<rect x="68.0" y="71.2" width="8" height="8" transform="rotate(45 72.0 75.2)" fill="#ffffff" stroke="#dc2626" stroke-width="2"/>
+<rect x="276.0" y="123.1" width="8" height="8" transform="rotate(45 280.0 127.1)" fill="#ffffff" stroke="#dc2626" stroke-width="2"/>
+<rect x="484.0" y="203.5" width="8" height="8" transform="rotate(45 488.0 207.5)" fill="#ffffff" stroke="#dc2626" stroke-width="2"/>
+<rect x="692.0" y="323.3" width="8" height="8" transform="rotate(45 696.0 327.3)" fill="#ffffff" stroke="#dc2626" stroke-width="2"/>
+<rect x="564" y="54" width="126" height="48" rx="4" fill="#ffffff" stroke="#e5e7eb"/>
+<line x1="576" y1="72" x2="606" y2="72" stroke="#2563eb" stroke-width="3.2" stroke-linecap="round"/>
+<circle cx="591.0" cy="72.0" r="4.5" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+<text x="616" y="76" font-family="Arial" font-size="12">baseline</text>
+<line x1="576" y1="90" x2="606" y2="90" stroke="#dc2626" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="7 5"/>
+<rect x="587.0" y="86.0" width="8" height="8" transform="rotate(45 591.0 90.0)" fill="#ffffff" stroke="#dc2626" stroke-width="2"/>
+<text x="616" y="94" font-family="Arial" font-size="12">csf</text>
+</svg>
