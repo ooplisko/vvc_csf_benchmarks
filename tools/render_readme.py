@@ -26,14 +26,14 @@ METRIC_COLUMNS = [
 ]
 
 CHARTS = [
-    ("PSNR-Y", "docs/image_benchmark/combined/charts/rd_psnr_y.svg"),
-    ("SSIM", "docs/image_benchmark/combined/charts/rd_ssim.svg"),
-    ("XPSNR-Y", "docs/image_benchmark/combined/charts/rd_xpsnr_y.svg"),
-    ("VMAF", "docs/image_benchmark/combined/charts/rd_vmaf.svg"),
-    ("MS-SSIM luma", "docs/image_benchmark/combined/charts/rd_msssim_luma.svg"),
-    ("FSIM luma", "docs/image_benchmark/combined/charts/rd_fsim_luma.svg"),
-    ("HaarPSI luma", "docs/image_benchmark/combined/charts/rd_haarpsi_luma.svg"),
-    ("PSNR-HVS-M luma", "docs/image_benchmark/combined/charts/rd_psnr_hvs_m_luma.svg"),
+    ("PSNR-Y, dB", "docs/image_benchmark/combined/charts/rd_psnr_y.svg"),
+    ("SSIM index", "docs/image_benchmark/combined/charts/rd_ssim.svg"),
+    ("XPSNR-Y, dB", "docs/image_benchmark/combined/charts/rd_xpsnr_y.svg"),
+    ("VMAF score", "docs/image_benchmark/combined/charts/rd_vmaf.svg"),
+    ("MS-SSIM luma index", "docs/image_benchmark/combined/charts/rd_msssim_luma.svg"),
+    ("FSIM luma index", "docs/image_benchmark/combined/charts/rd_fsim_luma.svg"),
+    ("HaarPSI luma index", "docs/image_benchmark/combined/charts/rd_haarpsi_luma.svg"),
+    ("PSNR-HVS-M luma, dB", "docs/image_benchmark/combined/charts/rd_psnr_hvs_m_luma.svg"),
 ]
 
 
@@ -130,6 +130,29 @@ def chart_grid(from_docs: bool = False) -> list[str]:
     return markdown_table(["Chart", "Chart"], rows)
 
 
+def qp_chart_grid(dataset: str, image: str, from_docs: bool = False) -> list[str]:
+    rows = []
+    for index in range(0, len(CHARTS), 2):
+        left_label, left_path = CHARTS[index]
+        right_label, right_path = CHARTS[index + 1] if index + 1 < len(CHARTS) else ("", "")
+        left_metric = Path(left_path).stem.removeprefix("rd_")
+        right_metric = Path(right_path).stem.removeprefix("rd_") if right_label else ""
+        rows.append(
+            [
+                f'**{left_label}**<br><img src="{rel(f"docs/image_benchmark/{dataset}/qp_charts/{image}/qp_{left_metric}.svg", from_docs)}" width="360">',
+                f'**{right_label}**<br><img src="{rel(f"docs/image_benchmark/{dataset}/qp_charts/{image}/qp_{right_metric}.svg", from_docs)}" width="360">' if right_label else "",
+            ]
+        )
+    return markdown_table(["Metric vs QP", "Metric vs QP"], rows)
+
+
+def standard_grayscale_qp_sections(from_docs: bool = False) -> list[str]:
+    sections: list[str] = []
+    for image in sorted((ROOT / "image_sets/standard_grayscale/png").glob("*.png")):
+        sections.extend([f"### {image.stem}", "", *qp_chart_grid("standard_grayscale", image.stem, from_docs), ""])
+    return sections
+
+
 def partition_summary_table(dataset: str) -> list[str]:
     rows = read_csv(f"docs/partition_maps/{dataset}/summary.csv")
     by_image: dict[str, dict[str, dict[str, str]]] = {}
@@ -179,6 +202,26 @@ def build_readme() -> str:
     lines: list[str] = [
         "# VVenC CSF Image Benchmark",
         "",
+        '<p align="center">',
+        '  <a href="https://github.com/For2natop1ua/vvenc_csf_tests/blob/master/LICENSE">',
+        '    <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license">',
+        "  </a>",
+        '  <a href="https://www.python.org/downloads/">',
+        '    <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">',
+        "  </a>",
+        '  <a href="https://github.com/For2natop1ua/vvenc_csf_tests/actions/workflows/build.yml">',
+        '    <img src="https://github.com/For2natop1ua/vvenc_csf_tests/actions/workflows/build.yml/badge.svg" alt="Tests">',
+        "  </a>",
+        '  <a href="https://github.com/For2natop1ua/vvenc_csf_tests/actions">',
+        '    <img src="https://img.shields.io/badge/build-validation-brightgreen" alt="Build validation">',
+        "  </a>",
+        '  <a href="https://github.com/For2natop1ua/vvenc_csf_tests/releases">',
+        '    <img src="https://img.shields.io/badge/release-source%20package-blue" alt="Release package">',
+        "  </a>",
+        "</p>",
+        "",
+        '**O. O. Plisko** · [Department of Information and Communication Technologies](https://dict.khai.edu/), National Aerospace University «Kharkiv Aviation Institute»',
+        "",
         "Image-only benchmark for a custom Contrast Sensitivity Function (CSF) scaling-list modification in VVenC. The repository contains pinned binaries, image sets, scripts, generated metric tables, RD charts, matrix evidence, and Coding Unit (CU) partition maps.",
         "",
         "## Status",
@@ -205,6 +248,7 @@ def build_readme() -> str:
                 ["[Neutral 16 control run](docs/matrices/neutral_16_control.md)", "Default encoder vs CSF encoder with `--CSFScalingList 0`, compared byte-for-byte"],
                 ["[Combined metrics CSV](docs/image_benchmark/combined_image_metrics.csv)", "All image/QP/mode measurements"],
                 ["[Partition summary CSV](docs/partition_maps/summary.csv)", "CU counts and dominant block sizes"],
+                ["[Citation metadata](CITATION.cff)", "Citation information for academic use"],
             ],
         ),
         "",
@@ -217,10 +261,12 @@ def build_readme() -> str:
                 ["`image_sets/standard_grayscale/`", "Primary grayscale control images, stored as BMP sources and PNG benchmark inputs"],
                 ["`image_sets/synthetic/png/`", "Deterministic synthetic PNG images"],
                 ["`image_sets/kodak/png/`", "Kodak image suite"],
+                ["`configs/`", "INI defaults for benchmark paths, binaries, QP points, and smoke settings"],
                 ["`run_all.py`", "Image-only orchestrator for smoke checks, neutral-value checks, benchmark runs, and report regeneration"],
                 ["`vvenc_csf/`", "Reusable benchmark, encoding, neutral-value, and shared command-running classes"],
                 ["`tools/`", "Thin CLI wrappers for dataset, benchmark, report, matrix, and partition-map utilities"],
                 ["`metrics/`", "Local visual-quality metric implementations"],
+                ["`tests/`", "Fast unit tests for helpers, command construction, config loading, and report builders"],
                 ["`docs/`", "Generated evidence, tables, charts, and detailed reports"],
             ],
         ),
@@ -230,10 +276,13 @@ def build_readme() -> str:
         "```powershell",
         "py -3 -m venv .venv",
         ".\\.venv\\Scripts\\pip.exe install -r requirements.txt",
+        ".\\.venv\\Scripts\\pip.exe install -r requirements-dev.txt",
         ".\\.venv\\Scripts\\python.exe run_all.py quick --clean",
         "```",
         "",
         "`ffmpeg`, `ffprobe`, and `curl.exe` must be available in `PATH`. The `.venv` and `results/` directories are local and are not committed. `quick` runs console sanity checks: smoke encode/decode and neutral-16 verification. `full` runs all image benchmarks and regenerates CSV reports, charts, partition maps, and Markdown documentation.",
+        "",
+        "Benchmark defaults are stored in `configs/image_benchmark.ini`. Command-line arguments still override the config values.",
         "",
         *details(
             "Full reproduction commands",
@@ -241,6 +290,19 @@ def build_readme() -> str:
                 "```powershell",
                 ".\\.venv\\Scripts\\python.exe run_all.py full --clean",
                 "```",
+            ],
+        ),
+        "",
+        "## Run vs Re-render",
+        "",
+        *markdown_table(
+            ["Task", "Command", "What it does"],
+            [
+                ["Quick validation", "`.\\.venv\\Scripts\\python.exe run_all.py quick --clean`", "Runs smoke encode/decode and neutral-16 checks"],
+                ["Full run", "`.\\.venv\\Scripts\\python.exe run_all.py full --clean`", "Runs encoders, decoder checks, metrics, CSV summaries, charts, partition maps, and Markdown rendering"],
+                ["Re-render reports only", "`.\\.venv\\Scripts\\python.exe tools\\report_image_benchmark.py docs\\image_benchmark\\combined_image_metrics.csv --output docs\\image_benchmark\\combined`", "Regenerates summary CSVs and RD charts from an existing metrics CSV"],
+                ["Re-render README/report", "`.\\.venv\\Scripts\\python.exe tools\\render_readme.py`", "Rebuilds README and the detailed benchmark report from existing docs artifacts"],
+                ["Run unit tests", "`.\\.venv\\Scripts\\python.exe -m pytest -q`", "Runs the fast test suite used by CI"],
             ],
         ),
         "",
@@ -256,6 +318,15 @@ def build_readme() -> str:
                 "The charts are rendered by `tools/report_image_benchmark.py` from `docs/image_benchmark/combined_image_metrics.csv`. The x-axis is bitrate in bpp, and each y-axis is one quality metric averaged over the combined image set.",
                 "",
                 *chart_grid(),
+            ],
+        ),
+        "",
+        *details(
+            "Standard grayscale metric-vs-QP charts",
+            [
+                "These charts are rendered from the `standard_grayscale` rows produced by `tools/image_csf_benchmark.py` and summarized by `tools/report_image_benchmark.py`. Each chart shows one measured metric as a function of QP for one image.",
+                "",
+                *standard_grayscale_qp_sections(),
             ],
         ),
         "",
@@ -453,6 +524,12 @@ def build_report() -> str:
         "The charts are rendered by `tools/report_image_benchmark.py` from `docs/image_benchmark/combined_image_metrics.csv`. They plot bpp against each quality metric for baseline and CSF, averaged over the combined image set. Dataset-specific charts are stored under `docs/image_benchmark/standard_grayscale/`, `docs/image_benchmark/synthetic/`, and `docs/image_benchmark/kodak/`.",
         "",
         *details("Show combined RD charts", chart_grid(from_docs=True)),
+        "",
+        "## Standard Grayscale Metric-vs-QP Charts",
+        "",
+        "The following charts use only the `standard_grayscale` benchmark rows. They are rendered from `docs/image_benchmark/standard_grayscale/` and show one measured metric as a function of QP for one image.",
+        "",
+        *details("Show standard grayscale metric-vs-QP charts", standard_grayscale_qp_sections(from_docs=True)),
         "",
         "## Partition Map Summary",
         "",

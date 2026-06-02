@@ -21,14 +21,19 @@ METRICS = [
 
 METRIC_LABELS = {
     "psnr_y": "PSNR-Y, dB",
-    "ssim": "SSIM",
+    "ssim": "SSIM index",
     "xpsnr_y": "XPSNR-Y, dB",
-    "vmaf": "VMAF",
-    "msssim_luma": "MS-SSIM luma",
-    "fsim_luma": "FSIM luma",
-    "haarpsi_luma": "HaarPSI luma",
+    "vmaf": "VMAF score",
+    "msssim_luma": "MS-SSIM luma index",
+    "fsim_luma": "FSIM luma index",
+    "haarpsi_luma": "HaarPSI luma index",
     "psnr_hvs_m_luma": "PSNR-HVS-M luma, dB",
 }
+
+
+# ====================================================================================================================
+# CSV summaries
+# ====================================================================================================================
 
 
 def read_rows(path: Path) -> list[dict[str, str]]:
@@ -156,6 +161,31 @@ def render_metric_charts(rows: list[dict[str, str]], output_dir: Path) -> None:
         (output_dir / f"rd_{metric}.svg").write_text(_svg_chart(metric, points), encoding="utf-8")
 
 
+def render_per_image_qp_charts(rows: list[dict[str, str]], output_dir: Path) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
+    for row in rows:
+        grouped[row["image"]].append(row)
+
+    for image, image_rows in sorted(grouped.items()):
+        image_dir = output_dir / _safe_name(image)
+        image_dir.mkdir(parents=True, exist_ok=True)
+        for metric in METRICS:
+            points: dict[str, list[dict[str, float | int]]] = {"baseline": [], "csf": []}
+            for row in image_rows:
+                mode = row["mode"]
+                if mode in points:
+                    points[mode].append({"qp": int(row["qp"]), "quality": f(row, metric)})
+            for mode in points:
+                points[mode].sort(key=lambda point: int(point["qp"]))
+            (image_dir / f"qp_{metric}.svg").write_text(_svg_qp_chart(image, metric, points), encoding="utf-8")
+
+
+# ====================================================================================================================
+# Numeric helpers
+# ====================================================================================================================
+
+
 def _pct(new_value: float, old_value: float) -> float:
     return ((new_value - old_value) / old_value * 100.0) if old_value else 0.0
 
@@ -175,6 +205,11 @@ def _interp_metric(rows: list[dict[str, str]], bpp: float, metric: str) -> float
             ratio = (x - x0) / (x1 - x0)
             return y0 + ratio * (y1 - y0)
     return None
+
+
+# ====================================================================================================================
+# SVG rendering
+# ====================================================================================================================
 
 
 def _svg_chart(metric: str, points: dict[str, list[dict[str, float | int]]]) -> str:
@@ -295,6 +330,114 @@ def _svg_chart(metric: str, points: dict[str, list[dict[str, float | int]]]) -> 
     return "\n".join(lines)
 
 
+def _svg_qp_chart(image: str, metric: str, points: dict[str, list[dict[str, float | int]]]) -> str:
+    width, height = 760, 420
+    left, right, top, bottom = 72, 64, 48, 70
+    plot_width = width - left - right
+    plot_height = height - top - bottom
+    all_points = points["baseline"] + points["csf"]
+    min_x = min(float(point["qp"]) for point in all_points)
+    max_x = max(float(point["qp"]) for point in all_points)
+    min_y = min(float(point["quality"]) for point in all_points)
+    max_y = max(float(point["quality"]) for point in all_points)
+    if min_x == max_x:
+        min_x -= 1
+        max_x += 1
+    if min_y == max_y:
+        min_y -= 0.01
+        max_y += 0.01
+
+    y_pad = (max_y - min_y) * 0.08
+    min_y -= y_pad
+    max_y += y_pad
+
+    def sx(value: float) -> float:
+        return left + (value - min_x) * plot_width / (max_x - min_x)
+
+    def sy(value: float) -> float:
+        return top + (max_y - value) * plot_height / (max_y - min_y)
+
+    colors = {"baseline": "#2563eb", "csf": "#dc2626"}
+    styles = {
+        "baseline": {"width": "3.2", "dash": "", "marker": "circle"},
+        "csf": {"width": "2.6", "dash": ' stroke-dasharray="7 5"', "marker": "diamond"},
+    }
+    y_label = METRIC_LABELS.get(metric, metric)
+    title = f"{image}: {y_label.replace(', dB', '')} vs QP"
+    lines = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#ffffff"/>',
+        f'<text x="{left}" y="26" font-family="Arial" font-size="18" font-weight="700">{html.escape(title)}</text>',
+    ]
+
+    qps = sorted({int(point["qp"]) for point in all_points})
+    for qp in qps:
+        x = sx(qp)
+        lines.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{height - bottom}" stroke="#e5e7eb" stroke-width="1"/>')
+    for value in _linear_ticks(min_y, max_y):
+        y = sy(value)
+        lines.append(f'<line x1="{left}" y1="{y:.1f}" x2="{width - right}" y2="{y:.1f}" stroke="#e5e7eb" stroke-width="1"/>')
+
+    lines.extend(
+        [
+            f'<line x1="{left}" y1="{height - bottom}" x2="{width - right}" y2="{height - bottom}" stroke="#111827"/>',
+            f'<line x1="{left}" y1="{top}" x2="{left}" y2="{height - bottom}" stroke="#111827"/>',
+            f'<text x="{width // 2 - 12}" y="{height - 26}" font-family="Arial" font-size="13">QP</text>',
+            f'<text x="16" y="{height // 2 + 45}" font-family="Arial" font-size="13" transform="rotate(-90 16,{height // 2 + 45})">{html.escape(y_label)}</text>',
+        ]
+    )
+
+    for qp in qps:
+        x = sx(qp)
+        lines.extend(
+            [
+                f'<line x1="{x:.1f}" y1="{height - bottom}" x2="{x:.1f}" y2="{height - bottom + 5}" stroke="#111827"/>',
+                f'<text x="{x:.1f}" y="{height - bottom + 20}" font-family="Arial" font-size="11" fill="#374151" text-anchor="middle">{qp}</text>',
+            ]
+        )
+    for value in _linear_ticks(min_y, max_y):
+        y = sy(value)
+        lines.extend(
+            [
+                f'<line x1="{left - 5}" y1="{y:.1f}" x2="{left}" y2="{y:.1f}" stroke="#111827"/>',
+                f'<text x="{left - 9}" y="{y + 4:.1f}" font-family="Arial" font-size="11" fill="#374151" text-anchor="end">{_format_quality_tick(value)}</text>',
+            ]
+        )
+
+    for mode in ("baseline", "csf"):
+        mode_points = points.get(mode, [])
+        if not mode_points:
+            continue
+        color = colors[mode]
+        style = styles[mode]
+        coords = [(sx(float(point["qp"])), sy(float(point["quality"]))) for point in mode_points]
+        lines.append(
+            '<polyline fill="none" stroke="{color}" stroke-width="{width}" stroke-linecap="round" '
+            'stroke-linejoin="round"{dash} points="{points}"/>'.format(
+                color=color,
+                width=style["width"],
+                dash=style["dash"],
+                points=" ".join(f"{x:.1f},{y:.1f}" for x, y in coords),
+            )
+        )
+        for x, y in coords:
+            lines.append(_marker_svg(x, y, color, str(style["marker"])))
+
+    lines.extend(
+        [
+            f'<rect x="{width - right - 132}" y="{top + 6}" width="126" height="48" rx="4" fill="#ffffff" stroke="#e5e7eb"/>',
+            f'<line x1="{width - right - 120}" y1="{top + 24}" x2="{width - right - 90}" y2="{top + 24}" stroke="{colors["baseline"]}" stroke-width="{styles["baseline"]["width"]}" stroke-linecap="round"/>',
+            _marker_svg(width - right - 105, top + 24, colors["baseline"], str(styles["baseline"]["marker"])),
+            f'<text x="{width - right - 80}" y="{top + 28}" font-family="Arial" font-size="12">baseline</text>',
+            f'<line x1="{width - right - 120}" y1="{top + 42}" x2="{width - right - 90}" y2="{top + 42}" stroke="{colors["csf"]}" stroke-width="{styles["csf"]["width"]}" stroke-linecap="round" stroke-dasharray="7 5"/>',
+            _marker_svg(width - right - 105, top + 42, colors["csf"], str(styles["csf"]["marker"])),
+            f'<text x="{width - right - 80}" y="{top + 46}" font-family="Arial" font-size="12">csf</text>',
+            "</svg>",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _marker_svg(x: float, y: float, color: str, marker: str) -> str:
     if marker == "diamond":
         return (
@@ -319,7 +462,13 @@ def _format_quality_tick(value: float) -> str:
     return f"{value:.1f}" if abs(value) >= 10 else f"{value:.4f}".rstrip("0").rstrip(".")
 
 
+def _safe_name(value: str) -> str:
+    return "".join(char if char.isalnum() or char in "-_" else "_" for char in value)
+
+
 class ImageBenchmarkReportBuilder:
+    """Builds CSV summaries and SVG charts from an existing image_metrics.csv file."""
+
     def __init__(self, metrics_csv: Path, output: Path) -> None:
         self.metrics_csv = metrics_csv
         self.output = output
@@ -336,6 +485,7 @@ class ImageBenchmarkReportBuilder:
         if equal_bpp:
             aggregate_summary(equal_bpp, self.output / "equal_bpp_metric_summary.csv")
         render_metric_charts(rows, self.output / "charts")
+        render_per_image_qp_charts(rows, self.output / "qp_charts")
 
 
 def main() -> int:
