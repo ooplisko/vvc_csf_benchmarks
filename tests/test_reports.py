@@ -3,6 +3,8 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
+import pytest
+
 from tools.report_image_benchmark import ImageBenchmarkReportBuilder
 from vvenc_csf.neutral import Neutral16ControlReport
 
@@ -56,8 +58,31 @@ def test_image_report_builder_writes_summaries_and_charts(tmp_path: Path) -> Non
 
     assert (output / "same_qp_summary.csv").exists()
     assert (output / "per_image_summary.csv").exists()
+    assert (output / "bd_rate_summary.csv").exists()
     assert (output / "charts" / "rd_psnr_y.svg").exists()
     assert (output / "qp_charts" / "img" / "qp_psnr_y.svg").exists()
+
+
+def test_image_report_builder_writes_xlsx(tmp_path: Path) -> None:
+    openpyxl = pytest.importorskip("openpyxl")
+    metrics_csv = tmp_path / "image_metrics.csv"
+    rows = [
+        _metric_row("img", 22, "baseline", 1.0, 40.0),
+        _metric_row("img", 22, "csf", 1.1, 39.5),
+        _metric_row("img", 32, "baseline", 0.5, 35.0),
+        _metric_row("img", 32, "csf", 0.55, 34.5),
+    ]
+    with metrics_csv.open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+
+    output = tmp_path / "report"
+    ImageBenchmarkReportBuilder(metrics_csv, output, write_xlsx_output=True).build()
+
+    workbook = openpyxl.load_workbook(output / "results.xlsx", read_only=True)
+    assert workbook.sheetnames == ["All metrics", "Same-QP summary", "BD-Rate"]
+    assert workbook["All metrics"].max_row == 5
 
 
 def test_neutral_control_report_links_verification_and_csv(tmp_path: Path) -> None:
