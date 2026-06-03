@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import subprocess
 import sys
 from pathlib import Path
 
@@ -10,42 +9,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tools.parse_vvenc_qp_trace import parse_trace, write_csv as write_partition_csv
 from tools.render_partition_map import render_svg
+from vvenc_csf.core import CommandRunner, ffprobe_size, platform_executable
 
 
-def run(cmd: list[str], log_file: Path | None = None) -> str:
-    result = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    if log_file is not None:
-        log_file.parent.mkdir(parents=True, exist_ok=True)
-        log_file.write_text(result.stdout, encoding="utf-8", errors="replace")
-    if result.returncode != 0:
-        raise RuntimeError(f"Command failed ({result.returncode}): {' '.join(cmd)}\n{result.stdout}")
-    return result.stdout
-
-
-def ffprobe_size(path: Path) -> tuple[int, int]:
-    out = run(
-        [
-            "ffprobe",
-            "-v",
-            "error",
-            "-select_streams",
-            "v:0",
-            "-show_entries",
-            "stream=width,height",
-            "-of",
-            "csv=s=x:p=0",
-            str(path),
-        ]
-    )
-    width, height = out.strip().split("x")
-    return int(width), int(height)
-
-
-def ensure_yuv(image: Path, yuv: Path, width: int, height: int) -> None:
+def ensure_yuv(image: Path, yuv: Path, width: int, height: int, runner: CommandRunner) -> None:
     if yuv.exists():
         return
     yuv.parent.mkdir(parents=True, exist_ok=True)
-    run(["ffmpeg", "-y", "-v", "error", "-i", str(image), "-pix_fmt", "yuv420p", "-frames:v", "1", str(yuv)])
+    runner.run(["ffmpeg", "-y", "-v", "error", "-i", str(image), "-pix_fmt", "yuv420p", "-frames:v", "1", str(yuv)])
 
 
 def summarize(rows: list[dict[str, int | str]], image: str, mode: str, width: int, height: int) -> dict[str, object]:
@@ -73,10 +44,11 @@ def build_for_image(
     args: argparse.Namespace,
     summary_rows: list[dict[str, object]],
 ) -> None:
-    width, height = ffprobe_size(image)
+    runner = CommandRunner()
+    width, height = ffprobe_size(image, runner)
     name = image.stem
     yuv = args.work_dir / dataset / "yuv" / f"{name}_{width}x{height}_1.yuv"
-    ensure_yuv(image, yuv, width, height)
+    ensure_yuv(image, yuv, width, height, runner)
 
     for mode, encoder, extra_args in (
         ("baseline", args.baseline_trace_encoder, []),
@@ -115,7 +87,7 @@ def build_for_image(
             "D_QP:poc==0",
             *extra_args,
         ]
-        run(cmd, log)
+        runner.run(cmd, log)
         rows = parse_trace(trace, frame=0, mode=mode)
         csv_path = args.work_dir / dataset / name / mode / f"{name}_{mode}.csv"
         svg_path = args.output / dataset / f"{name}_{mode}.svg"
@@ -163,8 +135,8 @@ def main() -> int:
     parser.add_argument("--standard-grayscale-dir", type=Path, default=Path("image_sets/standard_grayscale/png"))
     parser.add_argument("--output", type=Path, default=Path("docs/partition_maps"))
     parser.add_argument("--work-dir", type=Path, default=Path("results/partition_maps"))
-    parser.add_argument("--baseline-trace-encoder", type=Path, default=Path("binaries/vvenc_default_trace.exe"))
-    parser.add_argument("--csf-trace-encoder", type=Path, default=Path("binaries/vvenc_csf_trace.exe"))
+    parser.add_argument("--baseline-trace-encoder", type=Path, default=platform_executable(Path("binaries/vvenc_default_trace")))
+    parser.add_argument("--csf-trace-encoder", type=Path, default=platform_executable(Path("binaries/vvenc_csf_trace")))
     parser.add_argument("--qp", type=int, default=32)
     parser.add_argument("--preset", default="medium")
     args = parser.parse_args()

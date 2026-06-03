@@ -4,8 +4,13 @@ import argparse
 import csv
 import html
 import math
+import sys
 from collections import defaultdict
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from metrics.bd_rate import bd_psnr, bd_rate
 
 
 METRICS = [
@@ -56,6 +61,29 @@ def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
         writer = csv.DictWriter(stream, fieldnames=list(rows[0].keys()))
         writer.writeheader()
         writer.writerows(rows)
+
+
+def write_xlsx(path: Path, all_metrics: list[dict[str, str]], same_qp: list[dict[str, object]], bd_summary: list[dict[str, object]]) -> None:
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import PatternFill
+    except ImportError as exc:
+        raise RuntimeError("XLSX output requires openpyxl. Install it with: pip install -r requirements.txt") from exc
+
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+    _add_sheet(workbook, "All metrics", all_metrics)
+    _add_sheet(workbook, "Same-QP summary", same_qp)
+    _add_sheet(workbook, "BD-Rate", bd_summary)
+
+    green = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+    red = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+    for sheet in workbook.worksheets:
+        _style_sheet(sheet)
+        _color_delta_columns(sheet, green, red)
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    workbook.save(path)
 
 
 def same_qp_deltas(rows: list[dict[str, str]]) -> list[dict[str, object]]:
@@ -110,6 +138,70 @@ def equal_bpp_summary(rows: list[dict[str, str]]) -> list[dict[str, object]]:
     return output
 
 
+def bd_rate_summary(rows: list[dict[str, str]]) -> list[dict[str, object]]:
+    by_image: dict[str, dict[str, list[dict[str, str]]]] = defaultdict(lambda: defaultdict(list))
+    for row in rows:
+        by_image[row["image"]][row["mode"]].append(row)
+
+    output = []
+    for image, modes in sorted(by_image.items()):
+        if "baseline" not in modes or "csf" not in modes:
+            continue
+        baseline = sorted(modes["baseline"], key=lambda row: f(row, "bpp"))
+        csf = sorted(modes["csf"], key=lambda row: f(row, "bpp"))
+        if len(baseline) < 2 or len(csf) < 2:
+            continue
+        for metric in METRICS:
+            output.append(
+                {
+                    "image": image,
+                    "metric": metric,
+                    "bd_rate_pct": _empty_if_none(
+                        bd_rate(
+                            [f(row, "bpp") for row in baseline],
+                            [f(row, metric) for row in baseline],
+                            [f(row, "bpp") for row in csf],
+                            [f(row, metric) for row in csf],
+                        )
+                    ),
+                    "bd_psnr_delta": _empty_if_none(
+                        bd_psnr(
+                            [f(row, "bpp") for row in baseline],
+                            [f(row, metric) for row in baseline],
+                            [f(row, "bpp") for row in csf],
+                            [f(row, metric) for row in csf],
+                        )
+                    ),
+                }
+            )
+    return output
+
+
+def aggregate_bd_rate(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    summary = []
+    by_metric: dict[str, list[dict[str, object]]] = defaultdict(list)
+    for row in rows:
+        by_metric[str(row["metric"])].append(row)
+
+    for metric in METRICS:
+        items = by_metric.get(metric, [])
+        bd_rates = _numeric_values(items, "bd_rate_pct")
+        bd_psnrs = _numeric_values(items, "bd_psnr_delta")
+        summary.append(
+            {
+                "metric": metric,
+                "valid_images": len(bd_rates),
+                "bd_rate_pct_mean": _mean_values(bd_rates),
+                "bd_rate_pct_min": min(bd_rates) if bd_rates else "",
+                "bd_rate_pct_max": max(bd_rates) if bd_rates else "",
+                "bd_psnr_delta_mean": _mean_values(bd_psnrs),
+                "bd_psnr_delta_min": min(bd_psnrs) if bd_psnrs else "",
+                "bd_psnr_delta_max": max(bd_psnrs) if bd_psnrs else "",
+            }
+        )
+    return summary
+
+
 def per_image_summary(rows: list[dict[str, object]]) -> list[dict[str, object]]:
     by_image: dict[str, list[dict[str, object]]] = defaultdict(list)
     for row in rows:
@@ -143,6 +235,42 @@ def aggregate_summary(rows: list[dict[str, object]], output: Path) -> None:
             }
         )
     write_csv(output, summary)
+
+
+def _add_sheet(workbook: object, title: str, rows: list[dict[str, object]] | list[dict[str, str]]) -> None:
+    sheet = workbook.create_sheet(title)
+    if not rows:
+        return
+    headers = list(rows[0].keys())
+    sheet.append(headers)
+    for row in rows:
+        sheet.append([row.get(header, "") for header in headers])
+
+
+def _style_sheet(sheet: object) -> None:
+    if sheet.max_row == 0 or sheet.max_column == 0:
+        return
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = sheet.dimensions
+    for column_cells in sheet.columns:
+        header = str(column_cells[0].value or "")
+        width = max(len(header), 12)
+        sheet.column_dimensions[column_cells[0].column_letter].width = min(width + 2, 34)
+
+
+def _color_delta_columns(sheet: object, green: object, red: object) -> None:
+    from openpyxl.formatting.rule import CellIsRule
+
+    if sheet.max_row < 2:
+        return
+    for cell in sheet[1]:
+        header = str(cell.value or "").lower()
+        if "delta" not in header and "bd_rate" not in header:
+            continue
+        column = cell.column_letter
+        cell_range = f"{column}2:{column}{sheet.max_row}"
+        sheet.conditional_formatting.add(cell_range, CellIsRule(operator="greaterThan", formula=["0"], fill=green))
+        sheet.conditional_formatting.add(cell_range, CellIsRule(operator="lessThan", formula=["0"], fill=red))
 
 
 def render_metric_charts(rows: list[dict[str, str]], output_dir: Path) -> None:
@@ -190,9 +318,27 @@ def _pct(new_value: float, old_value: float) -> float:
     return ((new_value - old_value) / old_value * 100.0) if old_value else 0.0
 
 
+def _empty_if_none(value: float | None) -> float | str:
+    return "" if value is None else value
+
+
 def _mean(rows: list[dict[str, object]], key: str) -> float:
     values = [float(row[key]) for row in rows]
     return sum(values) / len(values) if values else 0.0
+
+
+def _numeric_values(rows: list[dict[str, object]], key: str) -> list[float]:
+    values = []
+    for row in rows:
+        value = row.get(key, "")
+        if value == "":
+            continue
+        values.append(float(value))
+    return values
+
+
+def _mean_values(values: list[float]) -> float | str:
+    return sum(values) / len(values) if values else ""
 
 
 def _interp_metric(rows: list[dict[str, str]], bpp: float, metric: str) -> float | None:
@@ -469,21 +615,28 @@ def _safe_name(value: str) -> str:
 class ImageBenchmarkReportBuilder:
     """Builds CSV summaries and SVG charts from an existing image_metrics.csv file."""
 
-    def __init__(self, metrics_csv: Path, output: Path) -> None:
+    def __init__(self, metrics_csv: Path, output: Path, write_xlsx_output: bool = False) -> None:
         self.metrics_csv = metrics_csv
         self.output = output
+        self.write_xlsx_output = write_xlsx_output
 
     def build(self) -> None:
         rows = read_rows(self.metrics_csv)
         same_qp = same_qp_deltas(rows)
         equal_bpp = equal_bpp_summary(rows)
+        bd_rows = bd_rate_summary(rows)
+        bd_summary = aggregate_bd_rate(bd_rows) if bd_rows else []
         write_csv(self.output / "same_qp_deltas.csv", same_qp)
         write_csv(self.output / "per_image_summary.csv", per_image_summary(same_qp))
         write_csv(self.output / "equal_bpp_summary.csv", equal_bpp)
+        write_csv(self.output / "bd_rate_by_image.csv", bd_rows)
+        write_csv(self.output / "bd_rate_summary.csv", bd_summary)
         if same_qp:
             aggregate_summary(same_qp, self.output / "same_qp_summary.csv")
         if equal_bpp:
             aggregate_summary(equal_bpp, self.output / "equal_bpp_metric_summary.csv")
+        if self.write_xlsx_output:
+            write_xlsx(self.output / "results.xlsx", rows, same_qp, bd_summary)
         render_metric_charts(rows, self.output / "charts")
         render_per_image_qp_charts(rows, self.output / "qp_charts")
 
@@ -492,9 +645,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Create summary CSVs and SVG charts for image CSF benchmark metrics.")
     parser.add_argument("metrics_csv", type=Path)
     parser.add_argument("--output", type=Path, default=Path("docs/image_benchmark"))
+    parser.add_argument("--xlsx", action="store_true", help="Write results.xlsx with raw metrics, same-QP summary, and BD-Rate sheets.")
     args = parser.parse_args()
 
-    ImageBenchmarkReportBuilder(args.metrics_csv, args.output).build()
+    ImageBenchmarkReportBuilder(args.metrics_csv, args.output, write_xlsx_output=args.xlsx).build()
     print(f"Wrote image benchmark report files to {args.output}")
     return 0
 

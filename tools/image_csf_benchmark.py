@@ -7,15 +7,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from vvenc_csf.benchmark import ImageBenchmarkConfig, ImageBenchmarkRunner, KodakDownloader
-from vvenc_csf.core import parse_qps
+from vvenc_csf.core import parse_qps, platform_executable
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run image-only CSF benchmark on PNG images.")
     parser.add_argument("--root", type=Path, default=Path("results/image_kodak"), help="Run directory.")
-    parser.add_argument("--baseline-encoder", type=Path, default=Path("binaries/vvenc_default.exe"))
-    parser.add_argument("--csf-encoder", type=Path, default=Path("binaries/vvenc_csf.exe"))
-    parser.add_argument("--decoder", type=Path, default=Path("binaries/vvdecapp.exe"))
+    parser.add_argument("--baseline-encoder", type=Path, default=platform_executable(Path("binaries/vvenc_default")))
+    parser.add_argument("--csf-encoder", type=Path, default=platform_executable(Path("binaries/vvenc_csf")))
+    parser.add_argument("--decoder", type=Path, default=platform_executable(Path("binaries/vvdecapp")))
     parser.add_argument("--png-dir", type=Path, default=None, help="Directory with input PNG images.")
     parser.add_argument("--download-kodak", action="store_true", help="Download the Kodak PNG suite.")
     parser.add_argument("--qps", default="22,27,32,37", help="Comma-separated QP list.")

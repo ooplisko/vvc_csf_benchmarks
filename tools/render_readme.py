@@ -36,6 +36,17 @@ CHARTS = [
     ("PSNR-HVS-M luma, dB", "docs/image_benchmark/combined/charts/rd_psnr_hvs_m_luma.svg"),
 ]
 
+METRIC_LABELS = {
+    "psnr_y": "PSNR-Y",
+    "ssim": "SSIM",
+    "xpsnr_y": "XPSNR-Y",
+    "vmaf": "VMAF",
+    "msssim_luma": "MS-SSIM",
+    "fsim_luma": "FSIM",
+    "haarpsi_luma": "HaarPSI",
+    "psnr_hvs_m_luma": "PSNR-HVS-M",
+}
+
 
 def read_csv(path: str) -> list[dict[str, str]]:
     with (ROOT / path).open("r", encoding="utf-8-sig", newline="") as stream:
@@ -86,6 +97,61 @@ def metric_summary_table(path: str) -> list[str]:
     return markdown_table(
         ["Metric", "Mean", "Min", "Max"],
         [[row["metric"], fmt(row["mean"]), fmt(row["min"]), fmt(row["max"])] for row in rows],
+    )
+
+
+def bd_rate_summary_table(path: str) -> list[str]:
+    rows = read_csv(path)
+    return markdown_table(
+        ["Metric", "Valid images", "BD-Rate mean, %", "BD-Rate min, %", "BD-Rate max, %", "BD quality mean"],
+        [
+            [
+                METRIC_LABELS.get(row["metric"], row["metric"]),
+                row["valid_images"],
+                fmt(row["bd_rate_pct_mean"], 3) if row["bd_rate_pct_mean"] else "",
+                fmt(row["bd_rate_pct_min"], 3) if row["bd_rate_pct_min"] else "",
+                fmt(row["bd_rate_pct_max"], 3) if row["bd_rate_pct_max"] else "",
+                fmt(row["bd_psnr_delta_mean"], 6) if row["bd_psnr_delta_mean"] else "",
+            ]
+            for row in rows
+        ],
+    )
+
+
+def bd_rate_per_image_table() -> list[str]:
+    rows = read_csv("docs/image_benchmark/combined/bd_rate_by_image.csv")
+    order = dataset_image_order()
+    data: dict[str, dict[str, str]] = {}
+    for row in rows:
+        img = row["image"]
+        metric = row["metric"]
+        val = row["bd_rate_pct"]
+        data.setdefault(img, {})[metric] = val
+    metrics = ["psnr_y", "ssim", "xpsnr_y", "vmaf", "msssim_luma", "fsim_luma", "haarpsi_luma", "psnr_hvs_m_luma"]
+    table_rows = []
+    for img in sorted(data.keys(), key=lambda name: order.get(name, (999, 999, "", ""))[:2]):
+        _dataset_index, _image_index, _dataset, dataset_title = order.get(img, (999, 999, "unknown", "Unknown"))
+        img_metrics = data[img]
+        row_vals = [
+            dataset_title,
+            img,
+            *[fmt(img_metrics.get(m, ""), 3) if img_metrics.get(m, "") else "" for m in metrics]
+        ]
+        table_rows.append(row_vals)
+    return markdown_table(
+        [
+            "Dataset",
+            "Image",
+            "PSNR-Y, %",
+            "SSIM, %",
+            "XPSNR-Y, %",
+            "VMAF, %",
+            "MS-SSIM, %",
+            "FSIM, %",
+            "HaarPSI, %",
+            "PSNR-HVS-M, %",
+        ],
+        table_rows,
     )
 
 
@@ -220,7 +286,7 @@ def build_readme() -> str:
         "  </a>",
         "</p>",
         "",
-        '**O. O. Plisko** · [Department of Information and Communication Technologies](https://dict.khai.edu/), National Aerospace University «Kharkiv Aviation Institute»',
+        '**O. O. Plisko** - [Department of Information and Communication Technologies](https://dict.khai.edu/), National Aerospace University "Kharkiv Aviation Institute"',
         "",
         "Image-only benchmark for a custom Contrast Sensitivity Function (CSF) scaling-list modification in VVenC. The repository contains pinned binaries, image sets, scripts, generated metric tables, RD charts, matrix evidence, and Coding Unit (CU) partition maps.",
         "",
@@ -232,7 +298,7 @@ def build_readme() -> str:
                 ["Primary control images", "5 standard grayscale images: BABOON, BARBARA, goldhill, lenna, peppers"],
                 ["Additional images", "4 synthetic images and 24 Kodak images"],
                 ["QP points", "22, 27, 32, 37"],
-                ["Compared modes", "`vvenc_default.exe` vs `vvenc_csf.exe --CSFScalingList 1`"],
+                ["Compared modes", "`vvenc_default` vs `vvenc_csf --CSFScalingList 1` (`.exe` suffix on Windows)"],
                 ["Neutral value check", "`16` verified from VVenC source and by a practical CSF-off control run"],
                 ["Current outcome", "CSF bitstreams decode correctly and reconstruction checks pass, but the current CSF matrix does not outperform the default encoder on average"],
             ],
@@ -247,6 +313,7 @@ def build_readme() -> str:
                 ["[Neutral 16 source verification](docs/matrices/neutral_16_verification.md)", "Why scaling-list value `16` is neutral in the current VVenC code"],
                 ["[Neutral 16 control run](docs/matrices/neutral_16_control.md)", "Default encoder vs CSF encoder with `--CSFScalingList 0`, compared byte-for-byte"],
                 ["[Combined metrics CSV](docs/image_benchmark/combined_image_metrics.csv)", "All image/QP/mode measurements"],
+                ["[BD-Rate summary CSV](docs/image_benchmark/combined/bd_rate_summary.csv)", "Equal-quality bitrate comparison between baseline and CSF"],
                 ["[Partition summary CSV](docs/partition_maps/summary.csv)", "CU counts and dominant block sizes"],
                 ["[Citation metadata](CITATION.cff)", "Citation information for academic use"],
             ],
@@ -257,10 +324,8 @@ def build_readme() -> str:
         *markdown_table(
             ["Path", "Purpose"],
             [
-                ["`binaries/`", "Encoder and decoder binaries used by the benchmark"],
-                ["`image_sets/standard_grayscale/`", "Primary grayscale control images, stored as BMP sources and PNG benchmark inputs"],
-                ["`image_sets/synthetic/png/`", "Deterministic synthetic PNG images"],
-                ["`image_sets/kodak/png/`", "Kodak image suite"],
+                ["`binaries/`", "Encoder and decoder binaries used by the benchmark; see `binaries/README.md`"],
+                ["`image_sets/`", "Primary grayscale, synthetic, and Kodak inputs; see `image_sets/README.md`"],
                 ["`configs/`", "INI defaults for benchmark paths, binaries, QP points, and smoke settings"],
                 ["`run_all.py`", "Image-only orchestrator for smoke checks, neutral-value checks, benchmark runs, and report regeneration"],
                 ["`vvenc_csf/`", "Reusable benchmark, encoding, neutral-value, and shared command-running classes"],
@@ -275,14 +340,14 @@ def build_readme() -> str:
         "",
         "```powershell",
         "py -3 -m venv .venv",
-        ".\\.venv\\Scripts\\pip.exe install -r requirements.txt",
-        ".\\.venv\\Scripts\\pip.exe install -r requirements-dev.txt",
+        ".\\.venv\\Scripts\\python.exe -m pip install -r requirements.txt",
+        ".\\.venv\\Scripts\\python.exe -m pip install -r requirements-dev.txt",
         ".\\.venv\\Scripts\\python.exe run_all.py quick --clean",
         "```",
         "",
-        "`ffmpeg`, `ffprobe`, and `curl.exe` must be available in `PATH`. The `.venv` and `results/` directories are local and are not committed. `quick` runs console sanity checks: smoke encode/decode and neutral-16 verification. `full` runs all image benchmarks and regenerates CSV reports, charts, partition maps, and Markdown documentation.",
+        "`ffmpeg`, `ffprobe`, and `curl` must be available in `PATH`. On Windows, `curl.exe` is used automatically. The `.venv` and `results/` directories are local and are not committed. `quick` runs console sanity checks: smoke encode/decode and neutral-16 verification. `full` runs all image benchmarks and regenerates CSV/XLSX reports, charts, partition maps, and Markdown documentation.",
         "",
-        "Benchmark defaults are stored in `configs/image_benchmark.ini`. Command-line arguments still override the config values.",
+        "Benchmark defaults are stored in `configs/image_benchmark.ini`. Binary paths are configured without a file suffix; the scripts add `.exe` on Windows and use suffixless names on Linux/macOS. Command-line arguments still override the config values.",
         "",
         *details(
             "Full reproduction commands",
@@ -299,8 +364,8 @@ def build_readme() -> str:
             ["Task", "Command", "What it does"],
             [
                 ["Quick validation", "`.\\.venv\\Scripts\\python.exe run_all.py quick --clean`", "Runs smoke encode/decode and neutral-16 checks"],
-                ["Full run", "`.\\.venv\\Scripts\\python.exe run_all.py full --clean`", "Runs encoders, decoder checks, metrics, CSV summaries, charts, partition maps, and Markdown rendering"],
-                ["Re-render reports only", "`.\\.venv\\Scripts\\python.exe tools\\report_image_benchmark.py docs\\image_benchmark\\combined_image_metrics.csv --output docs\\image_benchmark\\combined`", "Regenerates summary CSVs and RD charts from an existing metrics CSV"],
+                ["Full run", "`.\\.venv\\Scripts\\python.exe run_all.py full --clean`", "Runs encoders, decoder checks, metrics, CSV/XLSX summaries, charts, partition maps, and Markdown rendering"],
+                ["Re-render reports only", "`.\\.venv\\Scripts\\python.exe tools\\report_image_benchmark.py docs\\image_benchmark\\combined_image_metrics.csv --output docs\\image_benchmark\\combined --xlsx`", "Regenerates summary CSVs, XLSX, RD charts, and per-image QP charts from an existing metrics CSV"],
                 ["Re-render README/report", "`.\\.venv\\Scripts\\python.exe tools\\render_readme.py`", "Rebuilds README and the detailed benchmark report from existing docs artifacts"],
                 ["Run unit tests", "`.\\.venv\\Scripts\\python.exe -m pytest -q`", "Runs the fast test suite used by CI"],
             ],
@@ -311,6 +376,12 @@ def build_readme() -> str:
         "Same-QP and equal-bpp summaries are generated from `docs/image_benchmark/combined_image_metrics.csv`. Negative deltas mean the current CSF result is lower than the default encoder under the same comparison method.",
         "",
         *metric_summary_table("docs/image_benchmark/combined/same_qp_summary.csv"),
+        "",
+        "BD-Rate is generated from the same metrics CSV and compares CSF against baseline at equal quality. Negative BD-Rate means bitrate saving by CSF; positive BD-Rate means extra bitrate is needed for the same metric level.",
+        "",
+        *bd_rate_summary_table("docs/image_benchmark/combined/bd_rate_summary.csv"),
+        "",
+        *details("Show BD-Rate per image", bd_rate_per_image_table()),
         "",
         *details(
             "RD charts",
@@ -339,6 +410,19 @@ def build_readme() -> str:
             ],
         ),
         "",
+        "## How to Extend",
+        "",
+        "This benchmark is designed to be easily extensible. You can customize the image inputs or add new visual quality metrics.",
+        "",
+        "### Adding a Custom Image Set",
+        "1. Create a subdirectory under `image_sets/` containing your input images in PNG format (e.g., `image_sets/custom_set/png/`).",
+        "2. Update the paths in `configs/image_benchmark.ini` or pass your custom directory via the `--smoke-dir`, `--synthetic-dir`, or `--kodak-dir` CLI arguments when invoking `run_all.py`.",
+        "",
+        "### Adding a Custom Quality Metric",
+        "1. Implement the luma metric calculation function in `metrics/image_quality.py`.",
+        "2. Update the `calculate_luma_metrics()` function in `metrics/image_quality.py` to execute your new metric and append its score to the returned dictionary.",
+        "3. Add your metric's internal key and label to the `METRICS` list and `METRIC_LABELS` dictionary in `tools/report_image_benchmark.py` and `tools/render_readme.py` to include it in the generated CSV/XLSX summaries and RD charts.",
+        "",
         "## Conclusion",
         "",
         "The benchmark pipeline verifies three things: CSF bitstreams decode through VVdeC, encoder reconstructions match decoded output, and the neutral scaling-list value `16` behaves as the default no-op matrix value. Under the fixed image/QP conditions used here, the active CSF matrix shape does not show an average quality advantage over the default encoder.",
@@ -358,15 +442,15 @@ def build_report() -> str:
         *markdown_table(
             ["File", "Purpose"],
             [
-                ["`binaries/vvenc_default.exe`", "Clean upstream/default VVenC encoder without CSF"],
-                ["`binaries/vvenc_csf.exe`", "Modified VVenC encoder. CSF is enabled with `--CSFScalingList 1`"],
-                ["`binaries/vvenc_default_trace.exe`", "Default encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only"],
-                ["`binaries/vvenc_csf_trace.exe`", "CSF encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only"],
-                ["`binaries/vvdecapp.exe`", "VVdeC decoder used to verify bitstream decoding"],
+                ["`binaries/vvenc_default[.exe]`", "Clean upstream/default VVenC encoder without CSF"],
+                ["`binaries/vvenc_csf[.exe]`", "Modified VVenC encoder. CSF is enabled with `--CSFScalingList 1`"],
+                ["`binaries/vvenc_default_trace[.exe]`", "Default encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only"],
+                ["`binaries/vvenc_csf_trace[.exe]`", "CSF encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only"],
+                ["`binaries/vvdecapp[.exe]`", "VVdeC decoder used to verify bitstream decoding"],
             ],
         ),
         "",
-        "The current benchmark can be reproduced directly from the binaries stored in the repository. Local VVenC build directories are not required.",
+        "The repository currently stores Windows `.exe` binaries. On Linux/macOS, place suffixless binaries with the same stems in `binaries/`. The scripts select the platform-specific executable names automatically. More detail is available in [`binaries/README.md`](../binaries/README.md).",
         "",
         *details(
             "Default encoder rebuild commands",
@@ -446,13 +530,13 @@ def build_report() -> str:
         "  cu.Y().x, cu.Y().y, cu.Y().width, cu.Y().height, cu.qp );",
         "```",
         "",
-        "Baseline maps are generated with `vvenc_default_trace.exe`; CSF maps are generated with `vvenc_csf_trace.exe`. Both binaries write final luma CU coordinates through the same `D_QP` trace, so a denser CSF map means the encoder selected more small CUs under the CSF configuration.",
+        "Baseline maps are generated with `vvenc_default_trace`; CSF maps are generated with `vvenc_csf_trace` (`.exe` suffix on Windows). Both binaries write final luma CU coordinates through the same `D_QP` trace, so a denser CSF map means the encoder selected more small CUs under the CSF configuration.",
         "",
         "## Reproducing the Run",
         "",
         "```powershell",
         "py -3 -m venv .venv",
-        ".\\.venv\\Scripts\\pip.exe install -r requirements.txt",
+        ".\\.venv\\Scripts\\python.exe -m pip install -r requirements.txt",
         ".\\.venv\\Scripts\\python.exe run_all.py full --clean",
         "```",
         "",
@@ -467,9 +551,9 @@ def build_report() -> str:
                 ["Encode pixel format", "`yuv420p`, 8-bit"],
                 ["QP points", "22, 27, 32, 37"],
                 ["Preset", "`medium`"],
-                ["Baseline mode", "`vvenc_default.exe`, without `--CSFScalingList`"],
-                ["CSF mode", "`vvenc_csf.exe --CSFScalingList 1`"],
-                ["Decoder", "`vvdecapp.exe`"],
+                ["Baseline mode", "`vvenc_default`, without `--CSFScalingList` (`.exe` suffix on Windows)"],
+                ["CSF mode", "`vvenc_csf --CSFScalingList 1` (`.exe` suffix on Windows)"],
+                ["Decoder", "`vvdecapp` (`.exe` suffix on Windows)"],
             ],
         ),
         "",
@@ -512,6 +596,16 @@ def build_report() -> str:
         "CSV: [`docs/image_benchmark/combined/equal_bpp_metric_summary.csv`](image_benchmark/combined/equal_bpp_metric_summary.csv)",
         "",
         *metric_summary_table("docs/image_benchmark/combined/equal_bpp_metric_summary.csv"),
+        "",
+        "## BD-Rate Summary",
+        "",
+        "CSV: [`docs/image_benchmark/combined/bd_rate_summary.csv`](image_benchmark/combined/bd_rate_summary.csv). Per-image values are stored in [`docs/image_benchmark/combined/bd_rate_by_image.csv`](image_benchmark/combined/bd_rate_by_image.csv). Negative BD-Rate means the CSF encoder needs fewer bits than baseline for the same quality metric; positive BD-Rate means it needs more bits.",
+        "",
+        *bd_rate_summary_table("docs/image_benchmark/combined/bd_rate_summary.csv"),
+        "",
+        *details("Show BD-Rate per image", bd_rate_per_image_table()),
+        "",
+        "The generated XLSX workbook `docs/image_benchmark/combined/results.xlsx` contains the full metrics table, same-QP summary, and BD-Rate summary when `openpyxl` is installed and XLSX output is enabled.",
         "",
         "## Per-Image Summary",
         "",
@@ -567,6 +661,19 @@ def build_report() -> str:
 
     lines.extend(
         [
+            "## How to Extend",
+            "",
+            "This benchmark is designed to be easily extensible. You can customize the image inputs or add new visual quality metrics.",
+            "",
+            "### Adding a Custom Image Set",
+            "1. Create a subdirectory under `image_sets/` containing your input images in PNG format (e.g., `image_sets/custom_set/png/`).",
+            "2. Update the paths in `configs/image_benchmark.ini` or pass your custom directory via the `--smoke-dir`, `--synthetic-dir`, or `--kodak-dir` CLI arguments when invoking `run_all.py`.",
+            "",
+            "### Adding a Custom Quality Metric",
+            "1. Implement the luma metric calculation function in `metrics/image_quality.py`.",
+            "2. Update the `calculate_luma_metrics()` function in `metrics/image_quality.py` to execute your new metric and append its score to the returned dictionary.",
+            "3. Add your metric's internal key and label to the `METRICS` list and `METRIC_LABELS` dictionary in `tools/report_image_benchmark.py` and `tools/render_readme.py` to include it in the generated CSV/XLSX summaries and RD charts.",
+            "",
             "## Current Conclusion",
             "",
             "The CSF integration passes the mechanical checks used by this benchmark: `--CSFScalingList 1` is accepted, generated bitstreams decode through VVdeC, encoder reconstruction matches decoded output, matrices are signaled, and the tables, RD charts, and CU partition maps are regenerated from repository scripts.",
