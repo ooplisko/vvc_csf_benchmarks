@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
 from vvenc_csf.config import load_benchmark_config
+from vvenc_csf.core import CommandRunner, ffprobe_size, files_equal, platform_executable, repo_path, resolve_project_path
 
 
 ROOT = Path(__file__).resolve().parent
@@ -16,62 +15,25 @@ STANDARD_DIR = Path("image_sets/standard_grayscale/png")
 SYNTHETIC_DIR = Path("image_sets/synthetic/png")
 KODAK_DIR = Path("image_sets/kodak/png")
 QPS = "22,27,32,37"
+RUNNER = CommandRunner(ROOT)
+DEFAULT_BASELINE_ENCODER = platform_executable(Path("binaries/vvenc_default"))
+DEFAULT_CSF_ENCODER = platform_executable(Path("binaries/vvenc_csf"))
+DEFAULT_DECODER = platform_executable(Path("binaries/vvdecapp"))
+DEFAULT_BASELINE_TRACE_ENCODER = platform_executable(Path("binaries/vvenc_default_trace"))
+DEFAULT_CSF_TRACE_ENCODER = platform_executable(Path("binaries/vvenc_csf_trace"))
 
 
 def rel(path: Path) -> str:
-    try:
-        return path.resolve().relative_to(ROOT).as_posix()
-    except ValueError:
-        return path.resolve().as_posix()
+    return repo_path(path)
 
 
 def run(cmd: list[str], label: str, log_file: Path) -> None:
-    log_file.parent.mkdir(parents=True, exist_ok=True)
-    with log_file.open("w", encoding="utf-8", errors="replace") as log:
-        log.write("[COMMAND] " + " ".join(cmd) + "\n\n")
-        result = subprocess.run(cmd, cwd=ROOT, text=True, stdout=log, stderr=subprocess.STDOUT)
-    if result.returncode != 0:
+    try:
+        RUNNER.run(cmd, log_file)
+    except RuntimeError:
         print(f"FAIL {label} (log: {rel(log_file)})")
-        raise RuntimeError(f"Command failed ({result.returncode}): {' '.join(cmd)}")
+        raise
     print(f"PASS {label} (log: {rel(log_file)})")
-
-
-def capture(cmd: list[str]) -> str:
-    result = subprocess.run(cmd, cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    if result.returncode != 0:
-        raise RuntimeError(f"Command failed ({result.returncode}): {' '.join(cmd)}\n{result.stdout}")
-    return result.stdout
-
-
-def file_md5(path: Path) -> str:
-    digest = hashlib.md5()
-    with path.open("rb") as stream:
-        while chunk := stream.read(1024 * 1024):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def files_equal(left: Path, right: Path) -> bool:
-    return left.exists() and right.exists() and left.stat().st_size == right.stat().st_size and file_md5(left) == file_md5(right)
-
-
-def ffprobe_size(path: Path) -> tuple[int, int]:
-    out = capture(
-        [
-            "ffprobe",
-            "-v",
-            "error",
-            "-select_streams",
-            "v:0",
-            "-show_entries",
-            "stream=width,height",
-            "-of",
-            "csv=s=x:p=0",
-            str(path),
-        ]
-    )
-    width, height = out.strip().split("x")
-    return int(width), int(height)
 
 
 def ensure_yuv(image: Path, output: Path, width: int, height: int, log_file: Path) -> None:
@@ -212,14 +174,17 @@ def benchmark(args: argparse.Namespace, name: str, png_dir: Path, extra: list[st
 
 
 def write_image_report(name: str, metrics_csv: Path, args: argparse.Namespace) -> None:
+    cmd = [
+        sys.executable,
+        "tools/report_image_benchmark.py",
+        str(metrics_csv),
+        "--output",
+        f"docs/image_benchmark/{name}",
+    ]
+    if args.write_xlsx:
+        cmd.append("--xlsx")
     run(
-        [
-            sys.executable,
-            "tools/report_image_benchmark.py",
-            str(metrics_csv),
-            "--output",
-            f"docs/image_benchmark/{name}",
-        ],
+        cmd,
         f"{name} CSV summaries and RD charts",
         args.root / "logs" / f"report_{name}.log",
     )
@@ -237,11 +202,10 @@ def regenerate_reports(metric_csvs: list[Path], args: argparse.Namespace) -> Non
         "merge image metrics",
         args.root / "logs" / "merge_image_metrics.log",
     )
-    run(
-        [sys.executable, "tools/report_image_benchmark.py", "docs/image_benchmark/combined_image_metrics.csv", "--output", "docs/image_benchmark/combined"],
-        "combined CSV summaries and RD charts",
-        args.root / "logs" / "report_combined.log",
-    )
+    cmd = [sys.executable, "tools/report_image_benchmark.py", "docs/image_benchmark/combined_image_metrics.csv", "--output", "docs/image_benchmark/combined"]
+    if args.write_xlsx:
+        cmd.append("--xlsx")
+    run(cmd, "combined CSV summaries and RD charts", args.root / "logs" / "report_combined.log")
     run([sys.executable, "tools/render_readme.py"], "render README and benchmark report", args.root / "logs" / "render_readme.log")
 
 
@@ -278,10 +242,6 @@ def print_summary(csv_path: Path) -> None:
             print(f"{row['metric']}: mean={float(row['mean']):+.6f}, min={float(row['min']):+.6f}, max={float(row['max']):+.6f}")
 
 
-def project_path(path: Path) -> Path:
-    return path if path.is_absolute() else ROOT / path
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the image-only VVenC CSF checks and report generators.")
     parser.add_argument("suite", nargs="?", default="quick", choices=["quick", "full"], help="quick runs console sanity checks. full runs all image benchmarks and regenerates docs.")
@@ -294,11 +254,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--smoke-qp", type=int, default=32)
     parser.add_argument("--partition-qp", type=int, default=32)
     parser.add_argument("--vvenc-root", type=Path, default=ROOT.parent / "vvenc")
-    parser.add_argument("--baseline-encoder", type=Path, default=Path("binaries/vvenc_default.exe"))
-    parser.add_argument("--csf-encoder", type=Path, default=Path("binaries/vvenc_csf.exe"))
-    parser.add_argument("--decoder", type=Path, default=Path("binaries/vvdecapp.exe"))
-    parser.add_argument("--baseline-trace-encoder", type=Path, default=Path("binaries/vvenc_default_trace.exe"))
-    parser.add_argument("--csf-trace-encoder", type=Path, default=Path("binaries/vvenc_csf_trace.exe"))
+    parser.add_argument("--baseline-encoder", type=Path, default=DEFAULT_BASELINE_ENCODER)
+    parser.add_argument("--csf-encoder", type=Path, default=DEFAULT_CSF_ENCODER)
+    parser.add_argument("--decoder", type=Path, default=DEFAULT_DECODER)
+    parser.add_argument("--baseline-trace-encoder", type=Path, default=DEFAULT_BASELINE_TRACE_ENCODER)
+    parser.add_argument("--csf-trace-encoder", type=Path, default=DEFAULT_CSF_TRACE_ENCODER)
+    parser.add_argument("--xlsx", dest="write_xlsx", action="store_true", help="Write XLSX reports in addition to CSV and SVG outputs.")
+    parser.add_argument("--no-xlsx", dest="write_xlsx", action="store_false", help="Skip XLSX report generation.")
+    parser.set_defaults(write_xlsx=None)
     parser.add_argument("--clean", action="store_true", help="Remove the run directory before starting.")
     return parser.parse_args()
 
@@ -318,7 +281,7 @@ class RunAllPipeline:
         print("\nPASS run_all")
 
     def prepare(self) -> None:
-        self.args.config = project_path(self.args.config)
+        self.args.config = resolve_project_path(self.args.config)
         if self.args.config.exists():
             config = load_benchmark_config(self.args.config)
             self.args.root = config.run_root if self.args.root == Path("results/run_all") else self.args.root
@@ -326,14 +289,18 @@ class RunAllPipeline:
             self.args.synthetic_dir = config.synthetic_dir if self.args.synthetic_dir == SYNTHETIC_DIR else self.args.synthetic_dir
             self.args.kodak_dir = config.kodak_dir if self.args.kodak_dir == KODAK_DIR else self.args.kodak_dir
             self.args.vvenc_root = config.vvenc_root if self.args.vvenc_root == ROOT.parent / "vvenc" else self.args.vvenc_root
-            self.args.baseline_encoder = config.baseline_encoder if self.args.baseline_encoder == Path("binaries/vvenc_default.exe") else self.args.baseline_encoder
-            self.args.csf_encoder = config.csf_encoder if self.args.csf_encoder == Path("binaries/vvenc_csf.exe") else self.args.csf_encoder
-            self.args.decoder = config.decoder if self.args.decoder == Path("binaries/vvdecapp.exe") else self.args.decoder
-            self.args.baseline_trace_encoder = config.baseline_trace_encoder if self.args.baseline_trace_encoder == Path("binaries/vvenc_default_trace.exe") else self.args.baseline_trace_encoder
-            self.args.csf_trace_encoder = config.csf_trace_encoder if self.args.csf_trace_encoder == Path("binaries/vvenc_csf_trace.exe") else self.args.csf_trace_encoder
+            self.args.baseline_encoder = config.baseline_encoder if self.args.baseline_encoder == DEFAULT_BASELINE_ENCODER else self.args.baseline_encoder
+            self.args.csf_encoder = config.csf_encoder if self.args.csf_encoder == DEFAULT_CSF_ENCODER else self.args.csf_encoder
+            self.args.decoder = config.decoder if self.args.decoder == DEFAULT_DECODER else self.args.decoder
+            self.args.baseline_trace_encoder = config.baseline_trace_encoder if self.args.baseline_trace_encoder == DEFAULT_BASELINE_TRACE_ENCODER else self.args.baseline_trace_encoder
+            self.args.csf_trace_encoder = config.csf_trace_encoder if self.args.csf_trace_encoder == DEFAULT_CSF_TRACE_ENCODER else self.args.csf_trace_encoder
             self.args.qps = config.qps if self.args.qps == QPS else self.args.qps
             self.args.smoke_qp = config.smoke_qp if self.args.smoke_qp == 32 else self.args.smoke_qp
             self.args.partition_qp = config.partition_qp if self.args.partition_qp == 32 else self.args.partition_qp
+            self.args.write_xlsx = config.write_xlsx if self.args.write_xlsx is None else self.args.write_xlsx
+
+        if self.args.write_xlsx is None:
+            self.args.write_xlsx = False
 
         for name in (
             "root",
@@ -347,7 +314,7 @@ class RunAllPipeline:
             "baseline_trace_encoder",
             "csf_trace_encoder",
         ):
-            setattr(self.args, name, project_path(getattr(self.args, name)))
+            setattr(self.args, name, resolve_project_path(getattr(self.args, name)))
 
         if self.args.clean and self.args.root.exists():
             shutil.rmtree(self.args.root)

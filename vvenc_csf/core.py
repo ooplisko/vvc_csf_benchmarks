@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -31,7 +32,7 @@ class CommandRunner:
         result = subprocess.run(cmd, cwd=self.cwd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         if log_file is not None:
             log_file.parent.mkdir(parents=True, exist_ok=True)
-            log_file.write_text(result.stdout, encoding="utf-8", errors="replace")
+            log_file.write_text("[COMMAND] " + " ".join(cmd) + "\n\n" + result.stdout, encoding="utf-8", errors="replace")
         if result.returncode != 0:
             raise RuntimeError(f"Command failed ({result.returncode}): {' '.join(cmd)}\n{result.stdout}")
         return CommandResult(cmd, result.stdout, result.returncode)
@@ -52,6 +53,16 @@ def repo_path(path: Path) -> str:
 
 def resolve_project_path(path: Path) -> Path:
     return path if path.is_absolute() else ROOT / path
+
+
+def executable_name(stem: str) -> str:
+    return f"{stem}.exe" if sys.platform == "win32" else stem
+
+
+def platform_executable(path: Path) -> Path:
+    if path.suffix:
+        return path
+    return path.with_name(executable_name(path.name))
 
 
 def parse_qps(value: str) -> list[int]:

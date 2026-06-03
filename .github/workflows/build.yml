@@ -7,7 +7,11 @@ on:
 jobs:
   validate-python:
     name: Validate Python sources
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
 
     steps:
       - name: Checkout

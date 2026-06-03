@@ -4,6 +4,8 @@ import configparser
 from dataclasses import dataclass
 from pathlib import Path
 
+from vvenc_csf.core import platform_executable
+
 
 @dataclass(frozen=True)
 class BenchmarkConfig:
@@ -22,6 +24,7 @@ class BenchmarkConfig:
     qps: str
     smoke_qp: int
     partition_qp: int
+    write_xlsx: bool
 
 
 def load_benchmark_config(path: Path) -> BenchmarkConfig:
@@ -36,12 +39,13 @@ def load_benchmark_config(path: Path) -> BenchmarkConfig:
         synthetic_dir=Path(parser["paths"]["synthetic_dir"]),
         kodak_dir=Path(parser["paths"]["kodak_dir"]),
         vvenc_root=Path(parser["paths"]["vvenc_root"]),
-        baseline_encoder=Path(parser["binaries"]["baseline_encoder"]),
-        csf_encoder=Path(parser["binaries"]["csf_encoder"]),
-        decoder=Path(parser["binaries"]["decoder"]),
-        baseline_trace_encoder=Path(parser["binaries"]["baseline_trace_encoder"]),
-        csf_trace_encoder=Path(parser["binaries"]["csf_trace_encoder"]),
+        baseline_encoder=platform_executable(Path(parser["binaries"]["baseline_encoder"])),
+        csf_encoder=platform_executable(Path(parser["binaries"]["csf_encoder"])),
+        decoder=platform_executable(Path(parser["binaries"]["decoder"])),
+        baseline_trace_encoder=platform_executable(Path(parser["binaries"]["baseline_trace_encoder"])),
+        csf_trace_encoder=platform_executable(Path(parser["binaries"]["csf_trace_encoder"])),
         qps=parser["experiment"]["qps"],
         smoke_qp=parser.getint("experiment", "smoke_qp"),
         partition_qp=parser.getint("experiment", "partition_qp"),
+        write_xlsx=parser.getboolean("output", "write_xlsx", fallback=True),
     )

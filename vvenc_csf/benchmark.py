@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from metrics.image_quality import calculate_luma_metrics
-from vvenc_csf.core import CommandRunner, ffprobe_size, files_equal, write_csv
+from vvenc_csf.core import CommandRunner, executable_name, ffprobe_size, files_equal, write_csv
 from vvenc_csf.encoding import DecoderRunner, EncodeJob, EncoderRunner, ImageConverter
 
 
@@ -52,7 +52,7 @@ class KodakDownloader:
             out = png_dir / f"kodim{index:02d}.png"
             if out.exists() and out.stat().st_size > 0:
                 continue
-            self.runner.run(["curl.exe", "-L", KODAK_URL.format(index=index), "-o", str(out)])
+            self.runner.run([executable_name("curl"), "-L", KODAK_URL.format(index=index), "-o", str(out)])
 
 
 class EncoderLogParser:
