@@ -71,7 +71,18 @@ class EncoderLogParser:
 
 
 class VisualMetricCalculator:
-    """Computes ffmpeg-backed and local luma metrics for one reconstructed image."""
+    """Computes ffmpeg-backed and local luma metrics for one reconstructed image.
+
+    Parameters
+    ----------
+    runner : CommandRunner, optional
+        The command runner instance to use for execution.
+
+    Returns
+    -------
+    dict[str, float]
+        Dictionary mapping metric names (like 'ssim', 'vmaf') to their float values.
+    """
 
     def __init__(self, runner: CommandRunner | None = None) -> None:
         self.runner = runner or CommandRunner()
@@ -121,7 +132,28 @@ class VisualMetricCalculator:
 
 
 class ImageBenchmarkRunner:
-    """Runs baseline and CSF encodes for each image/QP and writes image_metrics.csv."""
+    """Runs baseline and CSF encodes for each image/QP and writes image_metrics.csv.
+
+    Parameters
+    ----------
+    config : ImageBenchmarkConfig
+        Configuration options for the benchmark.
+    runner : CommandRunner, optional
+        Command runner instance for subprocesses.
+    converter : ImageConverter, optional
+        Converter for PNG to YUV.
+    encoder : EncoderRunner, optional
+        Runner for VVenC encode jobs.
+    metrics : VisualMetricCalculator, optional
+        Calculator for image quality metrics.
+    parser : EncoderLogParser, optional
+        Parser for extracting VVenC log metrics.
+
+    Examples
+    --------
+    >>> runner = ImageBenchmarkRunner(config)
+    >>> # csv_path = runner.run()
+    """
 
     def __init__(
         self,

@@ -23,7 +23,20 @@ class CommandResult:
 
 
 class CommandRunner:
-    """Runs external tools and optionally captures their output into log files."""
+    """Runs external tools and optionally captures their output into log files.
+
+    Parameters
+    ----------
+    cwd : Path, optional
+        The working directory where commands will be executed. Defaults to the repository root.
+
+    Examples
+    --------
+    >>> runner = CommandRunner()
+    >>> result = runner.run(["echo", "hello"])
+    >>> print(result.stdout.strip())
+    hello
+    """
 
     def __init__(self, cwd: Path = ROOT) -> None:
         self.cwd = cwd

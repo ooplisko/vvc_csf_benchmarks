@@ -20,6 +20,27 @@ def bd_rate(
     Negative values mean the test curve uses fewer bits than the reference curve
     at the same quality level. `None` means the curves do not have a usable
     overlapping quality range.
+
+    Parameters
+    ----------
+    ref_bpp : Sequence[float]
+        Bits per pixel values for the reference encoder.
+    ref_metric : Sequence[float]
+        Quality metric values for the reference encoder.
+    test_bpp : Sequence[float]
+        Bits per pixel values for the test encoder.
+    test_metric : Sequence[float]
+        Quality metric values for the test encoder.
+
+    Returns
+    -------
+    float | None
+        The BD-Rate difference in percent, or None if the curves do not overlap.
+
+    Examples
+    --------
+    >>> bd_rate([1.0, 2.0], [30.0, 35.0], [0.9, 1.8], [30.0, 35.0])
+    -10.211892990698188
     """
 
     ref = _prepare_curve(ref_metric, [math.log(max(value, 1e-12)) for value in ref_bpp])
@@ -43,6 +64,27 @@ def bd_psnr(
     Positive values mean the test curve has higher quality than the reference
     curve at the same bitrate. `None` means the curves do not have a usable
     overlapping bitrate range.
+
+    Parameters
+    ----------
+    ref_bpp : Sequence[float]
+        Bits per pixel values for the reference encoder.
+    ref_metric : Sequence[float]
+        Quality metric values for the reference encoder.
+    test_bpp : Sequence[float]
+        Bits per pixel values for the test encoder.
+    test_metric : Sequence[float]
+        Quality metric values for the test encoder.
+
+    Returns
+    -------
+    float | None
+        The BD-PSNR difference in the metric's units, or None if the curves do not overlap.
+
+    Examples
+    --------
+    >>> bd_psnr([1.0, 2.0], [30.0, 35.0], [1.0, 2.0], [31.0, 36.0])
+    1.0
     """
 
     ref = _prepare_curve([math.log(max(value, 1e-12)) for value in ref_bpp], ref_metric)

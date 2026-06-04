@@ -55,7 +55,18 @@ class ImageConverter:
 
 
 class EncoderRunner:
-    """Builds and executes one VVenC encode command."""
+    """Builds and executes one VVenC encode command.
+
+    Parameters
+    ----------
+    runner : CommandRunner, optional
+        The command runner instance to use for execution.
+
+    Examples
+    --------
+    >>> encoder = EncoderRunner()
+    >>> # encoder.encode(job)
+    """
 
     def __init__(self, runner: CommandRunner | None = None) -> None:
         self.runner = runner or CommandRunner()
@@ -88,7 +99,20 @@ class EncoderRunner:
 
 
 class DecoderRunner:
-    """Runs VVdeC for reconstruction-vs-decoder consistency checks."""
+    """Runs VVdeC for reconstruction-vs-decoder consistency checks.
+
+    Parameters
+    ----------
+    decoder : Path
+        Path to the VVdeC executable.
+    runner : CommandRunner, optional
+        The command runner instance to use for execution.
+
+    Examples
+    --------
+    >>> decoder = DecoderRunner(Path("vvdecapp"))
+    >>> # decoder.decode(Path("in.vvc"), Path("out.yuv"), Path("dec.log"))
+    """
 
     def __init__(self, decoder: Path, runner: CommandRunner | None = None) -> None:
         self.decoder = decoder
