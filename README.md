@@ -59,6 +59,16 @@ Image-only benchmark for a custom Contrast Sensitivity Function (CSF) scaling-li
 | `tests/` | Fast unit tests for helpers, command construction, config loading, and report builders |
 | `docs/` | Generated evidence, tables, charts, and detailed reports |
 
+## Library API
+
+The project exposes a Python library in `vvenc_csf/` and `metrics/` that can be imported to run custom benchmarks or extract metric calculations.
+
+| Class/Function | Module | Description |
+| --- | --- | --- |
+| `CommandRunner` | `vvenc_csf.core` | Executes subprocesses and handles logging |
+| `EncoderRunner` | `vvenc_csf.encoding` | Runs VVenC with typed parameter objects |
+| `bd_rate()` | `metrics.bd_rate` | Bjontegaard delta bitrate calculation |
+
 ## Quick Start
 
 ```powershell
@@ -253,7 +263,7 @@ This benchmark is designed to be easily extensible. You can customize the image 
 ### Adding a Custom Quality Metric
 1. Implement the luma metric calculation function in `metrics/image_quality.py`.
 2. Update the `calculate_luma_metrics()` function in `metrics/image_quality.py` to execute your new metric and append its score to the returned dictionary.
-3. Add your metric's internal key and label to the `METRICS` list and `METRIC_LABELS` dictionary in `tools/report_image_benchmark.py` and `tools/render_readme.py` to include it in the generated CSV/XLSX summaries and RD charts.
+3. Add a tuple with the metric's CSV key, short label, and chart label to `_METRIC_DEFS` in `metrics/registry.py`. All report scripts pick up the new metric automatically.
 
 ## Conclusion
 

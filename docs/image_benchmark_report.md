@@ -6,11 +6,11 @@ This report expands the root README with the exact binaries, commands, CSV outpu
 
 | File | Purpose |
 | --- | --- |
-| `binaries/vvenc_default[.exe]` | Clean upstream/default VVenC encoder without CSF |
-| `binaries/vvenc_csf[.exe]` | Modified VVenC encoder. CSF is enabled with `--CSFScalingList 1` |
-| `binaries/vvenc_default_trace[.exe]` | Default encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only |
-| `binaries/vvenc_csf_trace[.exe]` | CSF encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only |
-| `binaries/vvdecapp[.exe]` | VVdeC decoder used to verify bitstream decoding |
+| `binaries/vvenc_default[.exe]` | Clean upstream/default VVenC encoder without CSF. Local build from [fraunhoferhhi/vvenc](https://github.com/fraunhoferhhi/vvenc) |
+| `binaries/vvenc_csf[.exe]` | Modified VVenC encoder. CSF is enabled with `--CSFScalingList 1`. Local build from the [CSF VVenC branch](https://github.com/For2natop1ua/vvenc/tree/feature-branch) |
+| `binaries/vvenc_default_trace[.exe]` | Default encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only. Local build from [fraunhoferhhi/vvenc](https://github.com/fraunhoferhhi/vvenc) |
+| `binaries/vvenc_csf_trace[.exe]` | CSF encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only. Local build from the [CSF VVenC branch](https://github.com/For2natop1ua/vvenc/tree/feature-branch) |
+| `binaries/vvdecapp[.exe]` | VVdeC decoder used to verify bitstream decoding. Local build from [Fraunhofer HHI VVdeC](https://github.com/fraunhoferhhi/vvdec) |
 
 The repository currently stores Windows `.exe` binaries. On Linux/macOS, place suffixless binaries with the same stems in `binaries/`. The scripts select the platform-specific executable names automatically. More detail is available in [`binaries/README.md`](../binaries/README.md).
 
@@ -494,7 +494,7 @@ This benchmark is designed to be easily extensible. You can customize the image 
 ### Adding a Custom Quality Metric
 1. Implement the luma metric calculation function in `metrics/image_quality.py`.
 2. Update the `calculate_luma_metrics()` function in `metrics/image_quality.py` to execute your new metric and append its score to the returned dictionary.
-3. Add your metric's internal key and label to the `METRICS` list and `METRIC_LABELS` dictionary in `tools/report_image_benchmark.py` and `tools/render_readme.py` to include it in the generated CSV/XLSX summaries and RD charts.
+3. Add a tuple with the metric's CSV key, short label, and chart label to `_METRIC_DEFS` in `metrics/registry.py`. All report scripts pick up the new metric automatically.
 
 ## Current Conclusion
 

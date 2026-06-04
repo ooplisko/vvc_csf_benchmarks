@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import html
+import logging
 import math
 import sys
 from collections import defaultdict
@@ -11,29 +12,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from metrics.bd_rate import bd_psnr, bd_rate
+from metrics.registry import METRICS, METRIC_CHART_LABELS
 
-
-METRICS = [
-    "psnr_y",
-    "ssim",
-    "xpsnr_y",
-    "vmaf",
-    "msssim_luma",
-    "fsim_luma",
-    "haarpsi_luma",
-    "psnr_hvs_m_luma",
-]
-
-METRIC_LABELS = {
-    "psnr_y": "PSNR-Y, dB",
-    "ssim": "SSIM index",
-    "xpsnr_y": "XPSNR-Y, dB",
-    "vmaf": "VMAF score",
-    "msssim_luma": "MS-SSIM luma index",
-    "fsim_luma": "FSIM luma index",
-    "haarpsi_luma": "HaarPSI luma index",
-    "psnr_hvs_m_luma": "PSNR-HVS-M luma, dB",
-}
+logger = logging.getLogger(__name__)
 
 
 # ====================================================================================================================
@@ -399,7 +380,7 @@ def _svg_chart(metric: str, points: dict[str, list[dict[str, float | int]]]) -> 
         "baseline": {"width": "3.4", "dash": "", "marker": "circle"},
         "csf": {"width": "2.6", "dash": ' stroke-dasharray="7 5"', "marker": "diamond"},
     }
-    y_label = METRIC_LABELS.get(metric, metric)
+    y_label = METRIC_CHART_LABELS.get(metric, metric)
     title = y_label.replace(", dB", "")
     lines = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
@@ -508,7 +489,7 @@ def _svg_qp_chart(image: str, metric: str, points: dict[str, list[dict[str, floa
         "baseline": {"width": "3.2", "dash": "", "marker": "circle"},
         "csf": {"width": "2.6", "dash": ' stroke-dasharray="7 5"', "marker": "diamond"},
     }
-    y_label = METRIC_LABELS.get(metric, metric)
+    y_label = METRIC_CHART_LABELS.get(metric, metric)
     title = f"{image}: {y_label.replace(', dB', '')} vs QP"
     lines = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
@@ -649,7 +630,7 @@ def main() -> int:
     args = parser.parse_args()
 
     ImageBenchmarkReportBuilder(args.metrics_csv, args.output, write_xlsx_output=args.xlsx).build()
-    print(f"Wrote image benchmark report files to {args.output}")
+    logger.info("Wrote image benchmark report files to %s", args.output)
     return 0
 
 

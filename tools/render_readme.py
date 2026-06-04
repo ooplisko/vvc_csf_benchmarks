@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import csv
+import logging
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 ROOT = Path(__file__).resolve().parent.parent
 README = ROOT / "README.md"
 REPORT = ROOT / "docs/image_benchmark_report.md"
+
+logger = logging.getLogger(__name__)
 
 DATASETS = [
     ("standard_grayscale", "Standard grayscale", "image_sets/standard_grayscale/png"),
@@ -14,38 +19,7 @@ DATASETS = [
     ("kodak", "Kodak", "image_sets/kodak/png"),
 ]
 
-METRIC_COLUMNS = [
-    ("psnr_y_delta_mean", "PSNR-Y"),
-    ("ssim_delta_mean", "SSIM"),
-    ("xpsnr_y_delta_mean", "XPSNR-Y"),
-    ("vmaf_delta_mean", "VMAF"),
-    ("msssim_luma_delta_mean", "MS-SSIM"),
-    ("fsim_luma_delta_mean", "FSIM"),
-    ("haarpsi_luma_delta_mean", "HaarPSI"),
-    ("psnr_hvs_m_luma_delta_mean", "PSNR-HVS-M"),
-]
-
-CHARTS = [
-    ("PSNR-Y, dB", "docs/image_benchmark/combined/charts/rd_psnr_y.svg"),
-    ("SSIM index", "docs/image_benchmark/combined/charts/rd_ssim.svg"),
-    ("XPSNR-Y, dB", "docs/image_benchmark/combined/charts/rd_xpsnr_y.svg"),
-    ("VMAF score", "docs/image_benchmark/combined/charts/rd_vmaf.svg"),
-    ("MS-SSIM luma index", "docs/image_benchmark/combined/charts/rd_msssim_luma.svg"),
-    ("FSIM luma index", "docs/image_benchmark/combined/charts/rd_fsim_luma.svg"),
-    ("HaarPSI luma index", "docs/image_benchmark/combined/charts/rd_haarpsi_luma.svg"),
-    ("PSNR-HVS-M luma, dB", "docs/image_benchmark/combined/charts/rd_psnr_hvs_m_luma.svg"),
-]
-
-METRIC_LABELS = {
-    "psnr_y": "PSNR-Y",
-    "ssim": "SSIM",
-    "xpsnr_y": "XPSNR-Y",
-    "vmaf": "VMAF",
-    "msssim_luma": "MS-SSIM",
-    "fsim_luma": "FSIM",
-    "haarpsi_luma": "HaarPSI",
-    "psnr_hvs_m_luma": "PSNR-HVS-M",
-}
+from metrics.registry import CHARTS, METRIC_COLUMNS, METRIC_LABELS, METRICS
 
 
 def read_csv(path: str) -> list[dict[str, str]]:
@@ -127,7 +101,6 @@ def bd_rate_per_image_table() -> list[str]:
         metric = row["metric"]
         val = row["bd_rate_pct"]
         data.setdefault(img, {})[metric] = val
-    metrics = ["psnr_y", "ssim", "xpsnr_y", "vmaf", "msssim_luma", "fsim_luma", "haarpsi_luma", "psnr_hvs_m_luma"]
     table_rows = []
     for img in sorted(data.keys(), key=lambda name: order.get(name, (999, 999, "", ""))[:2]):
         _dataset_index, _image_index, _dataset, dataset_title = order.get(img, (999, 999, "unknown", "Unknown"))
@@ -135,7 +108,7 @@ def bd_rate_per_image_table() -> list[str]:
         row_vals = [
             dataset_title,
             img,
-            *[fmt(img_metrics.get(m, ""), 3) if img_metrics.get(m, "") else "" for m in metrics]
+            *[fmt(img_metrics.get(m, ""), 3) if img_metrics.get(m, "") else "" for m in METRICS]
         ]
         table_rows.append(row_vals)
     return markdown_table(
@@ -336,6 +309,19 @@ def build_readme() -> str:
             ],
         ),
         "",
+        "## Library API",
+        "",
+        "The project exposes a Python library in `vvenc_csf/` and `metrics/` that can be imported to run custom benchmarks or extract metric calculations.",
+        "",
+        *markdown_table(
+            ["Class/Function", "Module", "Description"],
+            [
+                ["`CommandRunner`", "`vvenc_csf.core`", "Executes subprocesses and handles logging"],
+                ["`EncoderRunner`", "`vvenc_csf.encoding`", "Runs VVenC with typed parameter objects"],
+                ["`bd_rate()`", "`metrics.bd_rate`", "Bjontegaard delta bitrate calculation"],
+            ],
+        ),
+        "",
         "## Quick Start",
         "",
         "```powershell",
@@ -421,7 +407,7 @@ def build_readme() -> str:
         "### Adding a Custom Quality Metric",
         "1. Implement the luma metric calculation function in `metrics/image_quality.py`.",
         "2. Update the `calculate_luma_metrics()` function in `metrics/image_quality.py` to execute your new metric and append its score to the returned dictionary.",
-        "3. Add your metric's internal key and label to the `METRICS` list and `METRIC_LABELS` dictionary in `tools/report_image_benchmark.py` and `tools/render_readme.py` to include it in the generated CSV/XLSX summaries and RD charts.",
+        "3. Add a tuple with the metric's CSV key, short label, and chart label to `_METRIC_DEFS` in `metrics/registry.py`. All report scripts pick up the new metric automatically.",
         "",
         "## Conclusion",
         "",
@@ -442,11 +428,11 @@ def build_report() -> str:
         *markdown_table(
             ["File", "Purpose"],
             [
-                ["`binaries/vvenc_default[.exe]`", "Clean upstream/default VVenC encoder without CSF"],
-                ["`binaries/vvenc_csf[.exe]`", "Modified VVenC encoder. CSF is enabled with `--CSFScalingList 1`"],
-                ["`binaries/vvenc_default_trace[.exe]`", "Default encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only"],
-                ["`binaries/vvenc_csf_trace[.exe]`", "CSF encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only"],
-                ["`binaries/vvdecapp[.exe]`", "VVdeC decoder used to verify bitstream decoding"],
+                ["`binaries/vvenc_default[.exe]`", "Clean upstream/default VVenC encoder without CSF. Local build from [fraunhoferhhi/vvenc](https://github.com/fraunhoferhhi/vvenc)"],
+                ["`binaries/vvenc_csf[.exe]`", "Modified VVenC encoder. CSF is enabled with `--CSFScalingList 1`. Local build from the [CSF VVenC branch](https://github.com/For2natop1ua/vvenc/tree/feature-branch)"],
+                ["`binaries/vvenc_default_trace[.exe]`", "Default encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only. Local build from [fraunhoferhhi/vvenc](https://github.com/fraunhoferhhi/vvenc)"],
+                ["`binaries/vvenc_csf_trace[.exe]`", "CSF encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only. Local build from the [CSF VVenC branch](https://github.com/For2natop1ua/vvenc/tree/feature-branch)"],
+                ["`binaries/vvdecapp[.exe]`", "VVdeC decoder used to verify bitstream decoding. Local build from [Fraunhofer HHI VVdeC](https://github.com/fraunhoferhhi/vvdec)"],
             ],
         ),
         "",
@@ -672,7 +658,7 @@ def build_report() -> str:
             "### Adding a Custom Quality Metric",
             "1. Implement the luma metric calculation function in `metrics/image_quality.py`.",
             "2. Update the `calculate_luma_metrics()` function in `metrics/image_quality.py` to execute your new metric and append its score to the returned dictionary.",
-            "3. Add your metric's internal key and label to the `METRICS` list and `METRIC_LABELS` dictionary in `tools/report_image_benchmark.py` and `tools/render_readme.py` to include it in the generated CSV/XLSX summaries and RD charts.",
+            "3. Add a tuple with the metric's CSV key, short label, and chart label to `_METRIC_DEFS` in `metrics/registry.py`. All report scripts pick up the new metric automatically.",
             "",
             "## Current Conclusion",
             "",
@@ -688,8 +674,8 @@ def build_report() -> str:
 def main() -> int:
     README.write_text(build_readme(), encoding="utf-8", newline="\n")
     REPORT.write_text(build_report(), encoding="utf-8", newline="\n")
-    print(f"Wrote {README}")
-    print(f"Wrote {REPORT}")
+    logger.info("Wrote %s", README)
+    logger.info("Wrote %s", REPORT)
     return 0
 
 

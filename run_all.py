@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import logging
 import shutil
 import sys
 from pathlib import Path
@@ -9,6 +10,8 @@ from pathlib import Path
 from vvenc_csf.config import load_benchmark_config
 from vvenc_csf.core import CommandRunner, ffprobe_size, files_equal, platform_executable, repo_path, resolve_project_path
 
+
+logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parent
 STANDARD_DIR = Path("image_sets/standard_grayscale/png")
@@ -31,9 +34,9 @@ def run(cmd: list[str], label: str, log_file: Path) -> None:
     try:
         RUNNER.run(cmd, log_file)
     except RuntimeError:
-        print(f"FAIL {label} (log: {rel(log_file)})")
+        logger.error("FAIL %s (log: %s)", label, rel(log_file))
         raise
-    print(f"PASS {label} (log: {rel(log_file)})")
+    logger.info("PASS %s (log: %s)", label, rel(log_file))
 
 
 def ensure_yuv(image: Path, output: Path, width: int, height: int, log_file: Path) -> None:
@@ -87,13 +90,15 @@ def decode(decoder: Path, bitstream: Path, output: Path, label: str, log_file: P
 
 
 def print_check(name: str, ok: bool) -> None:
-    print(f"{'PASS' if ok else 'FAIL'} {name}")
-    if not ok:
+    if ok:
+        logger.info("PASS %s", name)
+    else:
+        logger.error("FAIL %s", name)
         raise RuntimeError(name)
 
 
 def smoke_check(args: argparse.Namespace) -> None:
-    print("\n== Smoke encode/decode ==")
+    logger.info("\n== Smoke encode/decode ==")
     image = sorted(args.smoke_dir.glob("*.png"))[0]
     width, height = ffprobe_size(image)
     root = args.root / "smoke"
@@ -115,7 +120,7 @@ def smoke_check(args: argparse.Namespace) -> None:
 
 
 def neutral_check(args: argparse.Namespace) -> None:
-    print("\n== Neutral 16 checks ==")
+    logger.info("\n== Neutral 16 checks ==")
     logs = args.root / "logs"
     run(
         [
@@ -236,10 +241,10 @@ def generate_partition_maps(args: argparse.Namespace) -> None:
 def print_summary(csv_path: Path) -> None:
     if not csv_path.exists():
         return
-    print("\n== Same-QP summary ==")
+    logger.info("\n== Same-QP summary ==")
     with csv_path.open("r", encoding="utf-8-sig", newline="") as stream:
         for row in csv.DictReader(stream):
-            print(f"{row['metric']}: mean={float(row['mean']):+.6f}, min={float(row['min']):+.6f}, max={float(row['max']):+.6f}")
+            logger.info("%s: mean=%+.6f, min=%+.6f, max=%+.6f", row['metric'], float(row['mean']), float(row['min']), float(row['max']))
 
 
 def parse_args() -> argparse.Namespace:
@@ -278,7 +283,7 @@ class RunAllPipeline:
         neutral_check(self.args)
         if self.args.suite == "full":
             self.run_full_suite()
-        print("\nPASS run_all")
+        logger.info("\nPASS run_all")
 
     def prepare(self) -> None:
         self.args.config = resolve_project_path(self.args.config)
@@ -336,6 +341,7 @@ class RunAllPipeline:
 
 
 def main() -> int:
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     RunAllPipeline(parse_args()).run()
     return 0
 
