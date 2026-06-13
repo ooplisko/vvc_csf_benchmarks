@@ -115,6 +115,8 @@ Same-QP and equal-bpp summaries are generated from `docs/image_benchmark/combine
 | fsim_luma_delta | -0.003970 | -0.015175 | 0.003091 |
 | haarpsi_luma_delta | -0.003477 | -0.018561 | 0.001788 |
 | psnr_hvs_m_luma_delta | -0.501798 | -1.352777 | 0.456938 |
+| psnr_rgb_delta | -0.399617 | -1.269984 | 0.350753 |
+| msssim_rgb_delta | -0.000046 | -0.000514 | 0.000055 |
 
 BD-Rate is generated from the same metrics CSV and compares CSF against baseline at equal quality. Negative BD-Rate means bitrate saving by CSF; positive BD-Rate means extra bitrate is needed for the same metric level.
 
@@ -128,45 +130,47 @@ BD-Rate is generated from the same metrics CSV and compares CSF against baseline
 | FSIM | 33 | 21.089 | 6.181 | 275.315 | -0.005387 |
 | HaarPSI | 33 | 23.992 | 7.965 | 284.523 | -0.004731 |
 | PSNR-HVS-M | 33 | 18.582 | 5.481 | 254.424 | -0.733127 |
+| PSNR-RGB | 33 | 19.347 | 3.968 | 309.561 | -0.621841 |
+| MS-SSIM-RGB | 33 | 14.072 | -0.177 | 278.707 | -0.000122 |
 
 <details>
 <summary>Show BD-Rate per image</summary>
 
-| Dataset | Image | PSNR-Y, % | SSIM, % | XPSNR-Y, % | VMAF, % | MS-SSIM, % | FSIM, % | HaarPSI, % | PSNR-HVS-M, % |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Standard grayscale | baboon | 10.014 | 9.433 | 10.058 | 0.115 | 3.222 | 11.463 | 15.081 | 9.729 |
-| Standard grayscale | barbara | 13.160 | 9.491 | 12.171 | 0.297 | 4.442 | 13.564 | 18.828 | 12.382 |
-| Standard grayscale | goldhill | 9.410 | 8.727 | 9.062 | 4.543 | 5.335 | 10.478 | 12.532 | 9.271 |
-| Standard grayscale | lenna | 10.490 | 9.901 | 10.206 | 7.566 | 7.810 | 12.213 | 13.861 | 10.271 |
-| Standard grayscale | peppers | 15.102 | 18.025 | 14.832 | 3.760 | 6.046 | 11.730 | 20.528 | 15.379 |
-| Synthetic | fine_texture_512x512 | 28.814 | 52.701 | 29.016 | 1.697 | 26.928 | 49.964 | 55.274 | 28.541 |
-| Synthetic | mixed_content_512x512 | 32.919 | 34.768 | 34.015 | 34.928 | 38.323 | 37.607 | 39.866 | 35.097 |
-| Synthetic | sharp_edges_512x512 | 31.362 | 33.872 | 31.966 | 34.428 | 35.480 | 33.683 | 33.530 | 33.010 |
-| Synthetic | smooth_gradient_512x512 | 254.387 | 321.259 | 266.394 | 313.512 | 276.946 | 275.315 | 284.523 | 254.424 |
-| Kodak | kodim01 | 9.251 | 8.590 | 8.893 | -1.231 | 3.506 | 11.185 | 13.321 | 9.051 |
-| Kodak | kodim02 | 9.214 | 7.707 | 8.827 | -1.169 | 5.239 | 10.718 | 13.544 | 8.969 |
-| Kodak | kodim03 | 9.640 | 8.458 | 8.802 | 2.885 | 6.451 | 12.301 | 14.450 | 9.468 |
-| Kodak | kodim04 | 10.650 | 7.384 | 10.105 | -4.767 | 4.124 | 11.395 | 16.391 | 10.424 |
-| Kodak | kodim05 | 5.678 | 3.592 | 5.423 | 0.661 | 2.009 | 6.181 | 7.965 | 5.481 |
-| Kodak | kodim06 | 9.925 | 7.828 | 9.543 | 2.228 | 3.593 | 10.866 | 13.420 | 9.696 |
-| Kodak | kodim07 | 5.941 | 4.239 | 5.700 | 3.771 | 4.765 | 7.157 | 8.344 | 5.891 |
-| Kodak | kodim08 | 8.029 | 4.750 | 7.834 | 0.771 | 1.969 | 7.718 | 11.313 | 7.761 |
-| Kodak | kodim09 | 9.144 | 7.599 | 8.945 | 6.099 | 6.095 | 9.493 | 11.643 | 8.848 |
-| Kodak | kodim10 | 7.575 | 5.254 | 7.201 | 1.937 | 4.910 | 7.397 | 9.103 | 7.358 |
-| Kodak | kodim11 | 8.372 | 6.809 | 7.965 | 2.547 | 3.574 | 8.519 | 11.211 | 8.050 |
-| Kodak | kodim12 | 9.675 | 8.403 | 9.298 | 3.121 | 5.442 | 10.250 | 12.439 | 9.680 |
-| Kodak | kodim13 | 8.787 | 7.859 | 8.813 | -0.269 | 2.402 | 11.141 | 12.971 | 8.495 |
-| Kodak | kodim14 | 7.104 | 5.404 | 6.809 | 1.895 | 2.919 | 7.778 | 9.498 | 6.874 |
-| Kodak | kodim15 | 10.815 | 8.548 | 9.699 | 3.376 | 4.681 | 12.962 | 15.261 | 10.486 |
-| Kodak | kodim16 | 10.300 | 8.764 | 10.071 | -0.554 | 4.512 | 11.322 | 14.403 | 10.091 |
-| Kodak | kodim17 | 6.409 | 5.445 | 5.869 | 6.308 | 4.267 | 7.489 | 9.039 | 5.988 |
-| Kodak | kodim18 | 8.356 | 4.834 | 7.633 | -1.985 | 2.916 | 8.964 | 11.399 | 8.062 |
-| Kodak | kodim19 | 9.917 | 8.810 | 10.500 | 0.273 | 2.966 | 12.982 | 14.702 | 9.925 |
-| Kodak | kodim20 | 10.526 | 10.746 | 10.331 | -0.580 | 5.167 | 13.919 | 15.113 | 10.821 |
-| Kodak | kodim21 | 8.862 | 6.396 | 8.661 | -0.918 | 3.758 | 10.361 | 12.424 | 8.609 |
-| Kodak | kodim22 | 9.355 | 6.505 | 8.797 | -3.218 | 3.099 | 11.815 | 14.651 | 9.149 |
-| Kodak | kodim23 | 9.227 | 6.983 | 8.511 | 4.626 | 6.758 | 10.317 | 13.566 | 8.697 |
-| Kodak | kodim24 | 7.866 | 4.825 | 7.028 | -0.271 | 2.752 | 7.681 | 11.523 | 7.218 |
+| Dataset | Image | PSNR-Y, % | SSIM, % | XPSNR-Y, % | VMAF, % | MS-SSIM, % | FSIM, % | HaarPSI, % | PSNR-HVS-M, % | PSNR-RGB, % | MS-SSIM-RGB, % |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Standard grayscale | baboon | 10.014 | 9.433 | 10.058 | 0.115 | 3.222 | 11.463 | 15.081 | 9.729 | 9.991 | 3.222 |
+| Standard grayscale | barbara | 13.160 | 9.491 | 12.171 | 0.297 | 4.442 | 13.564 | 18.828 | 12.382 | 13.043 | 4.428 |
+| Standard grayscale | goldhill | 9.410 | 8.727 | 9.062 | 4.543 | 5.335 | 10.478 | 12.532 | 9.271 | 9.519 | 5.351 |
+| Standard grayscale | lenna | 10.490 | 9.901 | 10.206 | 7.566 | 7.810 | 12.213 | 13.861 | 10.271 | 10.635 | 7.821 |
+| Standard grayscale | peppers | 15.102 | 18.025 | 14.832 | 3.760 | 6.046 | 11.730 | 20.528 | 15.379 | 14.786 | 6.006 |
+| Synthetic | fine_texture_512x512 | 28.814 | 52.701 | 29.016 | 1.697 | 26.928 | 49.964 | 55.274 | 28.541 | 29.567 | 26.940 |
+| Synthetic | mixed_content_512x512 | 32.919 | 34.768 | 34.015 | 34.928 | 38.323 | 37.607 | 39.866 | 35.097 | 39.485 | 39.841 |
+| Synthetic | sharp_edges_512x512 | 31.362 | 33.872 | 31.966 | 34.428 | 35.480 | 33.683 | 33.530 | 33.010 | 31.666 | 34.270 |
+| Synthetic | smooth_gradient_512x512 | 254.387 | 321.259 | 266.394 | 313.512 | 276.946 | 275.315 | 284.523 | 254.424 | 309.561 | 278.707 |
+| Kodak | kodim01 | 9.251 | 8.590 | 8.893 | -1.231 | 3.506 | 11.185 | 13.321 | 9.051 | 8.729 | 3.307 |
+| Kodak | kodim02 | 9.214 | 7.707 | 8.827 | -1.169 | 5.239 | 10.718 | 13.544 | 8.969 | 7.654 | 3.361 |
+| Kodak | kodim03 | 9.640 | 8.458 | 8.802 | 2.885 | 6.451 | 12.301 | 14.450 | 9.468 | 7.900 | 4.129 |
+| Kodak | kodim04 | 10.650 | 7.384 | 10.105 | -4.767 | 4.124 | 11.395 | 16.391 | 10.424 | 8.459 | 2.810 |
+| Kodak | kodim05 | 5.678 | 3.592 | 5.423 | 0.661 | 2.009 | 6.181 | 7.965 | 5.481 | 3.968 | 0.322 |
+| Kodak | kodim06 | 9.925 | 7.828 | 9.543 | 2.228 | 3.593 | 10.866 | 13.420 | 9.696 | 8.765 | 2.162 |
+| Kodak | kodim07 | 5.941 | 4.239 | 5.700 | 3.771 | 4.765 | 7.157 | 8.344 | 5.891 | 4.394 | 2.901 |
+| Kodak | kodim08 | 8.029 | 4.750 | 7.834 | 0.771 | 1.969 | 7.718 | 11.313 | 7.761 | 6.483 | 0.289 |
+| Kodak | kodim09 | 9.144 | 7.599 | 8.945 | 6.099 | 6.095 | 9.493 | 11.643 | 8.848 | 7.180 | 3.403 |
+| Kodak | kodim10 | 7.575 | 5.254 | 7.201 | 1.937 | 4.910 | 7.397 | 9.103 | 7.358 | 6.272 | 3.136 |
+| Kodak | kodim11 | 8.372 | 6.809 | 7.965 | 2.547 | 3.574 | 8.519 | 11.211 | 8.050 | 6.491 | 2.049 |
+| Kodak | kodim12 | 9.675 | 8.403 | 9.298 | 3.121 | 5.442 | 10.250 | 12.439 | 9.680 | 8.137 | 3.420 |
+| Kodak | kodim13 | 8.787 | 7.859 | 8.813 | -0.269 | 2.402 | 11.141 | 12.971 | 8.495 | 7.599 | 1.165 |
+| Kodak | kodim14 | 7.104 | 5.404 | 6.809 | 1.895 | 2.919 | 7.778 | 9.498 | 6.874 | 5.383 | 1.471 |
+| Kodak | kodim15 | 10.815 | 8.548 | 9.699 | 3.376 | 4.681 | 12.962 | 15.261 | 10.486 | 8.096 | 2.951 |
+| Kodak | kodim16 | 10.300 | 8.764 | 10.071 | -0.554 | 4.512 | 11.322 | 14.403 | 10.091 | 9.679 | 3.476 |
+| Kodak | kodim17 | 6.409 | 5.445 | 5.869 | 6.308 | 4.267 | 7.489 | 9.039 | 5.988 | 5.427 | 3.796 |
+| Kodak | kodim18 | 8.356 | 4.834 | 7.633 | -1.985 | 2.916 | 8.964 | 11.399 | 8.062 | 6.019 | 1.012 |
+| Kodak | kodim19 | 9.917 | 8.810 | 10.500 | 0.273 | 2.966 | 12.982 | 14.702 | 9.925 | 8.521 | 0.789 |
+| Kodak | kodim20 | 10.526 | 10.746 | 10.331 | -0.580 | 5.167 | 13.919 | 15.113 | 10.821 | 8.465 | 2.634 |
+| Kodak | kodim21 | 8.862 | 6.396 | 8.661 | -0.918 | 3.758 | 10.361 | 12.424 | 8.609 | 7.604 | 2.367 |
+| Kodak | kodim22 | 9.355 | 6.505 | 8.797 | -3.218 | 3.099 | 11.815 | 14.651 | 9.149 | 6.002 | -0.177 |
+| Kodak | kodim23 | 9.227 | 6.983 | 8.511 | 4.626 | 6.758 | 10.317 | 13.566 | 8.697 | 6.316 | 4.922 |
+| Kodak | kodim24 | 7.866 | 4.825 | 7.028 | -0.271 | 2.752 | 7.681 | 11.523 | 7.218 | 6.645 | 2.082 |
 
 </details>
 
@@ -181,6 +185,7 @@ The charts are rendered by `tools/report_image_benchmark.py` from `docs/image_be
 | **XPSNR-Y, dB**<br><img src="docs/image_benchmark/combined/charts/rd_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="docs/image_benchmark/combined/charts/rd_vmaf.svg" width="360"> |
 | **MS-SSIM luma index**<br><img src="docs/image_benchmark/combined/charts/rd_msssim_luma.svg" width="360"> | **FSIM luma index**<br><img src="docs/image_benchmark/combined/charts/rd_fsim_luma.svg" width="360"> |
 | **HaarPSI luma index**<br><img src="docs/image_benchmark/combined/charts/rd_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma, dB**<br><img src="docs/image_benchmark/combined/charts/rd_psnr_hvs_m_luma.svg" width="360"> |
+| **PSNR-RGB, dB**<br><img src="docs/image_benchmark/combined/charts/rd_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="docs/image_benchmark/combined/charts/rd_msssim_rgb.svg" width="360"> |
 
 </details>
 
@@ -197,6 +202,7 @@ These charts are rendered from the `standard_grayscale` rows produced by `tools/
 | **XPSNR-Y, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_vmaf.svg" width="360"> |
 | **MS-SSIM luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_msssim_luma.svg" width="360"> | **FSIM luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_fsim_luma.svg" width="360"> |
 | **HaarPSI luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_psnr_hvs_m_luma.svg" width="360"> |
+| **PSNR-RGB, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_msssim_rgb.svg" width="360"> |
 
 ### barbara
 
@@ -206,6 +212,7 @@ These charts are rendered from the `standard_grayscale` rows produced by `tools/
 | **XPSNR-Y, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_vmaf.svg" width="360"> |
 | **MS-SSIM luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_msssim_luma.svg" width="360"> | **FSIM luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_fsim_luma.svg" width="360"> |
 | **HaarPSI luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_psnr_hvs_m_luma.svg" width="360"> |
+| **PSNR-RGB, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_msssim_rgb.svg" width="360"> |
 
 ### goldhill
 
@@ -215,6 +222,7 @@ These charts are rendered from the `standard_grayscale` rows produced by `tools/
 | **XPSNR-Y, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_vmaf.svg" width="360"> |
 | **MS-SSIM luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_msssim_luma.svg" width="360"> | **FSIM luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_fsim_luma.svg" width="360"> |
 | **HaarPSI luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_psnr_hvs_m_luma.svg" width="360"> |
+| **PSNR-RGB, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_msssim_rgb.svg" width="360"> |
 
 ### lenna
 
@@ -224,6 +232,7 @@ These charts are rendered from the `standard_grayscale` rows produced by `tools/
 | **XPSNR-Y, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_vmaf.svg" width="360"> |
 | **MS-SSIM luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_msssim_luma.svg" width="360"> | **FSIM luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_fsim_luma.svg" width="360"> |
 | **HaarPSI luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_psnr_hvs_m_luma.svg" width="360"> |
+| **PSNR-RGB, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_msssim_rgb.svg" width="360"> |
 
 ### peppers
 
@@ -233,6 +242,7 @@ These charts are rendered from the `standard_grayscale` rows produced by `tools/
 | **XPSNR-Y, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_vmaf.svg" width="360"> |
 | **MS-SSIM luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_msssim_luma.svg" width="360"> | **FSIM luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_fsim_luma.svg" width="360"> |
 | **HaarPSI luma index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_psnr_hvs_m_luma.svg" width="360"> |
+| **PSNR-RGB, dB**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_msssim_rgb.svg" width="360"> |
 
 
 </details>
