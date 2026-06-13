@@ -18,6 +18,8 @@ METRIC_KEYS = [
     "fsim_luma",
     "haarpsi_luma",
     "psnr_hvs_m_luma",
+    "psnr_rgb",
+    "msssim_rgb",
 ]
 
 
