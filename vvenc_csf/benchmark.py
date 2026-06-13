@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from metrics.image_quality import calculate_luma_metrics
+from metrics.image_quality import calculate_color_metrics, calculate_luma_metrics
 from vvenc_csf.core import CommandRunner, executable_name, ffprobe_size, files_equal, write_csv
 from vvenc_csf.encoding import DecoderRunner, EncodeJob, EncoderRunner, ImageConverter
 
@@ -123,6 +123,7 @@ class VisualMetricCalculator:
             metrics["vmaf"] = 0.0
 
         metrics.update(calculate_luma_metrics(original_yuv, recon_yuv, width, height))
+        metrics.update(calculate_color_metrics(original_yuv, recon_yuv, width, height))
         return metrics
 
 
