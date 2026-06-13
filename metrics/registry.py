@@ -16,6 +16,8 @@ _METRIC_DEFS: list[tuple[str, str, str]] = [
     ("fsim_luma", "FSIM", "FSIM luma index"),
     ("haarpsi_luma", "HaarPSI", "HaarPSI luma index"),
     ("psnr_hvs_m_luma", "PSNR-HVS-M", "PSNR-HVS-M luma, dB"),
+    ("psnr_rgb", "PSNR-RGB", "PSNR-RGB, dB"),
+    ("msssim_rgb", "MS-SSIM-RGB", "MS-SSIM RGB index"),
 ]
 
 METRICS: list[str] = [key for key, _, _ in _METRIC_DEFS]

@@ -100,6 +100,115 @@ def calculate_luma_metrics(
     }
 
 
+def read_yuv420(path: Path, width: int, height: int, bit_depth: int) -> tuple[list[float], list[float], list[float]]:
+    data = path.read_bytes()
+    y_count = width * height
+    uv_width = width // 2
+    uv_height = height // 2
+    uv_count = uv_width * uv_height
+    if bit_depth <= 8:
+        scale = 255.0
+        y = [data[i] / scale for i in range(y_count)]
+        u_start = y_count
+        u = [data[u_start + i] / scale for i in range(uv_count)]
+        v_start = u_start + uv_count
+        v = [data[v_start + i] / scale for i in range(uv_count)]
+    else:
+        scale = float((1 << bit_depth) - 1)
+        y = []
+        for i in range(y_count):
+            offset = i * 2
+            y.append(int.from_bytes(data[offset : offset + 2], "little") / scale)
+        u_byte_start = y_count * 2
+        u = []
+        for i in range(uv_count):
+            offset = u_byte_start + i * 2
+            u.append(int.from_bytes(data[offset : offset + 2], "little") / scale)
+        v_byte_start = u_byte_start + uv_count * 2
+        v = []
+        for i in range(uv_count):
+            offset = v_byte_start + i * 2
+            v.append(int.from_bytes(data[offset : offset + 2], "little") / scale)
+    return y, u, v
+
+
+def _upsample_chroma(plane: list[float], uv_width: int, uv_height: int) -> list[float]:
+    width = uv_width * 2
+    out = [0.0] * (width * uv_height * 2)
+    for row in range(uv_height):
+        for col in range(uv_width):
+            val = plane[row * uv_width + col]
+            dst_row = row * 2
+            dst_col = col * 2
+            out[dst_row * width + dst_col] = val
+            out[dst_row * width + dst_col + 1] = val
+            out[(dst_row + 1) * width + dst_col] = val
+            out[(dst_row + 1) * width + dst_col + 1] = val
+    return out
+
+
+def _yuv_to_rgb(y: list[float], u: list[float], v: list[float], width: int, height: int) -> tuple[list[float], list[float], list[float]]:
+    uv_width = width // 2
+    uv_height = height // 2
+    u_full = _upsample_chroma(u, uv_width, uv_height)
+    v_full = _upsample_chroma(v, uv_width, uv_height)
+    n = width * height
+    r = [0.0] * n
+    g = [0.0] * n
+    b = [0.0] * n
+    for i in range(n):
+        y_val = y[i]
+        cb = u_full[i] - 0.5
+        cr = v_full[i] - 0.5
+        r[i] = max(0.0, min(1.0, y_val + 1.402 * cr))
+        g[i] = max(0.0, min(1.0, y_val - 0.344136 * cb - 0.714136 * cr))
+        b[i] = max(0.0, min(1.0, y_val + 1.772 * cb))
+    return r, g, b
+
+
+def psnr_rgb(
+    ref_r: list[float], ref_g: list[float], ref_b: list[float],
+    dis_r: list[float], dis_g: list[float], dis_b: list[float],
+) -> float:
+    n = len(ref_r)
+    mse_r = sum((a - b) ** 2 for a, b in zip(ref_r, dis_r)) / n
+    mse_g = sum((a - b) ** 2 for a, b in zip(ref_g, dis_g)) / n
+    mse_b = sum((a - b) ** 2 for a, b in zip(ref_b, dis_b)) / n
+    mse = (mse_r + mse_g + mse_b) / 3.0
+    if mse <= 0.0:
+        return 99.0
+    return 10.0 * math.log10(1.0 / mse)
+
+
+def msssim_rgb(
+    ref_r: list[float], ref_g: list[float], ref_b: list[float],
+    dis_r: list[float], dis_g: list[float], dis_b: list[float],
+    width: int, height: int,
+) -> float:
+    score_r = msssim_luma(ref_r, dis_r, width, height)
+    score_g = msssim_luma(ref_g, dis_g, width, height)
+    score_b = msssim_luma(ref_b, dis_b, width, height)
+    return (score_r + score_g + score_b) / 3.0
+
+
+def calculate_color_metrics(
+    reference_yuv: Path,
+    distorted_yuv: Path,
+    width: int,
+    height: int,
+    reference_bit_depth: int = 8,
+    distorted_bit_depth: int = 10,
+) -> dict[str, float]:
+    ref_y, ref_u, ref_v = read_yuv420(reference_yuv, width, height, reference_bit_depth)
+    dis_y, dis_u, dis_v = read_yuv420(distorted_yuv, width, height, distorted_bit_depth)
+    ref_r, ref_g, ref_b = _yuv_to_rgb(ref_y, ref_u, ref_v, width, height)
+    dis_r, dis_g, dis_b = _yuv_to_rgb(dis_y, dis_u, dis_v, width, height)
+    return {
+        "psnr_rgb": psnr_rgb(ref_r, ref_g, ref_b, dis_r, dis_g, dis_b),
+        "msssim_rgb": msssim_rgb(ref_r, ref_g, ref_b, dis_r, dis_g, dis_b, width, height),
+    }
+
+
 def _ssim_global(reference: list[float], distorted: list[float]) -> float:
     n = len(reference)
     mean_ref = sum(reference) / n
