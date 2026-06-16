@@ -53,6 +53,26 @@ class ImageConverter:
         output.parent.mkdir(parents=True, exist_ok=True)
         self.runner.run(["ffmpeg", "-y", "-v", "error", "-i", str(image), "-pix_fmt", "yuv420p", "-frames:v", "1", str(output)])
 
+    def to_yuv444p(self, image: Path, output: Path) -> None:
+        if output.exists():
+            return
+        output.parent.mkdir(parents=True, exist_ok=True)
+        self.runner.run(["ffmpeg", "-y", "-v", "error", "-i", str(image), "-pix_fmt", "yuv444p", "-frames:v", "1", str(output)])
+
+    def to_yuv444p_opencv(self, image: Path, output: Path) -> None:
+        if output.exists():
+            return
+        import cv2
+        import numpy as np
+        output.parent.mkdir(parents=True, exist_ok=True)
+        im = cv2.imread(str(image))
+        im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+        im = cv2.cvtColor(im, cv2.COLOR_RGB2YUV)
+        im = np.transpose(im, axes=(2, 0, 1))
+        with open(output, "wb") as f:
+            f.write(im.tobytes())
+
+
 
 class EncoderRunner:
     """Builds and executes one VVenC encode command.
@@ -73,6 +93,11 @@ class EncoderRunner:
 
     def encode(self, job: EncodeJob) -> str:
         job.bitstream.parent.mkdir(parents=True, exist_ok=True)
+        if "EncoderApp" in job.encoder.name:
+            return self._encode_vtm(job)
+        return self._encode_vvenc(job)
+
+    def _encode_vvenc(self, job: EncodeJob) -> str:
         cmd = [
             str(job.encoder),
             "--InputFile",
@@ -94,6 +119,40 @@ class EncoderRunner:
             "--ReconFile",
             str(job.recon),
             *job.extra_args,
+        ]
+        return self.runner.run(cmd, job.log).stdout
+
+    def _encode_vtm(self, job: EncodeJob) -> str:
+        # Resolve config relative to project root
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        cfg_file = root / "VVCSoftware_VTM" / "cfg" / "encoder_intra_vtm.cfg"
+        
+        filtered_extra_args = []
+        skip_next = False
+        for arg in job.extra_args:
+            if skip_next:
+                skip_next = False
+                continue
+            if arg == "--CSFScalingList":
+                skip_next = True
+                continue
+            filtered_extra_args.append(arg)
+            
+        cmd = [
+            str(job.encoder),
+            "-c", str(cfg_file),
+            "-i", str(job.yuv),
+            "-wdt", str(job.width),
+            "-hgt", str(job.height),
+            "-fr", "1",
+            "-f", "1",
+            "-q", str(job.qp),
+            "-b", str(job.bitstream),
+            "-o", str(job.recon),
+            "--InputChromaFormat=444",
+            "--InputBitDepth=8",
+            *filtered_extra_args,
         ]
         return self.runner.run(cmd, job.log).stdout
 
