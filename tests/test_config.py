@@ -13,9 +13,9 @@ def test_load_benchmark_config_reads_paths_and_qps(tmp_path: Path) -> None:
             [
                 "[paths]",
                 "run_root = results/run_all",
-                "standard_grayscale_dir = image_sets/standard_grayscale/png",
-                "synthetic_dir = image_sets/synthetic/png",
-                "kodak_dir = image_sets/kodak/png",
+                "standard_grayscale_dir = data/datasets/images/standard_grayscale/png",
+                "synthetic_dir = data/datasets/images/synthetic/png",
+                "kodak_dir = data/datasets/images/kodak/png",
                 "vvenc_root = ../vvenc",
                 "",
                 "[binaries]",
@@ -42,5 +42,5 @@ def test_load_benchmark_config_reads_paths_and_qps(tmp_path: Path) -> None:
     assert loaded.qps == "22,27,32,37"
     assert loaded.smoke_qp == 32
     assert loaded.write_xlsx is True
-    assert loaded.standard_grayscale_dir == Path("image_sets/standard_grayscale/png")
+    assert loaded.standard_grayscale_dir == Path("data/datasets/images/standard_grayscale/png")
     assert loaded.baseline_encoder == platform_executable(Path("binaries/vvenc_default"))
