@@ -437,11 +437,11 @@ Each row links the original PNG with baseline and CSF SVG maps generated from VV
 
 | Image | Original | Baseline | CSF |
 | --- | --- | --- | --- |
-| baboon | <img src="../image_sets/standard_grayscale/png/baboon.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/baboon_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/baboon_csf.svg" width="240"> |
-| barbara | <img src="../image_sets/standard_grayscale/png/barbara.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/barbara_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/barbara_csf.svg" width="240"> |
-| goldhill | <img src="../image_sets/standard_grayscale/png/goldhill.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/goldhill_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/goldhill_csf.svg" width="240"> |
-| lenna | <img src="../image_sets/standard_grayscale/png/lenna.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/lenna_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/lenna_csf.svg" width="240"> |
-| peppers | <img src="../image_sets/standard_grayscale/png/peppers.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/peppers_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/peppers_csf.svg" width="240"> |
+| baboon | <img src="../data/datasets/images/standard_grayscale/png/baboon.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/baboon_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/baboon_csf.svg" width="240"> |
+| barbara | <img src="../data/datasets/images/standard_grayscale/png/barbara.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/barbara_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/barbara_csf.svg" width="240"> |
+| goldhill | <img src="../data/datasets/images/standard_grayscale/png/goldhill.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/goldhill_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/goldhill_csf.svg" width="240"> |
+| lenna | <img src="../data/datasets/images/standard_grayscale/png/lenna.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/lenna_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/lenna_csf.svg" width="240"> |
+| peppers | <img src="../data/datasets/images/standard_grayscale/png/peppers.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/peppers_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/peppers_csf.svg" width="240"> |
 
 </details>
 
@@ -454,10 +454,10 @@ Each row links the original PNG with baseline and CSF SVG maps generated from VV
 
 | Image | Original | Baseline | CSF |
 | --- | --- | --- | --- |
-| fine_texture_512x512 | <img src="../image_sets/synthetic/png/fine_texture_512x512.png" width="180"> | <img src="../docs/partition_maps/synthetic/fine_texture_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/synthetic/fine_texture_512x512_csf.svg" width="240"> |
-| mixed_content_512x512 | <img src="../image_sets/synthetic/png/mixed_content_512x512.png" width="180"> | <img src="../docs/partition_maps/synthetic/mixed_content_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/synthetic/mixed_content_512x512_csf.svg" width="240"> |
-| sharp_edges_512x512 | <img src="../image_sets/synthetic/png/sharp_edges_512x512.png" width="180"> | <img src="../docs/partition_maps/synthetic/sharp_edges_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/synthetic/sharp_edges_512x512_csf.svg" width="240"> |
-| smooth_gradient_512x512 | <img src="../image_sets/synthetic/png/smooth_gradient_512x512.png" width="180"> | <img src="../docs/partition_maps/synthetic/smooth_gradient_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/synthetic/smooth_gradient_512x512_csf.svg" width="240"> |
+| fine_texture_512x512 | <img src="../data/datasets/images/synthetic/png/fine_texture_512x512.png" width="180"> | <img src="../docs/partition_maps/synthetic/fine_texture_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/synthetic/fine_texture_512x512_csf.svg" width="240"> |
+| mixed_content_512x512 | <img src="../data/datasets/images/synthetic/png/mixed_content_512x512.png" width="180"> | <img src="../docs/partition_maps/synthetic/mixed_content_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/synthetic/mixed_content_512x512_csf.svg" width="240"> |
+| sharp_edges_512x512 | <img src="../data/datasets/images/synthetic/png/sharp_edges_512x512.png" width="180"> | <img src="../docs/partition_maps/synthetic/sharp_edges_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/synthetic/sharp_edges_512x512_csf.svg" width="240"> |
+| smooth_gradient_512x512 | <img src="../data/datasets/images/synthetic/png/smooth_gradient_512x512.png" width="180"> | <img src="../docs/partition_maps/synthetic/smooth_gradient_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/synthetic/smooth_gradient_512x512_csf.svg" width="240"> |
 
 </details>
 
@@ -470,30 +470,30 @@ Each row links the original PNG with baseline and CSF SVG maps generated from VV
 
 | Image | Original | Baseline | CSF |
 | --- | --- | --- | --- |
-| kodim01 | <img src="../image_sets/kodak/png/kodim01.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim01_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim01_csf.svg" width="240"> |
-| kodim02 | <img src="../image_sets/kodak/png/kodim02.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim02_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim02_csf.svg" width="240"> |
-| kodim03 | <img src="../image_sets/kodak/png/kodim03.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim03_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim03_csf.svg" width="240"> |
-| kodim04 | <img src="../image_sets/kodak/png/kodim04.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim04_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim04_csf.svg" width="240"> |
-| kodim05 | <img src="../image_sets/kodak/png/kodim05.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim05_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim05_csf.svg" width="240"> |
-| kodim06 | <img src="../image_sets/kodak/png/kodim06.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim06_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim06_csf.svg" width="240"> |
-| kodim07 | <img src="../image_sets/kodak/png/kodim07.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim07_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim07_csf.svg" width="240"> |
-| kodim08 | <img src="../image_sets/kodak/png/kodim08.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim08_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim08_csf.svg" width="240"> |
-| kodim09 | <img src="../image_sets/kodak/png/kodim09.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim09_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim09_csf.svg" width="240"> |
-| kodim10 | <img src="../image_sets/kodak/png/kodim10.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim10_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim10_csf.svg" width="240"> |
-| kodim11 | <img src="../image_sets/kodak/png/kodim11.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim11_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim11_csf.svg" width="240"> |
-| kodim12 | <img src="../image_sets/kodak/png/kodim12.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim12_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim12_csf.svg" width="240"> |
-| kodim13 | <img src="../image_sets/kodak/png/kodim13.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim13_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim13_csf.svg" width="240"> |
-| kodim14 | <img src="../image_sets/kodak/png/kodim14.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim14_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim14_csf.svg" width="240"> |
-| kodim15 | <img src="../image_sets/kodak/png/kodim15.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim15_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim15_csf.svg" width="240"> |
-| kodim16 | <img src="../image_sets/kodak/png/kodim16.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim16_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim16_csf.svg" width="240"> |
-| kodim17 | <img src="../image_sets/kodak/png/kodim17.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim17_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim17_csf.svg" width="240"> |
-| kodim18 | <img src="../image_sets/kodak/png/kodim18.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim18_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim18_csf.svg" width="240"> |
-| kodim19 | <img src="../image_sets/kodak/png/kodim19.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim19_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim19_csf.svg" width="240"> |
-| kodim20 | <img src="../image_sets/kodak/png/kodim20.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim20_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim20_csf.svg" width="240"> |
-| kodim21 | <img src="../image_sets/kodak/png/kodim21.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim21_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim21_csf.svg" width="240"> |
-| kodim22 | <img src="../image_sets/kodak/png/kodim22.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim22_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim22_csf.svg" width="240"> |
-| kodim23 | <img src="../image_sets/kodak/png/kodim23.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim23_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim23_csf.svg" width="240"> |
-| kodim24 | <img src="../image_sets/kodak/png/kodim24.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim24_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim24_csf.svg" width="240"> |
+| kodim01 | <img src="../data/datasets/images/kodak/png/kodim01.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim01_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim01_csf.svg" width="240"> |
+| kodim02 | <img src="../data/datasets/images/kodak/png/kodim02.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim02_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim02_csf.svg" width="240"> |
+| kodim03 | <img src="../data/datasets/images/kodak/png/kodim03.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim03_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim03_csf.svg" width="240"> |
+| kodim04 | <img src="../data/datasets/images/kodak/png/kodim04.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim04_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim04_csf.svg" width="240"> |
+| kodim05 | <img src="../data/datasets/images/kodak/png/kodim05.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim05_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim05_csf.svg" width="240"> |
+| kodim06 | <img src="../data/datasets/images/kodak/png/kodim06.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim06_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim06_csf.svg" width="240"> |
+| kodim07 | <img src="../data/datasets/images/kodak/png/kodim07.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim07_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim07_csf.svg" width="240"> |
+| kodim08 | <img src="../data/datasets/images/kodak/png/kodim08.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim08_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim08_csf.svg" width="240"> |
+| kodim09 | <img src="../data/datasets/images/kodak/png/kodim09.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim09_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim09_csf.svg" width="240"> |
+| kodim10 | <img src="../data/datasets/images/kodak/png/kodim10.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim10_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim10_csf.svg" width="240"> |
+| kodim11 | <img src="../data/datasets/images/kodak/png/kodim11.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim11_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim11_csf.svg" width="240"> |
+| kodim12 | <img src="../data/datasets/images/kodak/png/kodim12.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim12_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim12_csf.svg" width="240"> |
+| kodim13 | <img src="../data/datasets/images/kodak/png/kodim13.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim13_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim13_csf.svg" width="240"> |
+| kodim14 | <img src="../data/datasets/images/kodak/png/kodim14.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim14_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim14_csf.svg" width="240"> |
+| kodim15 | <img src="../data/datasets/images/kodak/png/kodim15.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim15_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim15_csf.svg" width="240"> |
+| kodim16 | <img src="../data/datasets/images/kodak/png/kodim16.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim16_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim16_csf.svg" width="240"> |
+| kodim17 | <img src="../data/datasets/images/kodak/png/kodim17.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim17_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim17_csf.svg" width="240"> |
+| kodim18 | <img src="../data/datasets/images/kodak/png/kodim18.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim18_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim18_csf.svg" width="240"> |
+| kodim19 | <img src="../data/datasets/images/kodak/png/kodim19.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim19_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim19_csf.svg" width="240"> |
+| kodim20 | <img src="../data/datasets/images/kodak/png/kodim20.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim20_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim20_csf.svg" width="240"> |
+| kodim21 | <img src="../data/datasets/images/kodak/png/kodim21.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim21_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim21_csf.svg" width="240"> |
+| kodim22 | <img src="../data/datasets/images/kodak/png/kodim22.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim22_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim22_csf.svg" width="240"> |
+| kodim23 | <img src="../data/datasets/images/kodak/png/kodim23.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim23_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim23_csf.svg" width="240"> |
+| kodim24 | <img src="../data/datasets/images/kodak/png/kodim24.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim24_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim24_csf.svg" width="240"> |
 
 </details>
 
@@ -502,7 +502,7 @@ Each row links the original PNG with baseline and CSF SVG maps generated from VV
 This benchmark is designed to be easily extensible. You can customize the image inputs or add new visual quality metrics.
 
 ### Adding a Custom Image Set
-1. Create a subdirectory under `image_sets/` containing your input images in PNG format (e.g., `image_sets/custom_set/png/`).
+1. Create a subdirectory under `data/datasets/images/` containing your input images in PNG format (e.g., `data/datasets/images/custom_set/png/`).
 2. Update the paths in `configs/image_benchmark.ini` or pass your custom directory via the `--smoke-dir`, `--synthetic-dir`, or `--kodak-dir` CLI arguments when invoking `run_all.py`.
 
 ### Adding a Custom Quality Metric

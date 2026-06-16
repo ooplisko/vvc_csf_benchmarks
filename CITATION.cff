@@ -6,7 +6,7 @@ authors:
     given-names: "O. O."
     affiliation: "National Aerospace University, Department of Information and Communication Technologies"
     website: "https://dict.khai.edu/"
-version: "1.1.0"
-date-released: "2026-06-02"
+version: "1.0.0"
+date-released: "2026-06-16"
 license: MIT
 repository-code: "https://github.com/For2natop1ua/vvenc_csf_tests"
