@@ -7,7 +7,7 @@ import pytest
 from vvenc_csf.core import platform_executable
 
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 BENCHMARK_BINARIES = {

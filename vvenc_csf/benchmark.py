@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import concurrent.futures
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -33,6 +34,7 @@ class ImageBenchmarkConfig:
     decoder: Path
     qps: list[int]
     preset: str = "medium"
+    conversion: str = "ffmpeg_420"
 
 
 # ====================================================================================================================
@@ -87,21 +89,23 @@ class VisualMetricCalculator:
     def __init__(self, runner: CommandRunner | None = None) -> None:
         self.runner = runner or CommandRunner()
 
-    def calculate(self, original_yuv: Path, recon_yuv: Path, width: int, height: int) -> dict[str, float]:
+    def calculate(self, original_yuv: Path, recon_yuv: Path, width: int, height: int, chroma_format: str = "420") -> dict[str, float]:
+        original_fmt = "yuv444p" if chroma_format == "444" else "yuv420p"
+        recon_fmt = "yuv444p10le" if chroma_format == "444" else "yuv420p10le"
         common = [
-            "ffmpeg",
+            executable_name("ffmpeg"),
             "-v",
             "info",
             "-s",
             f"{width}x{height}",
             "-pix_fmt",
-            "yuv420p",
+            original_fmt,
             "-i",
             str(original_yuv),
             "-s",
             f"{width}x{height}",
             "-pix_fmt",
-            "yuv420p10le",
+            recon_fmt,
             "-i",
             str(recon_yuv),
         ]
@@ -123,7 +127,7 @@ class VisualMetricCalculator:
             metrics["vmaf"] = 0.0
 
         metrics.update(calculate_luma_metrics(original_yuv, recon_yuv, width, height))
-        metrics.update(calculate_color_metrics(original_yuv, recon_yuv, width, height))
+        metrics.update(calculate_color_metrics(original_yuv, recon_yuv, width, height, chroma_format=chroma_format))
         return metrics
 
 
@@ -186,16 +190,35 @@ class ImageBenchmarkRunner:
         if not images:
             raise RuntimeError(f"No PNG files found in {self.config.png_dir}")
 
-        rows: list[dict[str, object]] = []
+        jobs_args = []
         for image in images:
             width, height = ffprobe_size(image, self.runner)
             name = image.stem
             yuv = yuv_dir / f"{name}_{width}x{height}_1.yuv"
-            self.converter.to_yuv420p(image, yuv)
+            if self.config.conversion == "ffmpeg_420":
+                self.converter.to_yuv420p(image, yuv)
+                raw_bytes = int(width * height * 1.5)
+            elif self.config.conversion == "ffmpeg_444":
+                self.converter.to_yuv444p(image, yuv)
+                raw_bytes = width * height * 3
+            elif self.config.conversion == "opencv_444":
+                self.converter.to_yuv444p_opencv(image, yuv)
+                raw_bytes = width * height * 3
+            else:
+                raise ValueError(f"Unknown conversion mode: {self.config.conversion}")
 
-            raw_bytes = width * height * 3 // 2
             for qp in self.config.qps:
-                rows.extend(self._encode_modes(name, yuv, width, height, raw_bytes, qp, enc_dir))
+                jobs_args.append((name, yuv, width, height, raw_bytes, qp, enc_dir))
+
+        rows: list[dict[str, object]] = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+            futures = [
+                executor.submit(self._encode_modes, *args)
+                for args in jobs_args
+            ]
+            for future in concurrent.futures.as_completed(futures):
+                rows.extend(future.result())
+                
         return rows
 
     def _encode_modes(self, name: str, yuv: Path, width: int, height: int, raw_bytes: int, qp: int, enc_dir: Path) -> list[dict[str, object]]:
@@ -228,7 +251,8 @@ class ImageBenchmarkRunner:
                 raise RuntimeError(f"Decoded YUV differs from encoder reconstruction: {decoded}")
 
             parsed = self.parser.parse(text)
-            visual_metrics = self.metrics.calculate(yuv, recon, width, height)
+            chroma_fmt = "444" if "444" in self.config.conversion else "420"
+            visual_metrics = self.metrics.calculate(yuv, recon, width, height, chroma_format=chroma_fmt)
             bytes_out = bitstream.stat().st_size
             rows.append(
                 {

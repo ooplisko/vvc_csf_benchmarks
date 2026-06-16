@@ -184,7 +184,7 @@ class NeutralScalingVerifier:
         scaling_list_bits = self._parse_constant(common_def_text, "SCALING_LIST_BITS")
         neutral_value = 1 << log2_neutral
 
-        default_stats = [self._matrix_stats(path, neutral_value) for path in sorted((Path(__file__).resolve().parent.parent / "docs/matrices").glob("default_*.csv"))]
+        default_stats = [self._matrix_stats(path, neutral_value) for path in sorted((Path(__file__).resolve().parents[1] / "docs/matrices").glob("default_*.csv"))]
         all_default_neutral = all(bool(row["all_neutral"]) for row in default_stats)
 
         lines = [

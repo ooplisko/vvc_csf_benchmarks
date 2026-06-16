@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from tools.report_image_benchmark import ImageBenchmarkReportBuilder
+from tools.reporting.report_image_benchmark import ImageBenchmarkReportBuilder
 from vvenc_csf.neutral import Neutral16ControlReport
 
 

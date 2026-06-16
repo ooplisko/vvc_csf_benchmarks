@@ -100,11 +100,11 @@ def calculate_luma_metrics(
     }
 
 
-def read_yuv420(path: Path, width: int, height: int, bit_depth: int) -> tuple[list[float], list[float], list[float]]:
+def read_yuv(path: Path, width: int, height: int, bit_depth: int, chroma_format: str = "420") -> tuple[list[float], list[float], list[float]]:
     data = path.read_bytes()
     y_count = width * height
-    uv_width = width // 2
-    uv_height = height // 2
+    uv_width = width if chroma_format == "444" else width // 2
+    uv_height = height if chroma_format == "444" else height // 2
     uv_count = uv_width * uv_height
     if bit_depth <= 8:
         scale = 255.0
@@ -147,11 +147,15 @@ def _upsample_chroma(plane: list[float], uv_width: int, uv_height: int) -> list[
     return out
 
 
-def _yuv_to_rgb(y: list[float], u: list[float], v: list[float], width: int, height: int) -> tuple[list[float], list[float], list[float]]:
-    uv_width = width // 2
-    uv_height = height // 2
-    u_full = _upsample_chroma(u, uv_width, uv_height)
-    v_full = _upsample_chroma(v, uv_width, uv_height)
+def _yuv_to_rgb(y: list[float], u: list[float], v: list[float], width: int, height: int, chroma_format: str = "420") -> tuple[list[float], list[float], list[float]]:
+    if chroma_format == "444":
+        u_full = u
+        v_full = v
+    else:
+        uv_width = width // 2
+        uv_height = height // 2
+        u_full = _upsample_chroma(u, uv_width, uv_height)
+        v_full = _upsample_chroma(v, uv_width, uv_height)
     n = width * height
     r = [0.0] * n
     g = [0.0] * n
@@ -198,11 +202,12 @@ def calculate_color_metrics(
     height: int,
     reference_bit_depth: int = 8,
     distorted_bit_depth: int = 10,
+    chroma_format: str = "420",
 ) -> dict[str, float]:
-    ref_y, ref_u, ref_v = read_yuv420(reference_yuv, width, height, reference_bit_depth)
-    dis_y, dis_u, dis_v = read_yuv420(distorted_yuv, width, height, distorted_bit_depth)
-    ref_r, ref_g, ref_b = _yuv_to_rgb(ref_y, ref_u, ref_v, width, height)
-    dis_r, dis_g, dis_b = _yuv_to_rgb(dis_y, dis_u, dis_v, width, height)
+    ref_y, ref_u, ref_v = read_yuv(reference_yuv, width, height, reference_bit_depth, chroma_format)
+    dis_y, dis_u, dis_v = read_yuv(distorted_yuv, width, height, distorted_bit_depth, chroma_format)
+    ref_r, ref_g, ref_b = _yuv_to_rgb(ref_y, ref_u, ref_v, width, height, chroma_format)
+    dis_r, dis_g, dis_b = _yuv_to_rgb(dis_y, dis_u, dis_v, width, height, chroma_format)
     return {
         "psnr_rgb": psnr_rgb(ref_r, ref_g, ref_b, dis_r, dis_g, dis_b),
         "msssim_rgb": msssim_rgb(ref_r, ref_g, ref_b, dis_r, dis_g, dis_b, width, height),
