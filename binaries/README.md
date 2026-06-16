@@ -10,7 +10,6 @@ If you have just cloned the repository, you can automatically download all pre-c
 ```powershell
 python tools/data_prep/download_binaries.py
 ```
-*(Note: The URL in the script must be updated once the actual GitHub Release is published).*
 
 ## Option B: Compile Manually
 If you are on Linux/macOS, or want to compile the executables yourself, place the suffixless binaries (or `.exe` on Windows) with the following stems in this directory:

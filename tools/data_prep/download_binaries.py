@@ -4,8 +4,6 @@ import zipfile
 import argparse
 from pathlib import Path
 
-# Update this URL to the actual release asset once the GitHub Release is created.
-# For example: "https://github.com/For2natop1ua/vvenc_csf_tests/releases/download/v1.0.0/binaries_windows.zip"
 DEFAULT_BINARIES_URL = "https://github.com/For2natop1ua/vvenc_csf_tests/releases/download/v1.0.0/binaries.zip"
 
 def download_and_extract(url: str, output_dir: Path) -> None:
