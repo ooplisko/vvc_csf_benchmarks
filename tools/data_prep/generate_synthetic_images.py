@@ -108,7 +108,7 @@ GENERATORS = {
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate a deterministic synthetic PNG set for CSF image metrics.")
-    parser.add_argument("--output", type=Path, default=Path("image_sets/synthetic/png"), help="Output PNG directory.")
+    parser.add_argument("--output", type=Path, default=Path("data/datasets/images/synthetic/png"), help="Output PNG directory.")
     parser.add_argument("--width", type=int, default=512)
     parser.add_argument("--height", type=int, default=512)
     args = parser.parse_args()

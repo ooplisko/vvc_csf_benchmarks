@@ -4,7 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from vvenc_csf.benchmark import ImageBenchmarkConfig, ImageBenchmarkRunner, KodakDownloader
 from vvenc_csf.core import parse_qps, platform_executable
@@ -20,6 +20,7 @@ def main() -> int:
     parser.add_argument("--download-kodak", action="store_true", help="Download the Kodak PNG suite.")
     parser.add_argument("--qps", default="22,27,32,37", help="Comma-separated QP list.")
     parser.add_argument("--preset", default="medium", help="VVenC preset used for both encoders.")
+    parser.add_argument("--conversion", default="ffmpeg_420", choices=["ffmpeg_420", "ffmpeg_444", "opencv_444"], help="Conversion mode for PNG to YUV.")
     args = parser.parse_args()
 
     png_dir = args.png_dir or (args.root / "png")
@@ -35,6 +36,7 @@ def main() -> int:
             decoder=args.decoder,
             qps=parse_qps(args.qps),
             preset=args.preset,
+            conversion=args.conversion,
         )
     ).run()
     print(f"Wrote {csv_path}")

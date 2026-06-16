@@ -9,7 +9,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from metrics.bd_rate import bd_psnr, bd_rate
 from metrics.registry import METRICS, METRIC_CHART_LABELS

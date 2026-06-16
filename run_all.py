@@ -14,9 +14,9 @@ from vvenc_csf.core import CommandRunner, ffprobe_size, files_equal, platform_ex
 logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parent
-STANDARD_DIR = Path("image_sets/standard_grayscale/png")
-SYNTHETIC_DIR = Path("image_sets/synthetic/png")
-KODAK_DIR = Path("image_sets/kodak/png")
+STANDARD_DIR = Path("data/datasets/images/standard_grayscale/png")
+SYNTHETIC_DIR = Path("data/datasets/images/synthetic/png")
+KODAK_DIR = Path("data/datasets/images/kodak/png")
 QPS = "22,27,32,37"
 RUNNER = CommandRunner(ROOT)
 DEFAULT_BASELINE_ENCODER = platform_executable(Path("binaries/vvenc_default"))
@@ -125,7 +125,7 @@ def neutral_check(args: argparse.Namespace) -> None:
     run(
         [
             sys.executable,
-            "tools/verify_neutral_scaling.py",
+            "tools/data_prep/verify_neutral_scaling.py",
             "--vvenc-root",
             str(args.vvenc_root),
             "--output",
@@ -137,7 +137,7 @@ def neutral_check(args: argparse.Namespace) -> None:
     run(
         [
             sys.executable,
-            "tools/neutral_16_control.py",
+            "tools/data_prep/neutral_16_control.py",
             "--root",
             str(args.root / "neutral_16_control"),
             "--png-dir",
@@ -158,7 +158,7 @@ def benchmark(args: argparse.Namespace, name: str, png_dir: Path, extra: list[st
     run_dir = args.root / f"image_{name}"
     cmd = [
         sys.executable,
-        "tools/image_csf_benchmark.py",
+        "tools/benchmarking/image_csf_benchmark.py",
         "--root",
         str(run_dir),
         "--png-dir",
@@ -181,7 +181,7 @@ def benchmark(args: argparse.Namespace, name: str, png_dir: Path, extra: list[st
 def write_image_report(name: str, metrics_csv: Path, args: argparse.Namespace) -> None:
     cmd = [
         sys.executable,
-        "tools/report_image_benchmark.py",
+        "tools/reporting/report_image_benchmark.py",
         str(metrics_csv),
         "--output",
         f"docs/image_benchmark/{name}",
@@ -199,7 +199,7 @@ def regenerate_reports(metric_csvs: list[Path], args: argparse.Namespace) -> Non
     run(
         [
             sys.executable,
-            "tools/merge_image_metrics.py",
+            "tools/reporting/merge_image_metrics.py",
             *[str(path) for path in metric_csvs],
             "--output",
             "docs/image_benchmark/combined_image_metrics.csv",
@@ -207,18 +207,18 @@ def regenerate_reports(metric_csvs: list[Path], args: argparse.Namespace) -> Non
         "merge image metrics",
         args.root / "logs" / "merge_image_metrics.log",
     )
-    cmd = [sys.executable, "tools/report_image_benchmark.py", "docs/image_benchmark/combined_image_metrics.csv", "--output", "docs/image_benchmark/combined"]
+    cmd = [sys.executable, "tools/reporting/report_image_benchmark.py", "docs/image_benchmark/combined_image_metrics.csv", "--output", "docs/image_benchmark/combined"]
     if args.write_xlsx:
         cmd.append("--xlsx")
     run(cmd, "combined CSV summaries and RD charts", args.root / "logs" / "report_combined.log")
-    run([sys.executable, "tools/render_readme.py"], "render README and benchmark report", args.root / "logs" / "render_readme.log")
+    run([sys.executable, "tools/reporting/render_readme.py"], "render README and benchmark report", args.root / "logs" / "render_readme.log")
 
 
 def generate_partition_maps(args: argparse.Namespace) -> None:
     run(
         [
             sys.executable,
-            "tools/build_partition_evidence.py",
+            "tools/visualization/build_partition_evidence.py",
             "--qp",
             str(args.partition_qp),
             "--standard-grayscale-dir",
@@ -235,7 +235,7 @@ def generate_partition_maps(args: argparse.Namespace) -> None:
         "partition-map evidence",
         args.root / "logs" / "partition_maps.log",
     )
-    run([sys.executable, "tools/render_readme.py"], "render README and benchmark report", args.root / "logs" / "render_readme_after_partitions.log")
+    run([sys.executable, "tools/reporting/render_readme.py"], "render README and benchmark report", args.root / "logs" / "render_readme_after_partitions.log")
 
 
 def print_summary(csv_path: Path) -> None:
@@ -327,7 +327,7 @@ class RunAllPipeline:
 
     def run_full_suite(self) -> None:
         args = self.args
-        run([sys.executable, "tools/generate_synthetic_images.py", "--output", str(args.synthetic_dir)], "generate synthetic images", args.root / "logs" / "generate_synthetic_images.log")
+        run([sys.executable, "tools/data_prep/generate_synthetic_images.py", "--output", str(args.synthetic_dir)], "generate synthetic images", args.root / "logs" / "generate_synthetic_images.log")
         named_metric_csvs = [
             ("standard_grayscale", benchmark(args, "standard_grayscale", args.smoke_dir)),
             ("synthetic", benchmark(args, "synthetic", args.synthetic_dir)),

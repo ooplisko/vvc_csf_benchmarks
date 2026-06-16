@@ -5,10 +5,10 @@ import csv
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from tools.parse_vvenc_qp_trace import parse_trace, write_csv as write_partition_csv
-from tools.render_partition_map import render_svg
+from tools.visualization.parse_vvenc_qp_trace import parse_trace, write_csv as write_partition_csv
+from tools.visualization.render_partition_map import render_svg
 from vvenc_csf.core import CommandRunner, ffprobe_size, platform_executable
 
 
@@ -130,9 +130,9 @@ class PartitionEvidenceBuilder:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build VVenC D_QP partition maps for image datasets.")
-    parser.add_argument("--synthetic-dir", type=Path, default=Path("image_sets/synthetic/png"))
-    parser.add_argument("--kodak-dir", type=Path, default=Path("image_sets/kodak/png"))
-    parser.add_argument("--standard-grayscale-dir", type=Path, default=Path("image_sets/standard_grayscale/png"))
+    parser.add_argument("--synthetic-dir", type=Path, default=Path("data/datasets/images/synthetic/png"))
+    parser.add_argument("--kodak-dir", type=Path, default=Path("data/datasets/images/kodak/png"))
+    parser.add_argument("--standard-grayscale-dir", type=Path, default=Path("data/datasets/images/standard_grayscale/png"))
     parser.add_argument("--output", type=Path, default=Path("docs/partition_maps"))
     parser.add_argument("--work-dir", type=Path, default=Path("results/partition_maps"))
     parser.add_argument("--baseline-trace-encoder", type=Path, default=platform_executable(Path("binaries/vvenc_default_trace")))
