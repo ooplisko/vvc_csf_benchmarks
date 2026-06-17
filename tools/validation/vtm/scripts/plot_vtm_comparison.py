@@ -73,30 +73,42 @@ def main():
     opencv_data = []
     if opencv_csv.exists():
         df_opencv = pd.read_csv(opencv_csv)
-        df_opencv = df_opencv[df_opencv['mode'] == 'baseline']
+        if 'mode' in df_opencv.columns:
+            df_opencv = df_opencv[df_opencv['mode'] == 'baseline']
         for qp in qps:
             df_qp = df_opencv[df_opencv['qp'] == qp]
             if not df_qp.empty:
                 opencv_data.append({"qp": qp, "bpp": df_qp['bpp'].mean(), "psnr": df_qp['psnr_rgb'].mean()})
                 
+    # 5. Read Replicated VVenC OpenCV 4:2:0
+    vvenc_opencv_csv = results_dir / "vvenc_opencv.csv"
+    vvenc_opencv_data = []
+    if vvenc_opencv_csv.exists():
+        df_vvenc_opencv = pd.read_csv(vvenc_opencv_csv)
+        for qp in qps:
+            df_qp = df_vvenc_opencv[df_vvenc_opencv['qp'] == qp]
+            if not df_qp.empty:
+                vvenc_opencv_data.append({"qp": qp, "bpp": df_qp['bpp'].mean(), "psnr": df_qp['psnr_rgb'].mean()})
+                
     # Generate Scenario 1 plot: Replication
     plot_bpp_psnr(
         "VTM 18.0 Replication (OpenCV 4:4:4) vs VVenC (4:2:0)",
         {
-            "VTM 18.0 (Duan et al.)": their_vtm_data,
-            "Replicated VTM (OpenCV)": opencv_data,
-            "VVenC Baseline (FFmpeg 4:2:0)": vvenc_data
+            "VTM 18.0 (Duan et al. Repo)": their_vtm_data,
+            "Replicated VTM (OpenCV 4:4:4)": opencv_data,
+            "Replicated VVenC (OpenCV 4:2:0)": vvenc_opencv_data
         },
         root / "docs" / "vtm_validation" / "plot_replication.png"
     )
     
     # Generate Scenario 2 plot: Canonical
     plot_bpp_psnr(
-        "VTM 18.0 Canonical (FFmpeg 4:4:4) vs VVenC (4:2:0)",
+        "Canonical (FFmpeg) vs Full-Range Penalty (OpenCV)",
         {
-            "VTM 18.0 (Duan et al.)": their_vtm_data,
-            "Canonical VTM (FFmpeg)": ffmpeg_data,
-            "VVenC Baseline (FFmpeg 4:2:0)": vvenc_data
+            "VTM Canonical (FFmpeg 4:4:4)": ffmpeg_data,
+            "VTM OpenCV 4:4:4 (Duan et al.)": opencv_data,
+            "VVenC Canonical (FFmpeg 4:2:0)": vvenc_data,
+            "VVenC OpenCV 4:2:0": vvenc_opencv_data
         },
         root / "docs" / "vtm_validation" / "plot_canonical.png"
     )
