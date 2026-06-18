@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="760" height="420" viewBox="0 0 760 420">
 <rect width="100%" height="100%" fill="#ffffff"/>
-<text x="72" y="26" font-family="Arial" font-size="18" font-weight="700">kodim14: HaarPSI luma index vs QP</text>
+<text x="72" y="26" font-family="Arial" font-size="18" font-weight="700">kodim14: HaarPSI luma approximation vs QP</text>
 <line x1="72.0" y1="48" x2="72.0" y2="350" stroke="#e5e7eb" stroke-width="1"/>
 <line x1="280.0" y1="48" x2="280.0" y2="350" stroke="#e5e7eb" stroke-width="1"/>
 <line x1="488.0" y1="48" x2="488.0" y2="350" stroke="#e5e7eb" stroke-width="1"/>
@@ -13,7 +13,7 @@
 <line x1="72" y1="350" x2="696" y2="350" stroke="#111827"/>
 <line x1="72" y1="48" x2="72" y2="350" stroke="#111827"/>
 <text x="368" y="394" font-family="Arial" font-size="13">QP</text>
-<text x="16" y="255" font-family="Arial" font-size="13" transform="rotate(-90 16,255)">HaarPSI luma index</text>
+<text x="16" y="255" font-family="Arial" font-size="13" transform="rotate(-90 16,255)">HaarPSI luma approximation</text>
 <line x1="72.0" y1="350" x2="72.0" y2="355" stroke="#111827"/>
 <text x="72.0" y="370" font-family="Arial" font-size="11" fill="#374151" text-anchor="middle">22</text>
 <line x1="280.0" y1="350" x2="280.0" y2="355" stroke="#111827"/>
