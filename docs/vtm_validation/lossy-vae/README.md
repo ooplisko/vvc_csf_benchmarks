@@ -15,13 +15,28 @@ During reproduction, a critical difference between standard video encoding pipel
 > [!NOTE]
 > **Minor PSNR Deviations**: In our replicated OpenCV experiments, there is a tiny variance (~0.05-0.12 dB) in PSNR-RGB compared to the reference paper. This is strictly due to differing metric calculation libraries and floating-point precision during RGB/YUV conversion (e.g., PyTorch/PIL vs. OpenCV). The identical BPP values confirm that the encoded bitstreams are structurally exact.
 
+## Validation Scope
+
+This validation is designed to answer a narrow question first: whether the local Kodak/VTM evaluation pipeline reproduces an independent VTM 18.0 anchor under the same image conversion assumptions.
+
+It directly validates:
+- Kodak image selection, dimensions, and QP mapping.
+- VTM encoder invocation and 4:4:4 OpenCV conversion for the replicated anchor.
+- Bitstream-size and BPP calculation, which match the external reference to numerical precision.
+- Decoder/reconstruction plumbing used by the benchmark pipeline.
+
+It partially validates:
+- PSNR-RGB calculation. The replicated values follow the external reference closely, but retain a small implementation-dependent offset of about 0.04-0.13 dB.
+
+It does not, by itself, fully validate every local perceptual metric (`MS-SSIM`, `FSIM`, `HaarPSI`, `PSNR-HVS-M`, `VMAF`, or RGB-derived variants). Those metrics still need separate sanity checks and, where possible, comparison against independent reference implementations.
+
 ## Scenario 1: Exact Replication (OpenCV)
 
-To prove mathematical correctness, the encoding framework was adapted to utilize `cv2` for conversion to match the original authors' approach. As seen below, the replication accurately aligns with the reference Bits Per Pixel (BPP) and PSNR-RGB values, confirming **the metric calculations and decoder logic are 100% correct**.
+To reproduce the original authors' anchor, the encoding framework was adapted to use `cv2` conversion. As seen below, the replicated BPP values match the reference exactly, while PSNR-RGB remains within a small implementation-dependent tolerance. This confirms that the VTM encode path, bitstream accounting, and decoder plumbing are aligned with the external anchor.
 
 ### Table 1: VTM 18.0 (4:4:4) Replication
 
-| QP | [Duan et al. VTM BPP](https://github.com/duanzhiihao/lossy-vae/blob/main/results/kodak/kodak-vtm18.0.json) | [Replicated VTM OpenCV BPP](vtm_opencv.csv) | [Duan et al. VTM PSNR-RGB](https://github.com/duanzhiihao/lossy-vae/blob/main/results/kodak/kodak-vtm18.0.json) | [Replicated VTM OpenCV PSNR-RGB](vtm_opencv.csv) |
+| QP | [Duan et al. VTM BPP](https://github.com/duanzhiihao/lossy-vae/blob/main/results/kodak/kodak-vtm18.0.json) | [Replicated VTM OpenCV BPP](../vtm_opencv.csv) | [Duan et al. VTM PSNR-RGB](https://github.com/duanzhiihao/lossy-vae/blob/main/results/kodak/kodak-vtm18.0.json) | [Replicated VTM OpenCV PSNR-RGB](../vtm_opencv.csv) |
 |----|------------------------|--------------------|----------------------------|---------------------------|
 | 22 | 1.44319         | **1.44319**        | 40.45031     | 40.32174                  |
 | 27 | 0.88052         | **0.88052**        | 37.47105     | 37.39179                  |
@@ -36,14 +51,14 @@ While the OpenCV replication proves the structural correctness of the bits, util
 
 ### Table 2: Canonical vs. Full-Range Penalty
 
-| QP | [VTM Canonical FFmpeg 4:4:4 BPP](vtm_ffmpeg.csv) | [VTM OpenCV 4:4:4 BPP](vtm_opencv.csv) | [VVenC Canonical FFmpeg 4:2:0 BPP](vvenc_baseline.csv) | [VVenC OpenCV 4:2:0 BPP](vvenc_opencv.csv) |
+| QP | [VTM Canonical FFmpeg 4:4:4 BPP](../vtm_ffmpeg.csv) | [VTM OpenCV 4:4:4 BPP](../vtm_opencv.csv) | [VVenC Canonical FFmpeg 4:2:0 BPP](../vvenc_baseline.csv) | [VVenC OpenCV 4:2:0 BPP](../vvenc_opencv.csv) |
 |----|-----------------------|-----------------------|-------------------------|--------------------------|
 | 22 | 1.34335               | 1.44319               | 1.53519                 | 1.55370                  |
 | 27 | 0.80037               | 0.88052               | 0.97111                 | 0.97610                  |
 | 32 | 0.43879               | 0.49360               | 0.57209                 | 0.57260                  |
 | 37 | 0.21463               | 0.24763               | 0.29932                 | 0.29880                  |
 
-| QP | [VTM Canonical FFmpeg 4:4:4 PSNR-RGB](vtm_ffmpeg.csv) | [VTM OpenCV 4:4:4 PSNR-RGB](vtm_opencv.csv) | [VVenC Canonical FFmpeg 4:2:0 PSNR-RGB](vvenc_baseline.csv) | [VVenC OpenCV 4:2:0 PSNR-RGB](vvenc_opencv.csv) |
+| QP | [VTM Canonical FFmpeg 4:4:4 PSNR-RGB](../vtm_ffmpeg.csv) | [VTM OpenCV 4:4:4 PSNR-RGB](../vtm_opencv.csv) | [VVenC Canonical FFmpeg 4:2:0 PSNR-RGB](../vvenc_baseline.csv) | [VVenC OpenCV 4:2:0 PSNR-RGB](../vvenc_opencv.csv) |
 |----|----------------------------|----------------------------|------------------------------|-------------------------------|
 | 22 | 41.03151                   | 40.32174                   | 42.04393                     | 38.67060                      |
 | 27 | 38.07826                   | 37.39179                   | 39.07756                     | 36.74470                      |
@@ -54,6 +69,8 @@ While the OpenCV replication proves the structural correctness of the bits, util
 
 ## Conclusion
 
-The validation results demonstrate a direct alignment between the original researchers' methodology (utilizing OpenCV's `cv2.cvtColor` for Full-Range YUV conversion) and the VTM 18.0 replication. 
+The validation results demonstrate direct alignment between the original researchers' methodology (utilizing OpenCV's `cv2.cvtColor` for Full-Range YUV conversion) and the local VTM 18.0 replication for bitstream generation and BPP accounting.
 
 However, a notable divergence in compression efficiency is observed when comparing the Full-Range representation (OpenCV) to the standard Limited-Range representation (FFmpeg). The canonical FFmpeg pipeline yields significantly fewer bits per pixel across all QPs (e.g., 1.343 BPP vs 1.443 BPP at QP22 for VTM). We observe this identical Full-Range penalty across VVenC as well. By anchoring our comparisons on the Canonical FFmpeg results, we establish a robust and standard reference point for subsequent comparative evaluations.
+
+The replicated VTM anchor therefore supports the correctness of the codec pipeline and BPP calculations. Full metric correctness is treated as a broader validation target and should be covered with dedicated metric-level checks.
