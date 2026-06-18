@@ -144,12 +144,15 @@ def _strictly_increasing(values: list[float]) -> bool:
 def plot_metric(
     title: str,
     ylabel: str,
-    series: dict[str, list[dict[str, float | int]]],
+    series: list[dict],
     metric_key: str,
     out_path: Path,
 ) -> None:
     plt.figure(figsize=(10, 6))
-    for label, rows in series.items():
+    for item in series:
+        label = item["name"]
+        rows = item["data"]
+        linestyle = item.get("linestyle", "-")
         sorted_rows = sorted([row for row in rows if metric_key in row], key=lambda row: float(row["bpp"]))
         if not sorted_rows:
             continue
@@ -159,6 +162,7 @@ def plot_metric(
             marker="o",
             linewidth=2,
             markersize=8,
+            linestyle=linestyle,
             label=label,
         )
 
@@ -221,13 +225,13 @@ It does not, by itself, fully validate VVenC CSF behavior or local approximation
 
 The table below compares the CompressAI VTM 9.1 anchor with the nearest local VTM 18.0 OpenCV 4:4:4 Kodak points. The small BPP and PSNR-RGB deltas indicate that the local pipeline lands on the same Kodak/VTM RD curve family, while the different VTM versions prevent a strict bit-exact claim.
 
-### Table 1: CompressAI VTM 9.1 vs. Local VTM 18.0
+### Table 1: CompressAI VTM 9.1 Anchor vs. Local VTM 18.0 (OpenCV 4:4:4)
 
-| QP | [Local VTM OpenCV BPP](../vtm_opencv.csv) | [CompressAI VTM BPP]({COMPRESSAI_JSON_LINK}) | [Local VTM OpenCV PSNR-RGB](../vtm_opencv.csv) | [CompressAI VTM PSNR-RGB]({COMPRESSAI_JSON_LINK}) |
+| QP | [Local VTM 18.0 (OpenCV 4:4:4) BPP](../vtm_opencv.csv) | [CompressAI VTM 9.1 Anchor BPP]({COMPRESSAI_JSON_LINK}) | [Local VTM 18.0 (OpenCV 4:4:4) PSNR-RGB](../vtm_opencv.csv) | [CompressAI VTM 9.1 Anchor PSNR-RGB]({COMPRESSAI_JSON_LINK}) |
 |---:|---:|---:|---:|---:|
 {local_overlap_comparison_table(local_overlap)}
 
-![CompressAI VTM 9.1 vs Local VTM 18.0](plot_replication.png)
+![CompressAI VTM 9.1 Anchor vs Local VTM 18.0 (OpenCV 4:4:4)](rd_psnr_compressai_anchor.png)
 
 ## Scenario 2: CompressAI MS-SSIM-RGB Reference
 
@@ -235,17 +239,17 @@ Unlike the Duan et al. VTM 18.0 anchor, CompressAI publishes `ms-ssim-rgb` value
 
 Any residual difference between the CompressAI curve and local curves should be interpreted cautiously: CompressAI reports RGB MS-SSIM from its PyTorch pipeline, while the local project reports a standard Gaussian-window MS-SSIM implementation from `metrics/image_quality.py`. The curves are useful for trend and reporting-protocol checks, but they are not a proof of bit-exact numerical equivalence with `pytorch_msssim`.
 
-### Table 2: CompressAI VTM 9.1 Published Metrics
+### Table 2: CompressAI VTM 9.1 Anchor Published Metrics
 
 | Point | [BPP]({COMPRESSAI_JSON_LINK}) | [PSNR-RGB]({COMPRESSAI_JSON_LINK}) | [MS-SSIM-RGB]({COMPRESSAI_JSON_LINK}) |
 |---:|---:|---:|---:|
 {reference_table(rows)}
 
-![CompressAI VTM 9.1 MS-SSIM-RGB Anchor](plot_msssim.png)
+![CompressAI VTM 9.1 Anchor MS-SSIM-RGB](rd_msssim_compressai_anchor.png)
 
-### Table 3: Local VTM 18.0 vs. CompressAI VTM 9.1 Overlap
+### Table 3: Local VTM 18.0 (OpenCV 4:4:4) vs. CompressAI VTM 9.1 Anchor Overlap
 
-| QP | [Local VTM BPP](../vtm_opencv.csv) | [CompressAI VTM BPP]({COMPRESSAI_JSON_LINK}) | Delta BPP | [Local VTM PSNR-RGB](../vtm_opencv.csv) | [CompressAI VTM PSNR-RGB]({COMPRESSAI_JSON_LINK}) | Delta PSNR-RGB |
+| QP | [Local VTM 18.0 (OpenCV 4:4:4) BPP](../vtm_opencv.csv) | [CompressAI VTM 9.1 Anchor BPP]({COMPRESSAI_JSON_LINK}) | Delta BPP | [Local VTM 18.0 (OpenCV 4:4:4) PSNR-RGB](../vtm_opencv.csv) | [CompressAI VTM 9.1 Anchor PSNR-RGB]({COMPRESSAI_JSON_LINK}) | Delta PSNR-RGB |
 |---:|---:|---:|---:|---:|---:|---:|
 {local_overlap_table(local_overlap)}
 
@@ -253,7 +257,7 @@ Any residual difference between the CompressAI curve and local curves should be 
 
 The following table compares CompressAI points to the nearest points from the Duan et al. VTM 18.0 raw baseline. This is retained only as a secondary sanity check across public VTM anchors; it is not the primary CompressAI validation.
 
-| QP | [Duan VTM 18.0 BPP]({DUAN_SOURCE}) | [CompressAI VTM 9.1 BPP]({COMPRESSAI_JSON_LINK}) | [Duan VTM 18.0 PSNR-RGB]({DUAN_SOURCE}) | [CompressAI VTM 9.1 PSNR-RGB]({COMPRESSAI_JSON_LINK}) | Delta BPP | Delta PSNR-RGB |
+| QP | [Duan et al. VTM 18.0 Anchor BPP]({DUAN_SOURCE}) | [CompressAI VTM 9.1 Anchor BPP]({COMPRESSAI_JSON_LINK}) | Delta BPP | [Duan et al. VTM 18.0 Anchor PSNR-RGB]({DUAN_SOURCE}) | [CompressAI VTM 9.1 Anchor PSNR-RGB]({COMPRESSAI_JSON_LINK}) | Delta PSNR-RGB |
 |---:|---:|---:|---:|---:|---:|---:|
 {overlap_table(overlap)}
 
@@ -296,9 +300,8 @@ def local_overlap_table(rows: list[dict[str, float | int]]) -> str:
 def overlap_table(rows: list[dict[str, float | int | str]]) -> str:
     return "\n".join(
         f"| {row['nearest_duan_qp']} | "
-        f"{float(row['duan_bpp']):.5f} | {float(row['compressai_bpp']):.5f} | "
-        f"{float(row['duan_psnr_rgb']):.5f} | {float(row['compressai_psnr_rgb']):.5f} | "
-        f"{float(row['delta_bpp']):+.5f} | {float(row['delta_psnr_rgb']):+.5f} |"
+        f"{float(row['duan_bpp']):.5f} | {float(row['compressai_bpp']):.5f} | {float(row['delta_bpp']):+.5f} | "
+        f"{float(row['duan_psnr_rgb']):.5f} | {float(row['compressai_psnr_rgb']):.5f} | {float(row['delta_psnr_rgb']):+.5f} |"
         for row in rows
     )
 
@@ -328,28 +331,28 @@ def main() -> int:
     monotonic = validate_monotonic(rows)
 
     plot_metric(
-        "CompressAI VTM 9.1 vs Local VTM 18.0 (Kodak)",
+        "Rate-Distortion Comparison: CompressAI VTM 9.1 Anchor vs Local VTM 18.0 (Kodak)",
         "PSNR-RGB (dB)",
-        {
-            "CompressAI VTM 9.1": rows,
-            "Local VTM 18.0 OpenCV 4:4:4": local_vtm,
-            "Local VVenC Canonical FFmpeg 4:2:0": vvenc_baseline,
-            "Local VVenC OpenCV 4:2:0": vvenc_opencv,
-        },
+        [
+            {"name": "CompressAI VTM 9.1 Anchor", "data": rows, "linestyle": "-"},
+            {"name": "Local VTM 18.0 (OpenCV 4:4:4)", "data": local_vtm, "linestyle": "--"},
+            {"name": "Local VVenC (FFmpeg 4:2:0)", "data": vvenc_baseline, "linestyle": "-"},
+            {"name": "Local VVenC (OpenCV 4:2:0)", "data": vvenc_opencv, "linestyle": "-."},
+        ],
         "psnr_rgb",
-        output_dir / "plot_replication.png",
+        output_dir / "rd_psnr_compressai_anchor.png",
     )
     plot_metric(
-        "CompressAI VTM 9.1 MS-SSIM-RGB Anchor",
+        "Rate-Distortion Comparison: CompressAI VTM 9.1 Anchor MS-SSIM-RGB",
         "MS-SSIM-RGB",
-        {
-            "CompressAI VTM 9.1": rows,
-            "Local VTM 18.0 OpenCV 4:4:4": local_vtm,
-            "Local VVenC Canonical FFmpeg 4:2:0": vvenc_baseline,
-            "Local VVenC OpenCV 4:2:0": vvenc_opencv,
-        },
+        [
+            {"name": "CompressAI VTM 9.1 Anchor", "data": rows, "linestyle": "-"},
+            {"name": "Local VTM 18.0 (OpenCV 4:4:4)", "data": local_vtm, "linestyle": "--"},
+            {"name": "Local VVenC (FFmpeg 4:2:0)", "data": vvenc_baseline, "linestyle": "-"},
+            {"name": "Local VVenC (OpenCV 4:2:0)", "data": vvenc_opencv, "linestyle": "-."},
+        ],
         "msssim_rgb",
-        output_dir / "plot_msssim.png",
+        output_dir / "rd_msssim_compressai_anchor.png",
     )
     write_readme(output_dir / "README.md", rows, local_overlap, overlap, monotonic)
     print(f"CompressAI validation written to {output_dir}")

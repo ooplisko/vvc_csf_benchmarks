@@ -27,16 +27,16 @@ It does not, by itself, fully validate VVenC CSF behavior or local approximation
 
 The table below compares the CompressAI VTM 9.1 anchor with the nearest local VTM 18.0 OpenCV 4:4:4 Kodak points. The small BPP and PSNR-RGB deltas indicate that the local pipeline lands on the same Kodak/VTM RD curve family, while the different VTM versions prevent a strict bit-exact claim.
 
-### Table 1: CompressAI VTM 9.1 vs. Local VTM 18.0
+### Table 1: CompressAI VTM 9.1 Anchor vs. Local VTM 18.0 (OpenCV 4:4:4)
 
-| QP | [Local VTM OpenCV BPP](../vtm_opencv.csv) | [CompressAI VTM BPP](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | [Local VTM OpenCV PSNR-RGB](../vtm_opencv.csv) | [CompressAI VTM PSNR-RGB](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) |
+| QP | [Local VTM 18.0 (OpenCV 4:4:4) BPP](../vtm_opencv.csv) | [CompressAI VTM 9.1 Anchor BPP](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | [Local VTM 18.0 (OpenCV 4:4:4) PSNR-RGB](../vtm_opencv.csv) | [CompressAI VTM 9.1 Anchor PSNR-RGB](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) |
 |---:|---:|---:|---:|---:|
 | 22 | 1.44319 | 1.43085 | 40.32174 | 40.42444 |
 | 27 | 0.88052 | 0.87481 | 37.39179 | 37.41979 |
 | 32 | 0.49360 | 0.49055 | 34.28036 | 34.26153 |
 | 37 | 0.24763 | 0.24582 | 31.22131 | 31.19987 |
 
-![CompressAI VTM 9.1 vs Local VTM 18.0](plot_replication.png)
+![CompressAI VTM 9.1 Anchor vs Local VTM 18.0 (OpenCV 4:4:4)](rd_psnr_compressai_anchor.png)
 
 ## Scenario 2: CompressAI MS-SSIM-RGB Reference
 
@@ -44,7 +44,7 @@ Unlike the Duan et al. VTM 18.0 anchor, CompressAI publishes `ms-ssim-rgb` value
 
 Any residual difference between the CompressAI curve and local curves should be interpreted cautiously: CompressAI reports RGB MS-SSIM from its PyTorch pipeline, while the local project reports a standard Gaussian-window MS-SSIM implementation from `metrics/image_quality.py`. The curves are useful for trend and reporting-protocol checks, but they are not a proof of bit-exact numerical equivalence with `pytorch_msssim`.
 
-### Table 2: CompressAI VTM 9.1 Published Metrics
+### Table 2: CompressAI VTM 9.1 Anchor Published Metrics
 
 | Point | [BPP](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | [PSNR-RGB](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | [MS-SSIM-RGB](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) |
 |---:|---:|---:|---:|
@@ -57,11 +57,11 @@ Any residual difference between the CompressAI curve and local curves should be 
 | 7 | 2.32461 | 43.50577 | 0.99694790 |
 | 8 | 3.63261 | 46.59176 | 0.99865640 |
 
-![CompressAI VTM 9.1 MS-SSIM-RGB Anchor](plot_msssim.png)
+![CompressAI VTM 9.1 Anchor MS-SSIM-RGB](rd_msssim_compressai_anchor.png)
 
-### Table 3: Local VTM 18.0 vs. CompressAI VTM 9.1 Overlap
+### Table 3: Local VTM 18.0 (OpenCV 4:4:4) vs. CompressAI VTM 9.1 Anchor Overlap
 
-| QP | [Local VTM BPP](../vtm_opencv.csv) | [CompressAI VTM BPP](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | Delta BPP | [Local VTM PSNR-RGB](../vtm_opencv.csv) | [CompressAI VTM PSNR-RGB](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | Delta PSNR-RGB |
+| QP | [Local VTM 18.0 (OpenCV 4:4:4) BPP](../vtm_opencv.csv) | [CompressAI VTM 9.1 Anchor BPP](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | Delta BPP | [Local VTM 18.0 (OpenCV 4:4:4) PSNR-RGB](../vtm_opencv.csv) | [CompressAI VTM 9.1 Anchor PSNR-RGB](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | Delta PSNR-RGB |
 |---:|---:|---:|---:|---:|---:|---:|
 | 22 | 1.44319 | 1.43085 | +0.01235 | 40.32174 | 40.42444 | -0.10270 |
 | 27 | 0.88052 | 0.87481 | +0.00571 | 37.39179 | 37.41979 | -0.02800 |
@@ -72,16 +72,16 @@ Any residual difference between the CompressAI curve and local curves should be 
 
 The following table compares CompressAI points to the nearest points from the Duan et al. VTM 18.0 raw baseline. This is retained only as a secondary sanity check across public VTM anchors; it is not the primary CompressAI validation.
 
-| QP | [Duan VTM 18.0 BPP](https://raw.githubusercontent.com/duanzhiihao/lossy-vae/main/results/kodak/kodak-vtm18.0.json) | [CompressAI VTM 9.1 BPP](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | [Duan VTM 18.0 PSNR-RGB](https://raw.githubusercontent.com/duanzhiihao/lossy-vae/main/results/kodak/kodak-vtm18.0.json) | [CompressAI VTM 9.1 PSNR-RGB](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | Delta BPP | Delta PSNR-RGB |
+| QP | [Duan et al. VTM 18.0 Anchor BPP](https://raw.githubusercontent.com/duanzhiihao/lossy-vae/main/results/kodak/kodak-vtm18.0.json) | [CompressAI VTM 9.1 Anchor BPP](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | Delta BPP | [Duan et al. VTM 18.0 Anchor PSNR-RGB](https://raw.githubusercontent.com/duanzhiihao/lossy-vae/main/results/kodak/kodak-vtm18.0.json) | [CompressAI VTM 9.1 Anchor PSNR-RGB](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | Delta PSNR-RGB |
 |---:|---:|---:|---:|---:|---:|---:|
-| 47 | 0.04813 | 0.04824 | 26.15671 | 26.14485 | +0.00012 | -0.01186 |
-| 42 | 0.11299 | 0.11250 | 28.53773 | 28.49302 | -0.00050 | -0.04471 |
-| 37 | 0.24763 | 0.24582 | 31.26422 | 31.19987 | -0.00181 | -0.06434 |
-| 32 | 0.49360 | 0.49055 | 34.33035 | 34.26153 | -0.00305 | -0.06882 |
-| 27 | 0.88052 | 0.87481 | 37.47105 | 37.41979 | -0.00571 | -0.05126 |
-| 22 | 1.44319 | 1.43085 | 40.45031 | 40.42444 | -0.01235 | -0.02587 |
-| 17 | 2.34387 | 2.32461 | 43.43201 | 43.50577 | -0.01927 | +0.07375 |
-| 15 | 2.82161 | 3.63261 | 44.56865 | 46.59176 | +0.81100 | +2.02311 |
+| 47 | 0.04813 | 0.04824 | +0.00012 | 26.15671 | 26.14485 | -0.01186 |
+| 42 | 0.11299 | 0.11250 | -0.00050 | 28.53773 | 28.49302 | -0.04471 |
+| 37 | 0.24763 | 0.24582 | -0.00181 | 31.26422 | 31.19987 | -0.06434 |
+| 32 | 0.49360 | 0.49055 | -0.00305 | 34.33035 | 34.26153 | -0.06882 |
+| 27 | 0.88052 | 0.87481 | -0.00571 | 37.47105 | 37.41979 | -0.05126 |
+| 22 | 1.44319 | 1.43085 | -0.01235 | 40.45031 | 40.42444 | -0.02587 |
+| 17 | 2.34387 | 2.32461 | -0.01927 | 43.43201 | 43.50577 | +0.07375 |
+| 15 | 2.82161 | 3.63261 | +0.81100 | 44.56865 | 46.59176 | +2.02311 |
 
 ## Conclusion
 

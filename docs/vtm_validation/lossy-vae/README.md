@@ -36,14 +36,14 @@ To reproduce the original authors' anchor, the encoding framework was adapted to
 
 ### Table 1: VTM 18.0 (4:4:4) Replication
 
-| QP | [Duan et al. VTM BPP](https://github.com/duanzhiihao/lossy-vae/blob/main/results/kodak/kodak-vtm18.0.json) | [Replicated VTM OpenCV BPP](../vtm_opencv.csv) | [Duan et al. VTM PSNR-RGB](https://github.com/duanzhiihao/lossy-vae/blob/main/results/kodak/kodak-vtm18.0.json) | [Replicated VTM OpenCV PSNR-RGB](../vtm_opencv.csv) |
+| QP | [Duan et al. VTM 18.0 Anchor BPP](https://github.com/duanzhiihao/lossy-vae/blob/main/results/kodak/kodak-vtm18.0.json) | [Local VTM 18.0 (OpenCV 4:4:4) BPP](../vtm_opencv.csv) | [Duan et al. VTM 18.0 Anchor PSNR-RGB](https://github.com/duanzhiihao/lossy-vae/blob/main/results/kodak/kodak-vtm18.0.json) | [Local VTM 18.0 (OpenCV 4:4:4) PSNR-RGB](../vtm_opencv.csv) |
 |----|------------------------|--------------------|----------------------------|---------------------------|
 | 22 | 1.44319         | **1.44319**        | 40.45031     | 40.32174                  |
 | 27 | 0.88052         | **0.88052**        | 37.47105     | 37.39179                  |
 | 32 | 0.49360         | **0.49360**        | 34.33035     | 34.28036                  |
 | 37 | 0.24763         | **0.24763**        | 31.26422     | 31.22131                  |
 
-![VTM 18.0 Replication (OpenCV 4:4:4)](plot_replication.png)
+![Local VTM 18.0 (OpenCV 4:4:4) vs Duan et al. VTM 18.0 Anchor](rd_psnr_duan_anchor_replication.png)
 
 ## Scenario 2: Canonical Video Pipeline (FFmpeg)
 
@@ -51,21 +51,21 @@ While the OpenCV replication proves the structural correctness of the bits, util
 
 ### Table 2: Canonical vs. Full-Range Penalty
 
-| QP | [VTM Canonical FFmpeg 4:4:4 BPP](../vtm_ffmpeg.csv) | [VTM OpenCV 4:4:4 BPP](../vtm_opencv.csv) | [VVenC Canonical FFmpeg 4:2:0 BPP](../vvenc_baseline.csv) | [VVenC OpenCV 4:2:0 BPP](../vvenc_opencv.csv) |
+| QP | [Local VTM 18.0 (FFmpeg 4:4:4) BPP](../vtm_ffmpeg.csv) | [Local VTM 18.0 (OpenCV 4:4:4) BPP](../vtm_opencv.csv) | [Local VVenC (FFmpeg 4:2:0) BPP](../vvenc_baseline.csv) | [Local VVenC (OpenCV 4:2:0) BPP](../vvenc_opencv.csv) |
 |----|-----------------------|-----------------------|-------------------------|--------------------------|
 | 22 | 1.34335               | 1.44319               | 1.53519                 | 1.55370                  |
 | 27 | 0.80037               | 0.88052               | 0.97111                 | 0.97610                  |
 | 32 | 0.43879               | 0.49360               | 0.57209                 | 0.57260                  |
 | 37 | 0.21463               | 0.24763               | 0.29932                 | 0.29880                  |
 
-| QP | [VTM Canonical FFmpeg 4:4:4 PSNR-RGB](../vtm_ffmpeg.csv) | [VTM OpenCV 4:4:4 PSNR-RGB](../vtm_opencv.csv) | [VVenC Canonical FFmpeg 4:2:0 PSNR-RGB](../vvenc_baseline.csv) | [VVenC OpenCV 4:2:0 PSNR-RGB](../vvenc_opencv.csv) |
+| QP | [Local VTM 18.0 (FFmpeg 4:4:4) PSNR-RGB](../vtm_ffmpeg.csv) | [Local VTM 18.0 (OpenCV 4:4:4) PSNR-RGB](../vtm_opencv.csv) | [Local VVenC (FFmpeg 4:2:0) PSNR-RGB](../vvenc_baseline.csv) | [Local VVenC (OpenCV 4:2:0) PSNR-RGB](../vvenc_opencv.csv) |
 |----|----------------------------|----------------------------|------------------------------|-------------------------------|
 | 22 | 41.03151                   | 40.32174                   | 42.04393                     | 38.67060                      |
 | 27 | 38.07826                   | 37.39179                   | 39.07756                     | 36.74470                      |
 | 32 | 35.00177                   | 34.28036                   | 36.00586                     | 34.23920                      |
 | 37 | 32.00756                   | 31.22131                   | 32.90607                     | 31.43430                      |
 
-![VTM 18.0 Canonical (FFmpeg 4:4:4)](plot_canonical.png)
+![Rate-Distortion Comparison: Canonical (FFmpeg) vs Full-Range Penalty (OpenCV)](rd_psnr_ffmpeg_vs_opencv_penalty.png)
 
 ## Conclusion
 

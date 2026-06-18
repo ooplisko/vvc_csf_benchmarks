@@ -16,16 +16,19 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[5]
 
 
-def plot_bpp_psnr(title: str, results: dict[str, list[dict[str, float | int]]], out_path: Path) -> None:
+def plot_bpp_psnr(title: str, series: list[dict], out_path: Path) -> None:
     plt.figure(figsize=(10, 6))
 
-    for name, data in results.items():
+    for item in series:
+        name = item["name"]
+        data = item["data"]
+        linestyle = item.get("linestyle", "-")
         if not data:
             continue
         sorted_data = sorted(data, key=lambda row: float(row["bpp"]))
         bpps = [row["bpp"] for row in sorted_data]
         psnrs = [row["psnr"] for row in sorted_data]
-        plt.plot(bpps, psnrs, marker="o", linewidth=2, markersize=8, label=name)
+        plt.plot(bpps, psnrs, marker="o", linewidth=2, markersize=8, linestyle=linestyle, label=name)
 
     plt.title(title, fontsize=14)
     plt.xlabel("BPP (Bits Per Pixel)", fontsize=12)
@@ -93,24 +96,25 @@ def main() -> int:
     vvenc_opencv = read_csv_points(results_dir / "vvenc_opencv.csv", qps, require_baseline_mode=False)
 
     plot_bpp_psnr(
-        "VTM 18.0 Replication (OpenCV 4:4:4) vs VVenC (4:2:0)",
-        {
-            "VTM 18.0 (Duan et al. Repo)": reference,
-            "Replicated VTM (OpenCV 4:4:4)": vtm_opencv,
-            "Replicated VVenC (OpenCV 4:2:0)": vvenc_opencv,
-        },
-        output_dir / "plot_replication.png",
+        "Local VTM 18.0 (OpenCV 4:4:4) vs Duan et al. VTM 18.0 Anchor",
+        [
+            {"name": "Duan et al. VTM 18.0 Anchor", "data": reference, "linestyle": "-"},
+            {"name": "Local VTM 18.0 (OpenCV 4:4:4)", "data": vtm_opencv, "linestyle": "--"},
+            {"name": "Local VVenC (FFmpeg 4:2:0)", "data": vvenc_baseline, "linestyle": ":"},
+            {"name": "Local VVenC (OpenCV 4:2:0)", "data": vvenc_opencv, "linestyle": "-."},
+        ],
+        output_dir / "rd_psnr_duan_anchor_replication.png",
     )
 
     plot_bpp_psnr(
-        "Canonical (FFmpeg) vs Full-Range Penalty (OpenCV)",
-        {
-            "VTM Canonical (FFmpeg 4:4:4)": vtm_ffmpeg,
-            "VTM OpenCV 4:4:4 (Duan et al.)": vtm_opencv,
-            "VVenC Canonical (FFmpeg 4:2:0)": vvenc_baseline,
-            "VVenC OpenCV 4:2:0": vvenc_opencv,
-        },
-        output_dir / "plot_canonical.png",
+        "Rate-Distortion Comparison: Canonical (FFmpeg) vs Full-Range Penalty (OpenCV)",
+        [
+            {"name": "Local VTM 18.0 (FFmpeg 4:4:4)", "data": vtm_ffmpeg, "linestyle": ":"},
+            {"name": "Local VTM 18.0 (OpenCV 4:4:4) [Matches Duan et al. Anchor]", "data": vtm_opencv, "linestyle": "--"},
+            {"name": "Local VVenC (FFmpeg 4:2:0)", "data": vvenc_baseline, "linestyle": "-"},
+            {"name": "Local VVenC (OpenCV 4:2:0)", "data": vvenc_opencv, "linestyle": "-."},
+        ],
+        output_dir / "rd_psnr_ffmpeg_vs_opencv_penalty.png",
     )
 
     print(f"Plots generated successfully in {output_dir}")
