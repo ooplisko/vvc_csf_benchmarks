@@ -1,0 +1,90 @@
+# CompressAI VTM Validation against InterDigital Anchors
+
+This folder contains the validation environment designed to benchmark the local VTM/VVenC research pipeline against the public Kodak VTM anchor published by InterDigital's CompressAI project and described in the CompressAI paper.
+
+## Experimental Setup
+
+The original dataset results are published at [`CompressAI/results/image/kodak/vtm.json`](https://raw.githubusercontent.com/InterDigitalInc/CompressAI/master/results/image/kodak/vtm.json).
+The benchmark implementation is available in [`compressai/utils/bench/codecs.py`](https://github.com/InterDigitalInc/CompressAI/blob/master/compressai/utils/bench/codecs.py), and the dataset aggregation CLI is available in [`compressai/utils/bench/__main__.py`](https://github.com/InterDigitalInc/CompressAI/blob/master/compressai/utils/bench/__main__.py).
+The secondary VTM 18.0 anchor used for cross-checking is the raw Duan et al. file [`lossy-vae/results/kodak/kodak-vtm18.0.json`](https://raw.githubusercontent.com/duanzhiihao/lossy-vae/main/results/kodak/kodak-vtm18.0.json).
+
+The CompressAI paper reports that its traditional-codec comparison used VVC with **VTM version 9.1**, default intra mode configuration, and **8-bit YCbCr 4:4:4** inputs/outputs. The local binary in this repository reports `VTM Encoder Version 18.0`, so the local run is a cross-version overlap check rather than an exact same-binary replication.
+
+> [!NOTE]
+> CompressAI publishes BPP, PSNR-RGB, and MS-SSIM-RGB values, but its `vtm.json` does not store the exact QP list or encoder config path. The report therefore validates RD-curve consistency and metric protocol alignment, not bit-exact reproduction of the CompressAI VTM 9.1 executable.
+
+## Validation Scope
+
+This validation directly checks:
+- CompressAI's public Kodak/VTM result structure.
+- Monotonic RD behavior for BPP, PSNR-RGB, and MS-SSIM-RGB.
+- BPP/PSNR-RGB consistency between the local VTM 18.0 Kodak run and the nearest CompressAI VTM 9.1 RD points.
+- The CompressAI metric protocol: RGB PSNR and RGB MS-SSIM averaged over the dataset.
+
+It does not, by itself, fully validate VVenC CSF behavior or local approximations for `FSIM`, `HaarPSI`, `PSNR-HVS-M`, or `VMAF`.
+
+## Scenario 1: VTM Anchor Overlap
+
+The table below compares the CompressAI VTM 9.1 anchor with the nearest local VTM 18.0 OpenCV 4:4:4 Kodak points. The small BPP and PSNR-RGB deltas indicate that the local pipeline lands on the same Kodak/VTM RD curve family, while the different VTM versions prevent a strict bit-exact claim.
+
+### Table 1: CompressAI VTM 9.1 vs. Local VTM 18.0
+
+| QP | [Local VTM OpenCV BPP](../vtm_opencv.csv) | [CompressAI VTM BPP](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | [Local VTM OpenCV PSNR-RGB](../vtm_opencv.csv) | [CompressAI VTM PSNR-RGB](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) |
+|---:|---:|---:|---:|---:|
+| 22 | 1.44319 | 1.43085 | 40.32174 | 40.42444 |
+| 27 | 0.88052 | 0.87481 | 37.39179 | 37.41979 |
+| 32 | 0.49360 | 0.49055 | 34.28036 | 34.26153 |
+| 37 | 0.24763 | 0.24582 | 31.22131 | 31.19987 |
+
+![CompressAI VTM 9.1 vs Local VTM 18.0](plot_replication.png)
+
+## Scenario 2: CompressAI MS-SSIM-RGB Reference
+
+Unlike the Duan et al. VTM 18.0 anchor, CompressAI publishes `ms-ssim-rgb` values alongside BPP and PSNR-RGB. The `lossy-vae` repository's `kodak-vtm18.0.json` file only contains `bpp` and `psnr`; `lossy-vae` also keeps a separate [`kodak-vtm-compressai.json`](https://raw.githubusercontent.com/duanzhiihao/lossy-vae/main/results/kodak/kodak-vtm-compressai.json) file with CompressAI-style `ms-ssim`, but that is not the VTM 18.0 anchor used by the lossy-vae validation report. This CompressAI report therefore treats MS-SSIM-RGB as a CompressAI-protocol validation target.
+
+Any residual difference between the CompressAI curve and local curves should be interpreted cautiously: CompressAI reports RGB MS-SSIM from its PyTorch pipeline, while the local project reports a standard Gaussian-window MS-SSIM implementation from `metrics/image_quality.py`. The curves are useful for trend and reporting-protocol checks, but they are not a proof of bit-exact numerical equivalence with `pytorch_msssim`.
+
+### Table 2: CompressAI VTM 9.1 Published Metrics
+
+| Point | [BPP](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | [PSNR-RGB](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | [MS-SSIM-RGB](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) |
+|---:|---:|---:|---:|
+| 1 | 0.04824 | 26.14485 | 0.86060816 |
+| 2 | 0.11250 | 28.49302 | 0.91769093 |
+| 3 | 0.24582 | 31.19987 | 0.95610773 |
+| 4 | 0.49055 | 34.26153 | 0.97807829 |
+| 5 | 0.87481 | 37.41979 | 0.98877680 |
+| 6 | 1.43085 | 40.42444 | 0.99386000 |
+| 7 | 2.32461 | 43.50577 | 0.99694790 |
+| 8 | 3.63261 | 46.59176 | 0.99865640 |
+
+![CompressAI VTM 9.1 MS-SSIM-RGB Anchor](plot_msssim.png)
+
+### Table 3: Local VTM 18.0 vs. CompressAI VTM 9.1 Overlap
+
+| QP | [Local VTM BPP](../vtm_opencv.csv) | [CompressAI VTM BPP](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | Delta BPP | [Local VTM PSNR-RGB](../vtm_opencv.csv) | [CompressAI VTM PSNR-RGB](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | Delta PSNR-RGB |
+|---:|---:|---:|---:|---:|---:|---:|
+| 22 | 1.44319 | 1.43085 | +0.01235 | 40.32174 | 40.42444 | -0.10270 |
+| 27 | 0.88052 | 0.87481 | +0.00571 | 37.39179 | 37.41979 | -0.02800 |
+| 32 | 0.49360 | 0.49055 | +0.00305 | 34.28036 | 34.26153 | +0.01883 |
+| 37 | 0.24763 | 0.24582 | +0.00181 | 31.22131 | 31.19987 | +0.02144 |
+
+## Secondary Cross-Anchor Sanity
+
+The following table compares CompressAI points to the nearest points from the Duan et al. VTM 18.0 raw baseline. This is retained only as a secondary sanity check across public VTM anchors; it is not the primary CompressAI validation.
+
+| QP | [Duan VTM 18.0 BPP](https://raw.githubusercontent.com/duanzhiihao/lossy-vae/main/results/kodak/kodak-vtm18.0.json) | [CompressAI VTM 9.1 BPP](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | [Duan VTM 18.0 PSNR-RGB](https://raw.githubusercontent.com/duanzhiihao/lossy-vae/main/results/kodak/kodak-vtm18.0.json) | [CompressAI VTM 9.1 PSNR-RGB](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | Delta BPP | Delta PSNR-RGB |
+|---:|---:|---:|---:|---:|---:|---:|
+| 47 | 0.04813 | 0.04824 | 26.15671 | 26.14485 | +0.00012 | -0.01186 |
+| 42 | 0.11299 | 0.11250 | 28.53773 | 28.49302 | -0.00050 | -0.04471 |
+| 37 | 0.24763 | 0.24582 | 31.26422 | 31.19987 | -0.00181 | -0.06434 |
+| 32 | 0.49360 | 0.49055 | 34.33035 | 34.26153 | -0.00305 | -0.06882 |
+| 27 | 0.88052 | 0.87481 | 37.47105 | 37.41979 | -0.00571 | -0.05126 |
+| 22 | 1.44319 | 1.43085 | 40.45031 | 40.42444 | -0.01235 | -0.02587 |
+| 17 | 2.34387 | 2.32461 | 43.43201 | 43.50577 | -0.01927 | +0.07375 |
+| 15 | 2.82161 | 3.63261 | 44.56865 | 46.59176 | +0.81100 | +2.02311 |
+
+## Conclusion
+
+The CompressAI anchor supports the correctness of the local research protocol for BPP, PSNR-RGB naming, MS-SSIM-RGB naming, RD-point ordering, and dataset-level averaging. It also provides an external reference for MS-SSIM-RGB reporting, which the Duan validation did not cover.
+
+Exact same-binary VTM replication would require adding VTM 9.1 to the validation toolchain. Current monotonic checks: BPP `True`, PSNR-RGB `True`, MS-SSIM-RGB `True`.
