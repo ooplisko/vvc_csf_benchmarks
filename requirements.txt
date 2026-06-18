@@ -1,3 +1,7 @@
 openpyxl>=3.1
+numpy>=1.26
+opencv-python-headless>=4.10
+pandas>=2.2
+matplotlib>=3.8
 
 # External command-line tools are still required: ffmpeg, ffprobe, and curl/curl.exe.
