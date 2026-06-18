@@ -13,9 +13,9 @@ _METRIC_DEFS: list[tuple[str, str, str]] = [
     ("xpsnr_y", "XPSNR-Y", "XPSNR-Y, dB"),
     ("vmaf", "VMAF", "VMAF score"),
     ("msssim_luma", "MS-SSIM", "MS-SSIM luma index"),
-    ("fsim_luma", "FSIM", "FSIM luma index"),
-    ("haarpsi_luma", "HaarPSI", "HaarPSI luma index"),
-    ("psnr_hvs_m_luma", "PSNR-HVS-M", "PSNR-HVS-M luma, dB"),
+    ("fsim_luma", "FSIM approx", "FSIM luma approximation"),
+    ("haarpsi_luma", "HaarPSI approx", "HaarPSI luma approximation"),
+    ("psnr_hvs_m_luma", "PSNR-HVS-M approx", "PSNR-HVS-M luma approximation, dB"),
     ("psnr_rgb", "PSNR-RGB", "PSNR-RGB, dB"),
     ("msssim_rgb", "MS-SSIM-RGB", "MS-SSIM RGB index"),
 ]

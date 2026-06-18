@@ -1,12 +1,24 @@
+"""Local image-quality metrics for raw planar YUV benchmark outputs."""
+
 from __future__ import annotations
 
 import math
 from pathlib import Path
 
+import cv2
+import numpy as np
+
 
 def read_luma(path: Path, width: int, height: int, bit_depth: int) -> list[float]:
+    """Read the luma plane from a raw planar YUV file as normalized samples."""
+
     sample_count = width * height
     data = path.read_bytes()
+    bytes_per_sample = 1 if bit_depth <= 8 else 2
+    expected_luma_bytes = sample_count * bytes_per_sample
+    if len(data) < expected_luma_bytes:
+        raise ValueError(f"{path} is too small for a {width}x{height} {bit_depth}-bit luma plane")
+
     if bit_depth <= 8:
         values = data[:sample_count]
         scale = 255.0
@@ -21,22 +33,16 @@ def read_luma(path: Path, width: int, height: int, bit_depth: int) -> list[float
 
 
 def msssim_luma(reference: list[float], distorted: list[float], width: int, height: int) -> float:
-    weights = [0.0448, 0.2856, 0.3001, 0.2363, 0.1333]
-    score = 1.0
-    ref = reference
-    dis = distorted
-    w = width
-    h = height
-    for weight in weights:
-        score *= max(_ssim_global(ref, dis), 1e-9) ** weight
-        if w < 2 or h < 2:
-            break
-        ref, w, h = _downsample2(ref, w, h)
-        dis, _w2, _h2 = _downsample2(dis, w * 2, h * 2)
-    return score
+    """Compute standard Gaussian-window MS-SSIM on normalized luma samples."""
+
+    reference_image = _as_image(reference, width, height)
+    distorted_image = _as_image(distorted, width, height)
+    return _ms_ssim_image(reference_image, distorted_image)
 
 
 def fsim_luma(reference: list[float], distorted: list[float], width: int, height: int) -> float:
+    """Compute a gradient-magnitude FSIM approximation on luma samples."""
+
     ref_grad = _gradient_magnitude(reference, width, height)
     dis_grad = _gradient_magnitude(distorted, width, height)
     constant = 0.0026
@@ -51,6 +57,8 @@ def fsim_luma(reference: list[float], distorted: list[float], width: int, height
 
 
 def haarpsi_luma(reference: list[float], distorted: list[float], width: int, height: int) -> float:
+    """Compute a Haar wavelet perceptual similarity approximation on luma samples."""
+
     scores = []
     for scale in (1, 2):
         ref_h, ref_v = _haar_coefficients(reference, width, height, scale)
@@ -61,6 +69,8 @@ def haarpsi_luma(reference: list[float], distorted: list[float], width: int, hei
 
 
 def psnr_hvs_m_luma(reference: list[float], distorted: list[float], width: int, height: int) -> float:
+    """Compute a lightweight block-based PSNR-HVS-M approximation for luma."""
+
     total = 0.0
     samples = 0
     for y in range(0, height - 7, 8):
@@ -90,6 +100,8 @@ def calculate_luma_metrics(
     reference_bit_depth: int = 8,
     distorted_bit_depth: int = 10,
 ) -> dict[str, float]:
+    """Calculate local luma metrics for reference and reconstructed YUV files."""
+
     reference = read_luma(reference_yuv, width, height, reference_bit_depth)
     distorted = read_luma(distorted_yuv, width, height, distorted_bit_depth)
     return {
@@ -101,11 +113,17 @@ def calculate_luma_metrics(
 
 
 def read_yuv(path: Path, width: int, height: int, bit_depth: int, chroma_format: str = "420") -> tuple[list[float], list[float], list[float]]:
+    """Read planar YUV as normalized Y, U, and V planes."""
+
     data = path.read_bytes()
     y_count = width * height
     uv_width = width if chroma_format == "444" else width // 2
     uv_height = height if chroma_format == "444" else height // 2
     uv_count = uv_width * uv_height
+    expected_size = expected_yuv_size(width, height, bit_depth, chroma_format)
+    if len(data) < expected_size:
+        raise ValueError(f"{path} is too small for a {width}x{height} {bit_depth}-bit {chroma_format} YUV frame")
+
     if bit_depth <= 8:
         scale = 255.0
         y = [data[i] / scale for i in range(y_count)]
@@ -130,6 +148,17 @@ def read_yuv(path: Path, width: int, height: int, bit_depth: int, chroma_format:
             offset = v_byte_start + i * 2
             v.append(int.from_bytes(data[offset : offset + 2], "little") / scale)
     return y, u, v
+
+
+def expected_yuv_size(width: int, height: int, bit_depth: int, chroma_format: str = "420") -> int:
+    """Return the expected byte size for one planar YUV frame."""
+
+    y_count = width * height
+    uv_width = width if chroma_format == "444" else width // 2
+    uv_height = height if chroma_format == "444" else height // 2
+    samples = y_count + 2 * uv_width * uv_height
+    bytes_per_sample = 1 if bit_depth <= 8 else 2
+    return samples * bytes_per_sample
 
 
 def _upsample_chroma(plane: list[float], uv_width: int, uv_height: int) -> list[float]:
@@ -174,6 +203,8 @@ def psnr_rgb(
     ref_r: list[float], ref_g: list[float], ref_b: list[float],
     dis_r: list[float], dis_g: list[float], dis_b: list[float],
 ) -> float:
+    """Compute RGB PSNR from normalized RGB channel samples."""
+
     n = len(ref_r)
     mse_r = sum((a - b) ** 2 for a, b in zip(ref_r, dis_r)) / n
     mse_g = sum((a - b) ** 2 for a, b in zip(ref_g, dis_g)) / n
@@ -189,10 +220,93 @@ def msssim_rgb(
     dis_r: list[float], dis_g: list[float], dis_b: list[float],
     width: int, height: int,
 ) -> float:
+    """Compute standard Gaussian-window MS-SSIM averaged across RGB channels."""
+
     score_r = msssim_luma(ref_r, dis_r, width, height)
     score_g = msssim_luma(ref_g, dis_g, width, height)
     score_b = msssim_luma(ref_b, dis_b, width, height)
     return (score_r + score_g + score_b) / 3.0
+
+
+def _as_image(values: list[float], width: int, height: int) -> np.ndarray:
+    return np.asarray(values, dtype=np.float64).reshape((height, width))
+
+
+def _ms_ssim_image(reference: np.ndarray, distorted: np.ndarray) -> float:
+    if reference.shape != distorted.shape:
+        raise ValueError(f"MS-SSIM inputs have different shapes: {reference.shape} != {distorted.shape}")
+
+    weights = np.asarray([0.0448, 0.2856, 0.3001, 0.2363, 0.1333], dtype=np.float64)
+    levels = _msssim_levels(reference.shape[0], reference.shape[1], len(weights))
+    weights = weights[:levels]
+    weights = weights / weights.sum()
+
+    ref = np.clip(reference.astype(np.float64, copy=False), 0.0, 1.0)
+    dis = np.clip(distorted.astype(np.float64, copy=False), 0.0, 1.0)
+    scores = []
+    contrast_scores = []
+
+    for level in range(levels):
+        ssim_value, contrast_value = _ssim_components(ref, dis)
+        scores.append(max(ssim_value, 1e-12))
+        contrast_scores.append(max(contrast_value, 1e-12))
+        if level < levels - 1:
+            ref = _downsample2_image(ref)
+            dis = _downsample2_image(dis)
+
+    value = 1.0
+    for contrast_value, weight in zip(contrast_scores[:-1], weights[:-1]):
+        value *= contrast_value ** weight
+    value *= scores[-1] ** weights[-1]
+    return float(max(0.0, min(1.0, value)))
+
+
+def _msssim_levels(height: int, width: int, max_levels: int) -> int:
+    levels = 1
+    h = height
+    w = width
+    while levels < max_levels and h >= 22 and w >= 22:
+        h //= 2
+        w //= 2
+        levels += 1
+    return levels
+
+
+def _ssim_components(reference: np.ndarray, distorted: np.ndarray) -> tuple[float, float]:
+    c1 = 0.01 ** 2
+    c2 = 0.03 ** 2
+    kernel_size = _gaussian_kernel_size(reference.shape)
+
+    mu_ref = cv2.GaussianBlur(reference, (kernel_size, kernel_size), 1.5, borderType=cv2.BORDER_REFLECT)
+    mu_dis = cv2.GaussianBlur(distorted, (kernel_size, kernel_size), 1.5, borderType=cv2.BORDER_REFLECT)
+    mu_ref_sq = mu_ref * mu_ref
+    mu_dis_sq = mu_dis * mu_dis
+    mu_ref_dis = mu_ref * mu_dis
+
+    sigma_ref_sq = cv2.GaussianBlur(reference * reference, (kernel_size, kernel_size), 1.5, borderType=cv2.BORDER_REFLECT) - mu_ref_sq
+    sigma_dis_sq = cv2.GaussianBlur(distorted * distorted, (kernel_size, kernel_size), 1.5, borderType=cv2.BORDER_REFLECT) - mu_dis_sq
+    sigma_ref_dis = cv2.GaussianBlur(reference * distorted, (kernel_size, kernel_size), 1.5, borderType=cv2.BORDER_REFLECT) - mu_ref_dis
+
+    contrast_map = (2.0 * sigma_ref_dis + c2) / (sigma_ref_sq + sigma_dis_sq + c2)
+    ssim_map = ((2.0 * mu_ref_dis + c1) * (2.0 * sigma_ref_dis + c2)) / ((mu_ref_sq + mu_dis_sq + c1) * (sigma_ref_sq + sigma_dis_sq + c2))
+    return float(np.mean(ssim_map)), float(np.mean(contrast_map))
+
+
+def _gaussian_kernel_size(shape: tuple[int, int]) -> int:
+    max_size = min(11, shape[0] if shape[0] % 2 else shape[0] - 1, shape[1] if shape[1] % 2 else shape[1] - 1)
+    return max(3, max_size)
+
+
+def _downsample2_image(values: np.ndarray) -> np.ndarray:
+    height = values.shape[0] - values.shape[0] % 2
+    width = values.shape[1] - values.shape[1] % 2
+    cropped = values[:height, :width]
+    return (
+        cropped[0::2, 0::2]
+        + cropped[1::2, 0::2]
+        + cropped[0::2, 1::2]
+        + cropped[1::2, 1::2]
+    ) * 0.25
 
 
 def calculate_color_metrics(
@@ -204,6 +318,8 @@ def calculate_color_metrics(
     distorted_bit_depth: int = 10,
     chroma_format: str = "420",
 ) -> dict[str, float]:
+    """Calculate RGB-derived metrics for reference and reconstructed YUV files."""
+
     ref_y, ref_u, ref_v = read_yuv(reference_yuv, width, height, reference_bit_depth, chroma_format)
     dis_y, dis_u, dis_v = read_yuv(distorted_yuv, width, height, distorted_bit_depth, chroma_format)
     ref_r, ref_g, ref_b = _yuv_to_rgb(ref_y, ref_u, ref_v, width, height, chroma_format)
