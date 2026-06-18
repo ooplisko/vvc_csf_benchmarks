@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 import subprocess
 import os
-import math
 
 def get_bpp(vvc_path, h, w):
     return os.path.getsize(vvc_path) * 8 / (h * w)

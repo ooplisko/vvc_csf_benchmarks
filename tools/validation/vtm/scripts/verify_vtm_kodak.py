@@ -1,4 +1,3 @@
-import argparse
 import sys
 import json
 import csv
@@ -14,7 +13,7 @@ def run_benchmark():
     vtm_encoder = root / "binaries" / "vtm" / "EncoderApp.exe"
     vtm_decoder = root / "binaries" / "vtm" / "DecoderApp.exe"
     
-    # We will output results to results/image_kodak_vtm
+    # Output results to results/image_kodak_vtm
     run_dir = root / "results" / "image_kodak_vtm"
     
     cmd = [

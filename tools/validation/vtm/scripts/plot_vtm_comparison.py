@@ -2,7 +2,6 @@ import pandas as pd
 import json
 import matplotlib.pyplot as plt
 from pathlib import Path
-import numpy as np
 
 def plot_bpp_psnr(title, results, out_path):
     plt.figure(figsize=(10, 6))

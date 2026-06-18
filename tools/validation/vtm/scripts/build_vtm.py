@@ -1,12 +1,9 @@
-import os
 import subprocess
-import sys
 from pathlib import Path
 
 def main():
     root = Path(__file__).resolve().parents[2]
-    vtm_dir = root / "vvenc_csf" / "VVCSoftware_VTM" # Let's put it outside the repository or inside a temporary folder. Let's put it in the project root under a build folder? 
-    # The user repo is d:\VVC\vvenc_csf_tests
+    # Clone VTM into the project root directory
     vtm_dir = root / "VVCSoftware_VTM"
     
     if not vtm_dir.exists():
@@ -29,8 +26,7 @@ def main():
     bin_out.mkdir(parents=True, exist_ok=True)
     
     import shutil
-    # The output is usually in bin/ or bin/vs17/msvc-19.xx/x86_64/Release
-    # Let's just find EncoderApp.exe and DecoderApp.exe
+    # Locate and copy the built executable files
     for exe_name in ["EncoderApp.exe", "DecoderApp.exe"]:
         found = list(vtm_dir.rglob(exe_name))
         if found:
