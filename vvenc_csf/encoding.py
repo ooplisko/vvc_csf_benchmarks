@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from vvenc_csf.core import CommandRunner
+from vvenc_csf.core import ROOT, CommandRunner
 
 
 # ====================================================================================================================
@@ -41,6 +41,9 @@ class EncodeJob:
 # ====================================================================================================================
 
 
+VTM_ENCODER_CONFIG = ROOT / "VVCSoftware_VTM" / "cfg" / "encoder_intra_vtm.cfg"
+
+
 class ImageConverter:
     """Converts benchmark input images to the YUV format expected by VVenC."""
 
@@ -71,7 +74,6 @@ class ImageConverter:
         im = np.transpose(im, axes=(2, 0, 1))
         with open(output, "wb") as f:
             f.write(im.tobytes())
-
 
 
 class EncoderRunner:
@@ -123,36 +125,29 @@ class EncoderRunner:
         return self.runner.run(cmd, job.log).stdout
 
     def _encode_vtm(self, job: EncodeJob) -> str:
-        # Resolve config relative to project root
-        from pathlib import Path
-        root = Path(__file__).resolve().parents[1]
-        cfg_file = root / "VVCSoftware_VTM" / "cfg" / "encoder_intra_vtm.cfg"
-        
-        filtered_extra_args = []
-        skip_next = False
-        for arg in job.extra_args:
-            if skip_next:
-                skip_next = False
-                continue
-            if arg == "--CSFScalingList":
-                skip_next = True
-                continue
-            filtered_extra_args.append(arg)
-            
         cmd = [
             str(job.encoder),
-            "-c", str(cfg_file),
-            "-i", str(job.yuv),
-            "-wdt", str(job.width),
-            "-hgt", str(job.height),
-            "-fr", "1",
-            "-f", "1",
-            "-q", str(job.qp),
-            "-b", str(job.bitstream),
-            "-o", str(job.recon),
+            "-c",
+            str(VTM_ENCODER_CONFIG),
+            "-i",
+            str(job.yuv),
+            "-wdt",
+            str(job.width),
+            "-hgt",
+            str(job.height),
+            "-fr",
+            "1",
+            "-f",
+            "1",
+            "-q",
+            str(job.qp),
+            "-b",
+            str(job.bitstream),
+            "-o",
+            str(job.recon),
             "--InputChromaFormat=444",
             "--InputBitDepth=8",
-            *filtered_extra_args,
+            *_vtm_extra_args(job.extra_args),
         ]
         return self.runner.run(cmd, job.log).stdout
 
@@ -180,3 +175,17 @@ class DecoderRunner:
     def decode(self, bitstream: Path, output: Path, log: Path) -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
         self.runner.run([str(self.decoder), "-b", str(bitstream), "-o", str(output)], log)
+
+
+def _vtm_extra_args(extra_args: tuple[str, ...]) -> list[str]:
+    filtered_extra_args = []
+    skip_next = False
+    for arg in extra_args:
+        if skip_next:
+            skip_next = False
+            continue
+        if arg == "--CSFScalingList":
+            skip_next = True
+            continue
+        filtered_extra_args.append(arg)
+    return filtered_extra_args
