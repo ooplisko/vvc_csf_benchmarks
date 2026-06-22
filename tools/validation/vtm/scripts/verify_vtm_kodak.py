@@ -30,6 +30,8 @@ def run_benchmark(args: argparse.Namespace) -> Path:
         str(args.vtm_encoder),
         "--decoder",
         str(args.vtm_decoder),
+        "--codec",
+        "vtm_validation",
         "--conversion",
         "opencv_444",
     ]
@@ -93,8 +95,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--run-dir", type=Path, default=ROOT / "results" / "image_kodak_vtm")
     parser.add_argument("--kodak-dir", type=Path, default=ROOT / "data" / "datasets" / "images" / "kodak" / "png")
     parser.add_argument("--baseline-json", type=Path, default=ROOT / "data" / "baselines" / "kodak_vtm.json")
-    parser.add_argument("--vtm-encoder", type=Path, default=ROOT / "binaries" / "vtm" / "EncoderApp.exe")
-    parser.add_argument("--vtm-decoder", type=Path, default=ROOT / "binaries" / "vtm" / "DecoderApp.exe")
+    parser.add_argument("--vtm-encoder", type=Path, default=ROOT / "binaries" / "vtm" / "vtm18" / "baseline" / "EncoderApp.exe")
+    parser.add_argument("--vtm-decoder", type=Path, default=ROOT / "binaries" / "vtm" / "vtm18" / "baseline" / "DecoderApp.exe")
     parser.add_argument("--qps", default="22,27,32,37", help="Comma-separated QP list.")
     args = parser.parse_args()
     args.qps = [int(item) for item in args.qps.split(",") if item.strip()]

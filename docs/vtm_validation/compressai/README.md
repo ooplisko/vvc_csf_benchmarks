@@ -8,7 +8,7 @@ The original dataset results are published at [`CompressAI/results/image/kodak/v
 The benchmark implementation is available in [`compressai/utils/bench/codecs.py`](https://github.com/InterDigitalInc/CompressAI/blob/master/compressai/utils/bench/codecs.py), and the dataset aggregation CLI is available in [`compressai/utils/bench/__main__.py`](https://github.com/InterDigitalInc/CompressAI/blob/master/compressai/utils/bench/__main__.py).
 The secondary VTM 18.0 anchor used for cross-checking is the raw Duan et al. file [`lossy-vae/results/kodak/kodak-vtm18.0.json`](https://raw.githubusercontent.com/duanzhiihao/lossy-vae/main/results/kodak/kodak-vtm18.0.json).
 
-The CompressAI paper reports that its traditional-codec comparison used VVC with **VTM version 9.1**, default intra mode configuration, and **8-bit YCbCr 4:4:4** inputs/outputs. The local binary in this repository reports `VTM Encoder Version 18.0`, so the local run is a cross-version overlap check rather than an exact same-binary replication.
+The CompressAI paper reports that its traditional-codec comparison used VVC with **VTM version 9.1**, default intra mode configuration, and **8-bit YCbCr 4:4:4** inputs/outputs. The historical local anchor run reports `VTM Encoder Version 18.0`, so that overlap check remains cross-version rather than an exact same-binary replication. Local VTM 23.0 baseline/CSF curves are added separately when their CSV files are present.
 
 > [!NOTE]
 > CompressAI publishes BPP, PSNR-RGB, and MS-SSIM-RGB values, but its `vtm.json` does not store the exact QP list or encoder config path. The report therefore validates RD-curve consistency and metric protocol alignment, not bit-exact reproduction of the CompressAI VTM 9.1 executable.
@@ -59,7 +59,29 @@ Any residual difference between the CompressAI curve and local curves should be 
 
 ![CompressAI VTM 9.1 Anchor MS-SSIM-RGB](rd_msssim_compressai_anchor.png)
 
-### Table 3: Local VTM 18.0 (OpenCV 4:4:4) vs. CompressAI VTM 9.1 Anchor Overlap
+## Scenario 3: Local VTM 23.0 Baseline vs. CSF
+
+The same plots also include local VTM 23.0 baseline and CSF curves from [`vtm23_ffmpeg.csv`](../vtm23_ffmpeg.csv) and [`vtm23_opencv.csv`](../vtm23_opencv.csv). These tables report the same-QP Kodak deltas separately from the CompressAI VTM 9.1 anchor overlap, because they compare two local VTM 23.0 executables rather than external anchors.
+
+### Table 3: Local VTM 23.0 Baseline vs. CSF (FFmpeg 4:4:4)
+
+| QP | [Baseline BPP](../vtm23_ffmpeg.csv) | [CSF BPP](../vtm23_ffmpeg.csv) | Delta BPP | [Baseline PSNR-RGB](../vtm23_ffmpeg.csv) | [CSF PSNR-RGB](../vtm23_ffmpeg.csv) | Delta PSNR-RGB |
+|---:|---:|---:|---:|---:|---:|---:|
+| 22 | 1.34320 | 1.33023 | -0.01297 | 41.02846 | 40.35572 | -0.67274 |
+| 27 | 0.80118 | 0.78003 | -0.02115 | 38.07825 | 37.51516 | -0.56309 |
+| 32 | 0.43803 | 0.42347 | -0.01456 | 34.99385 | 34.62831 | -0.36554 |
+| 37 | 0.21501 | 0.20959 | -0.00542 | 32.01714 | 31.83111 | -0.18603 |
+
+### Table 4: Local VTM 23.0 Baseline vs. CSF (OpenCV 4:4:4)
+
+| QP | [Baseline BPP](../vtm23_opencv.csv) | [CSF BPP](../vtm23_opencv.csv) | Delta BPP | [Baseline PSNR-RGB](../vtm23_opencv.csv) | [CSF PSNR-RGB](../vtm23_opencv.csv) | Delta PSNR-RGB |
+|---:|---:|---:|---:|---:|---:|---:|
+| 22 | 1.44381 | 1.43140 | -0.01240 | 40.32264 | 39.61486 | -0.70778 |
+| 27 | 0.88054 | 0.85951 | -0.02103 | 37.39113 | 36.78678 | -0.60435 |
+| 32 | 0.49333 | 0.47658 | -0.01675 | 34.27276 | 33.86383 | -0.40893 |
+| 37 | 0.24714 | 0.24038 | -0.00676 | 31.21546 | 31.00645 | -0.20901 |
+
+### Table 5: Local VTM 18.0 (OpenCV 4:4:4) vs. CompressAI VTM 9.1 Anchor Overlap
 
 | QP | [Local VTM 18.0 (OpenCV 4:4:4) BPP](../vtm_opencv.csv) | [CompressAI VTM 9.1 Anchor BPP](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | Delta BPP | [Local VTM 18.0 (OpenCV 4:4:4) PSNR-RGB](../vtm_opencv.csv) | [CompressAI VTM 9.1 Anchor PSNR-RGB](https://github.com/InterDigitalInc/CompressAI/blob/master/results/image/kodak/vtm.json) | Delta PSNR-RGB |
 |---:|---:|---:|---:|---:|---:|---:|

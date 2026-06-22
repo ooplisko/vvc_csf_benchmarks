@@ -94,8 +94,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the VVenC OpenCV Kodak validation pipeline.")
     parser.add_argument("--kodak-dir", type=Path, default=ROOT / "data" / "datasets" / "images" / "kodak" / "png")
     parser.add_argument("--output", type=Path, default=ROOT / "docs" / "vtm_validation" / "vvenc_opencv.csv")
-    parser.add_argument("--vvenc", type=Path, default=ROOT / "binaries" / "vvenc_default.exe")
-    parser.add_argument("--vvdec", type=Path, default=ROOT / "binaries" / "vvdecapp.exe")
+    parser.add_argument("--vvenc", type=Path, default=ROOT / "binaries" / "vvenc" / "vvenc_default.exe")
+    parser.add_argument("--vvdec", type=Path, default=ROOT / "binaries" / "vvenc" / "vvdecapp.exe")
     parser.add_argument("--qps", default="22,27,32,37", help="Comma-separated QP list.")
     return parser.parse_args()
 

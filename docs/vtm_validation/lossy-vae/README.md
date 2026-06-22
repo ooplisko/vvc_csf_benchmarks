@@ -67,6 +67,27 @@ While the OpenCV replication proves the structural correctness of the bits, util
 
 ![Rate-Distortion Comparison: Canonical (FFmpeg) vs Full-Range Penalty (OpenCV)](rd_psnr_ffmpeg_vs_opencv_penalty.png)
 
+## Scenario 3: Local VTM 23.0 Baseline vs. CSF
+
+The generated RD plots include local VTM 23.0 baseline and CSF curves from [`vtm23_ffmpeg.csv`](../vtm23_ffmpeg.csv) and [`vtm23_opencv.csv`](../vtm23_opencv.csv). The tables below keep this experiment separate from the historical VTM 18.0 anchor replication and report average Kodak deltas at the same QP.
+
+### Table 3: Local VTM 23.0 Baseline vs. CSF (FFmpeg 4:4:4)
+
+| QP | [Baseline BPP](../vtm23_ffmpeg.csv) | [CSF BPP](../vtm23_ffmpeg.csv) | Delta BPP | [Baseline PSNR-RGB](../vtm23_ffmpeg.csv) | [CSF PSNR-RGB](../vtm23_ffmpeg.csv) | Delta PSNR-RGB |
+|---:|---:|---:|---:|---:|---:|---:|
+| 22 | 1.34320 | 1.33023 | -0.01297 | 41.02846 | 40.35572 | -0.67274 |
+| 27 | 0.80118 | 0.78003 | -0.02115 | 38.07825 | 37.51516 | -0.56309 |
+| 32 | 0.43803 | 0.42347 | -0.01456 | 34.99385 | 34.62831 | -0.36554 |
+| 37 | 0.21501 | 0.20959 | -0.00542 | 32.01714 | 31.83111 | -0.18603 |
+
+### Table 4: Local VTM 23.0 Baseline vs. CSF (OpenCV 4:4:4)
+
+| QP | [Baseline BPP](../vtm23_opencv.csv) | [CSF BPP](../vtm23_opencv.csv) | Delta BPP | [Baseline PSNR-RGB](../vtm23_opencv.csv) | [CSF PSNR-RGB](../vtm23_opencv.csv) | Delta PSNR-RGB |
+|---:|---:|---:|---:|---:|---:|---:|
+| 22 | 1.44381 | 1.43140 | -0.01240 | 40.32264 | 39.61486 | -0.70778 |
+| 27 | 0.88054 | 0.85951 | -0.02103 | 37.39113 | 36.78678 | -0.60435 |
+| 32 | 0.49333 | 0.47658 | -0.01675 | 34.27276 | 33.86383 | -0.40893 |
+| 37 | 0.24714 | 0.24038 | -0.00676 | 31.21546 | 31.00645 | -0.20901 |
 ## Conclusion
 
 The validation results demonstrate direct alignment between the original researchers' methodology (utilizing OpenCV's `cv2.cvtColor` for Full-Range YUV conversion) and the local VTM 18.0 replication for bitstream generation and BPP accounting.
