@@ -28,7 +28,7 @@ It directly validates:
 It partially validates:
 - PSNR-RGB calculation. The replicated values follow the external reference closely, but retain a small implementation-dependent offset of about 0.04-0.13 dB.
 
-It does not, by itself, fully validate every local perceptual metric (`MS-SSIM`, `FSIM`, `HaarPSI`, `PSNR-HVS-M`, `VMAF`, or RGB-derived variants). Those metrics still need separate sanity checks and, where possible, comparison against independent reference implementations.
+It does not, by itself, fully validate every local perceptual metric. In particular, `MS-SSIM luma`, `FSIM luma approx`, `HaarPSI luma approx`, `PSNR-HVS-M luma approx`, and `VMAF` are supporting diagnostics here. `MS-SSIM-RGB` is covered separately by the CompressAI validation report as a reporting-protocol and RD-curve check.
 
 ## Scenario 1: Exact Replication (OpenCV)
 

@@ -77,8 +77,20 @@ def metric_summary_table(path: str) -> list[str]:
     rows = read_csv(path)
     return markdown_table(
         ["Metric", "Mean", "Min", "Max"],
-        [[row["metric"], fmt(row["mean"]), fmt(row["min"]), fmt(row["max"])] for row in rows],
+        [[summary_metric_label(row["metric"]), fmt(row["mean"]), fmt(row["min"]), fmt(row["max"])] for row in rows],
     )
+
+
+def summary_metric_label(metric: str) -> str:
+    """Return a readable label for aggregate delta summary keys."""
+
+    if metric.endswith("_equal_bpp_delta"):
+        base = metric.removesuffix("_equal_bpp_delta")
+        return f"{METRIC_LABELS.get(base, base)} equal-bpp delta"
+    if metric.endswith("_delta"):
+        base = metric.removesuffix("_delta")
+        return f"{METRIC_LABELS.get(base, base)} same-QP delta"
+    return METRIC_LABELS.get(metric, metric)
 
 
 def bd_rate_summary_table(path: str) -> list[str]:
@@ -129,9 +141,24 @@ def codec_result_block(codec: str, title: str, from_docs: bool = False) -> list[
         "",
         f"Metrics CSV: [`{root}/combined_image_metrics.csv`]({rel(f'{root}/combined_image_metrics.csv', from_docs)})",
         "",
+        "Summary CSVs:",
+        "",
+        *markdown_table(
+            ["Artifact", "File"],
+            [
+                ["Same-QP deltas", f"[`{combined}/same_qp_summary.csv`]({rel(f'{combined}/same_qp_summary.csv', from_docs)})"],
+                ["Equal-bpp interpolation deltas", f"[`{combined}/equal_bpp_metric_summary.csv`]({rel(f'{combined}/equal_bpp_metric_summary.csv', from_docs)})"],
+                ["BD-Rate summary", f"[`{combined}/bd_rate_summary.csv`]({rel(f'{combined}/bd_rate_summary.csv', from_docs)})"],
+            ],
+        ),
+        "",
         "Same-QP summary:",
         "",
         *metric_summary_table(f"{combined}/same_qp_summary.csv"),
+        "",
+        "Equal-bpp summary:",
+        "",
+        *metric_summary_table(f"{combined}/equal_bpp_metric_summary.csv"),
         "",
         "BD-Rate summary:",
         "",
@@ -497,25 +524,27 @@ def build_report() -> str:
         "",
         "## Visual Quality Metrics",
         "",
-        "Encoder behavior is evaluated through same-QP comparison and equal-bpp interpolation. Luma means the Y component in the YUV representation. The local MS-SSIM, FSIM, HaarPSI, and PSNR-HVS-M columns are computed on the Y plane to keep structural, edge, and texture comparisons stable.",
+        "Encoder behavior is evaluated through same-QP comparison and equal-bpp interpolation. For scientific interpretation, PSNR-RGB and MS-SSIM-RGB are the primary metrics because the validation reports cross-check those naming and measurement protocols against external VTM anchors: [CompressAI](vtm_validation/compressai/README.md) covers both PSNR-RGB and MS-SSIM-RGB, while [lossy-vae](vtm_validation/lossy-vae/README.md) independently checks PSNR-RGB and BPP.",
+        "",
+        "Luma means the Y component in the YUV representation. The luma metrics and approximations remain useful diagnostic indicators, but they are not the primary externally anchored claims in this repository.",
         "",
         *markdown_table(
             ["Metric", "Source"],
             [
-                ["PSNR-Y/U/V", "Parsed from the VVenC encode log"],
+                ["PSNR-Y/U/V", "Parsed from the codec encode log"],
                 ["SSIM", "`ffmpeg -lavfi ssim`, parsed as the aggregate `All` score"],
                 ["XPSNR-Y", "`ffmpeg -lavfi xpsnr`, Y score"],
                 ["VMAF", "`ffmpeg -lavfi libvmaf` when the local ffmpeg build provides libvmaf"],
-                ["MS-SSIM", "Local luma implementation in `metrics/image_quality.py`"],
-                ["FSIM", "Local luma implementation in `metrics/image_quality.py`"],
-                ["HaarPSI", "Local luma implementation in `metrics/image_quality.py`"],
-                ["PSNR-HVS-M", "Local luma implementation in `metrics/image_quality.py`"],
-                ["PSNR-RGB", "Local YUV\u2192RGB (BT.601) conversion + per-channel MSE in `metrics/image_quality.py`"],
-                ["MS-SSIM-RGB", "Local YUV\u2192RGB (BT.601) conversion + per-channel MS-SSIM in `metrics/image_quality.py`"],
+                ["MS-SSIM luma", "Local Y-plane implementation in `metrics/image_quality.py`"],
+                ["FSIM luma approx", "Local Y-plane approximation in `metrics/image_quality.py`"],
+                ["HaarPSI luma approx", "Local Y-plane approximation in `metrics/image_quality.py`"],
+                ["PSNR-HVS-M luma approx", "Local Y-plane approximation in `metrics/image_quality.py`"],
+                ["PSNR-RGB", "Local YUV-to-RGB (BT.601) conversion + per-channel MSE in `metrics/image_quality.py`"],
+                ["MS-SSIM-RGB", "Local YUV-to-RGB (BT.601) conversion + per-channel MS-SSIM in `metrics/image_quality.py`"],
             ],
         ),
         "",
-        "The local luma metrics are not bit-exact replacements for pinned external implementations. External implementations can differ by RGB/YUV input handling, chroma use, padding, scaling, filters, multi-scale weights, phase congruency details, and Haar-wavelet details. Here they are reproducible in-repository indicators applied identically to baseline and CSF.",
+        "The local luma and approximation metrics are not bit-exact replacements for pinned external implementations. External implementations can differ by RGB/YUV input handling, chroma use, padding, scaling, filters, multi-scale weights, phase congruency details, and Haar-wavelet details. Here they are reproducible in-repository indicators applied identically to baseline and CSF.",
         "",
         "## Codec-Separated Results",
         "",

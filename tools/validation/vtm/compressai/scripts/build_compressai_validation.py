@@ -239,7 +239,7 @@ This validation directly checks:
 - BPP/PSNR-RGB consistency between the local VTM 18.0 Kodak run and the nearest CompressAI VTM 9.1 RD points.
 - The CompressAI metric protocol: RGB PSNR and RGB MS-SSIM averaged over the dataset.
 
-It does not, by itself, fully validate VVenC CSF behavior or local approximations for `FSIM`, `HaarPSI`, `PSNR-HVS-M`, or `VMAF`.
+It does not, by itself, fully validate VVenC CSF behavior or local luma/approximation metrics such as `MS-SSIM luma`, `FSIM luma approx`, `HaarPSI luma approx`, `PSNR-HVS-M luma approx`, or `VMAF`.
 
 ## Scenario 1: VTM Anchor Overlap
 
@@ -299,7 +299,7 @@ The following table compares CompressAI points to the nearest points from the Du
 
 ## Conclusion
 
-The CompressAI anchor supports the correctness of the local research protocol for BPP, PSNR-RGB naming, MS-SSIM-RGB naming, RD-point ordering, and dataset-level averaging. It also provides an external reference for MS-SSIM-RGB reporting, which the Duan validation did not cover.
+The CompressAI anchor supports the correctness of the local research protocol for BPP, PSNR-RGB naming, MS-SSIM-RGB naming, RD-point ordering, and dataset-level averaging. It also provides an external reference for MS-SSIM-RGB reporting, which the Duan validation did not cover. Local luma and approximation metrics remain secondary diagnostics.
 
 Exact same-binary VTM replication would require adding VTM 9.1 to the validation toolchain. Current monotonic checks: BPP `{monotonic["bpp"]}`, PSNR-RGB `{monotonic["psnr_rgb"]}`, MS-SSIM-RGB `{monotonic["msssim_rgb"]}`.
 """,

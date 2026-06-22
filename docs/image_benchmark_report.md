@@ -132,22 +132,24 @@ bpp = bitstream_bytes * 8 / (width * height)
 
 ## Visual Quality Metrics
 
-Encoder behavior is evaluated through same-QP comparison and equal-bpp interpolation. Luma means the Y component in the YUV representation. The local MS-SSIM, FSIM, HaarPSI, and PSNR-HVS-M columns are computed on the Y plane to keep structural, edge, and texture comparisons stable.
+Encoder behavior is evaluated through same-QP comparison and equal-bpp interpolation. For scientific interpretation, PSNR-RGB and MS-SSIM-RGB are the primary metrics because the validation reports cross-check those naming and measurement protocols against external VTM anchors: [CompressAI](vtm_validation/compressai/README.md) covers both PSNR-RGB and MS-SSIM-RGB, while [lossy-vae](vtm_validation/lossy-vae/README.md) independently checks PSNR-RGB and BPP.
+
+Luma means the Y component in the YUV representation. The luma metrics and approximations remain useful diagnostic indicators, but they are not the primary externally anchored claims in this repository.
 
 | Metric | Source |
 | --- | --- |
-| PSNR-Y/U/V | Parsed from the VVenC encode log |
+| PSNR-Y/U/V | Parsed from the codec encode log |
 | SSIM | `ffmpeg -lavfi ssim`, parsed as the aggregate `All` score |
 | XPSNR-Y | `ffmpeg -lavfi xpsnr`, Y score |
 | VMAF | `ffmpeg -lavfi libvmaf` when the local ffmpeg build provides libvmaf |
-| MS-SSIM | Local luma implementation in `metrics/image_quality.py` |
-| FSIM | Local luma implementation in `metrics/image_quality.py` |
-| HaarPSI | Local luma implementation in `metrics/image_quality.py` |
-| PSNR-HVS-M | Local luma implementation in `metrics/image_quality.py` |
-| PSNR-RGB | Local YUV→RGB (BT.601) conversion + per-channel MSE in `metrics/image_quality.py` |
-| MS-SSIM-RGB | Local YUV→RGB (BT.601) conversion + per-channel MS-SSIM in `metrics/image_quality.py` |
+| MS-SSIM luma | Local Y-plane implementation in `metrics/image_quality.py` |
+| FSIM luma approx | Local Y-plane approximation in `metrics/image_quality.py` |
+| HaarPSI luma approx | Local Y-plane approximation in `metrics/image_quality.py` |
+| PSNR-HVS-M luma approx | Local Y-plane approximation in `metrics/image_quality.py` |
+| PSNR-RGB | Local YUV-to-RGB (BT.601) conversion + per-channel MSE in `metrics/image_quality.py` |
+| MS-SSIM-RGB | Local YUV-to-RGB (BT.601) conversion + per-channel MS-SSIM in `metrics/image_quality.py` |
 
-The local luma metrics are not bit-exact replacements for pinned external implementations. External implementations can differ by RGB/YUV input handling, chroma use, padding, scaling, filters, multi-scale weights, phase congruency details, and Haar-wavelet details. Here they are reproducible in-repository indicators applied identically to baseline and CSF.
+The local luma and approximation metrics are not bit-exact replacements for pinned external implementations. External implementations can differ by RGB/YUV input handling, chroma use, padding, scaling, filters, multi-scale weights, phase congruency details, and Haar-wavelet details. Here they are reproducible in-repository indicators applied identically to baseline and CSF.
 
 ## Codec-Separated Results
 
@@ -155,20 +157,43 @@ The local luma metrics are not bit-exact replacements for pinned external implem
 
 Metrics CSV: [`docs/image_benchmark/vvenc/combined_image_metrics.csv`](../docs/image_benchmark/vvenc/combined_image_metrics.csv)
 
+Summary CSVs:
+
+| Artifact | File |
+| --- | --- |
+| Same-QP deltas | [`docs/image_benchmark/vvenc/combined/same_qp_summary.csv`](../docs/image_benchmark/vvenc/combined/same_qp_summary.csv) |
+| Equal-bpp interpolation deltas | [`docs/image_benchmark/vvenc/combined/equal_bpp_metric_summary.csv`](../docs/image_benchmark/vvenc/combined/equal_bpp_metric_summary.csv) |
+| BD-Rate summary | [`docs/image_benchmark/vvenc/combined/bd_rate_summary.csv`](../docs/image_benchmark/vvenc/combined/bd_rate_summary.csv) |
+
 Same-QP summary:
 
 | Metric | Mean | Min | Max |
 | --- | --- | --- | --- |
-| psnr_y_delta | -0.542548 | -1.437300 | 0.498400 |
-| ssim_delta | -0.002447 | -0.011512 | 0.000771 |
-| xpsnr_y_delta | -0.500045 | -1.377400 | 0.286200 |
-| vmaf_delta | -0.039329 | -1.386822 | 1.076791 |
-| msssim_luma_delta | -0.000423 | -0.002515 | 0.000218 |
-| fsim_luma_delta | -0.003970 | -0.015175 | 0.003091 |
-| haarpsi_luma_delta | -0.003477 | -0.018561 | 0.001788 |
-| psnr_hvs_m_luma_delta | -0.501798 | -1.352777 | 0.456938 |
-| psnr_rgb_delta | -0.399617 | -1.269984 | 0.350753 |
-| msssim_rgb_delta | -0.000451 | -0.002451 | 0.000281 |
+| PSNR-Y same-QP delta | -0.542548 | -1.437300 | 0.498400 |
+| SSIM same-QP delta | -0.002447 | -0.011512 | 0.000771 |
+| XPSNR-Y same-QP delta | -0.500045 | -1.377400 | 0.286200 |
+| VMAF same-QP delta | -0.039329 | -1.386822 | 1.076791 |
+| MS-SSIM luma same-QP delta | -0.000423 | -0.002515 | 0.000218 |
+| FSIM luma approx same-QP delta | -0.003970 | -0.015175 | 0.003091 |
+| HaarPSI luma approx same-QP delta | -0.003477 | -0.018561 | 0.001788 |
+| PSNR-HVS-M luma approx same-QP delta | -0.501798 | -1.352777 | 0.456938 |
+| PSNR-RGB same-QP delta | -0.399617 | -1.269984 | 0.350753 |
+| MS-SSIM-RGB same-QP delta | -0.000451 | -0.002451 | 0.000281 |
+
+Equal-bpp summary:
+
+| Metric | Mean | Min | Max |
+| --- | --- | --- | --- |
+| PSNR-Y equal-bpp delta | -0.825877 | -6.534639 | 0.000000 |
+| SSIM equal-bpp delta | -0.002743 | -0.009478 | 0.000000 |
+| XPSNR-Y equal-bpp delta | -0.733665 | -5.767764 | 0.000000 |
+| VMAF equal-bpp delta | -0.071758 | -0.821547 | 0.198170 |
+| MS-SSIM luma equal-bpp delta | -0.000468 | -0.001365 | 0.000000 |
+| FSIM luma approx equal-bpp delta | -0.004360 | -0.012932 | 0.000000 |
+| HaarPSI luma approx equal-bpp delta | -0.003864 | -0.013726 | 0.000000 |
+| PSNR-HVS-M luma approx equal-bpp delta | -0.678115 | -4.082148 | 0.000000 |
+| PSNR-RGB equal-bpp delta | -0.580042 | -3.993145 | 0.000000 |
+| MS-SSIM-RGB equal-bpp delta | -0.000558 | -0.003687 | 0.000000 |
 
 BD-Rate summary:
 
@@ -178,10 +203,10 @@ BD-Rate summary:
 | SSIM | 33 | 20.118 | 3.592 | 321.259 | -0.003456 |
 | XPSNR-Y | 33 | 18.757 | 5.423 | 266.394 | -0.781452 |
 | VMAF | 33 | 12.921 | -4.767 | 313.512 | -0.114842 |
-| MS-SSIM | 33 | 14.540 | 2.019 | 255.544 | -0.000601 |
-| FSIM approx | 33 | 21.089 | 6.181 | 275.315 | -0.005387 |
-| HaarPSI approx | 33 | 23.992 | 7.965 | 284.523 | -0.004731 |
-| PSNR-HVS-M approx | 33 | 18.582 | 5.481 | 254.424 | -0.733127 |
+| MS-SSIM luma | 33 | 14.540 | 2.019 | 255.544 | -0.000601 |
+| FSIM luma approx | 33 | 21.089 | 6.181 | 275.315 | -0.005387 |
+| HaarPSI luma approx | 33 | 23.992 | 7.965 | 284.523 | -0.004731 |
+| PSNR-HVS-M luma approx | 33 | 18.582 | 5.481 | 254.424 | -0.733127 |
 | PSNR-RGB | 33 | 19.347 | 3.968 | 309.561 | -0.621841 |
 | MS-SSIM-RGB | 33 | 13.690 | 0.883 | 249.799 | -0.000712 |
 
@@ -194,7 +219,7 @@ BD-Rate summary:
 | **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_vmaf.svg" width="360"> |
 | **MS-SSIM luma index**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_msssim_luma.svg" width="360"> | **FSIM luma approximation**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_fsim_luma.svg" width="360"> |
 | **HaarPSI luma approximation**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma approximation, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_psnr_hvs_m_luma.svg" width="360"> |
-| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_msssim_rgb.svg" width="360"> |
+| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_psnr_rgb.svg" width="360"> | **MS-SSIM-RGB index**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_msssim_rgb.svg" width="360"> |
 
 </details>
 
@@ -202,20 +227,43 @@ BD-Rate summary:
 
 Metrics CSV: [`docs/image_benchmark/vtm/combined_image_metrics.csv`](../docs/image_benchmark/vtm/combined_image_metrics.csv)
 
+Summary CSVs:
+
+| Artifact | File |
+| --- | --- |
+| Same-QP deltas | [`docs/image_benchmark/vtm/combined/same_qp_summary.csv`](../docs/image_benchmark/vtm/combined/same_qp_summary.csv) |
+| Equal-bpp interpolation deltas | [`docs/image_benchmark/vtm/combined/equal_bpp_metric_summary.csv`](../docs/image_benchmark/vtm/combined/equal_bpp_metric_summary.csv) |
+| BD-Rate summary | [`docs/image_benchmark/vtm/combined/bd_rate_summary.csv`](../docs/image_benchmark/vtm/combined/bd_rate_summary.csv) |
+
 Same-QP summary:
 
 | Metric | Mean | Min | Max |
 | --- | --- | --- | --- |
-| psnr_y_delta | -0.588779 | -2.112600 | 0.000000 |
-| ssim_delta | -0.001250 | -0.009749 | 0.000153 |
-| xpsnr_y_delta | -0.523373 | -1.958000 | 0.000000 |
-| vmaf_delta | -0.275069 | -1.507135 | 1.214826 |
-| msssim_luma_delta | -0.000498 | -0.002891 | 0.000153 |
-| fsim_luma_delta | -0.004600 | -0.028883 | 0.000001 |
-| haarpsi_luma_delta | -0.004183 | -0.026922 | 0.000000 |
-| psnr_hvs_m_luma_delta | -0.532796 | -1.929102 | 0.000000 |
-| psnr_rgb_delta | -0.459547 | -1.878842 | 0.013646 |
-| msssim_rgb_delta | -0.000512 | -0.002934 | 0.000154 |
+| PSNR-Y same-QP delta | -0.588779 | -2.112600 | 0.000000 |
+| SSIM same-QP delta | -0.001250 | -0.009749 | 0.000153 |
+| XPSNR-Y same-QP delta | -0.523373 | -1.958000 | 0.000000 |
+| VMAF same-QP delta | -0.275069 | -1.507135 | 1.214826 |
+| MS-SSIM luma same-QP delta | -0.000498 | -0.002891 | 0.000153 |
+| FSIM luma approx same-QP delta | -0.004600 | -0.028883 | 0.000001 |
+| HaarPSI luma approx same-QP delta | -0.004183 | -0.026922 | 0.000000 |
+| PSNR-HVS-M luma approx same-QP delta | -0.532796 | -1.929102 | 0.000000 |
+| PSNR-RGB same-QP delta | -0.459547 | -1.878842 | 0.013646 |
+| MS-SSIM-RGB same-QP delta | -0.000512 | -0.002934 | 0.000154 |
+
+Equal-bpp summary:
+
+| Metric | Mean | Min | Max |
+| --- | --- | --- | --- |
+| PSNR-Y equal-bpp delta | -0.481620 | -2.356562 | -0.083692 |
+| SSIM equal-bpp delta | -0.000858 | -0.007387 | 0.000049 |
+| XPSNR-Y equal-bpp delta | -0.404339 | -2.324008 | -0.064590 |
+| VMAF equal-bpp delta | -0.148109 | -0.728760 | 0.764426 |
+| MS-SSIM luma equal-bpp delta | -0.000245 | -0.002611 | 0.000141 |
+| FSIM luma approx equal-bpp delta | -0.004015 | -0.021246 | -0.000072 |
+| HaarPSI luma approx equal-bpp delta | -0.003928 | -0.020336 | -0.000007 |
+| PSNR-HVS-M luma approx equal-bpp delta | -0.408818 | -2.301004 | -0.059020 |
+| PSNR-RGB equal-bpp delta | -0.359620 | -2.241035 | -0.071275 |
+| MS-SSIM-RGB equal-bpp delta | -0.000215 | -0.002611 | 0.000137 |
 
 BD-Rate summary:
 
@@ -225,10 +273,10 @@ BD-Rate summary:
 | SSIM | 33 | 4.282 | -0.564 | 34.329 | -0.000788 |
 | XPSNR-Y | 33 | 8.049 | 2.783 | 34.380 | -0.401046 |
 | VMAF | 33 | 2.179 | -9.402 | 27.744 | -0.115815 |
-| MS-SSIM | 33 | 1.707 | -1.179 | 27.149 | -0.000125 |
-| FSIM approx | 33 | 7.436 | 2.879 | 33.536 | -0.003738 |
-| HaarPSI approx | 33 | 10.551 | 3.923 | 37.207 | -0.003802 |
-| PSNR-HVS-M approx | 33 | 8.253 | 2.930 | 33.667 | -0.406051 |
+| MS-SSIM luma | 33 | 1.707 | -1.179 | 27.149 | -0.000125 |
+| FSIM luma approx | 33 | 7.436 | 2.879 | 33.536 | -0.003738 |
+| HaarPSI luma approx | 33 | 10.551 | 3.923 | 37.207 | -0.003802 |
+| PSNR-HVS-M luma approx | 33 | 8.253 | 2.930 | 33.667 | -0.406051 |
 | PSNR-RGB | 33 | 8.046 | 2.350 | 34.428 | -0.348684 |
 | MS-SSIM-RGB | 33 | 1.454 | -1.143 | 27.152 | -0.000088 |
 
@@ -241,7 +289,7 @@ BD-Rate summary:
 | **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_vmaf.svg" width="360"> |
 | **MS-SSIM luma index**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_msssim_luma.svg" width="360"> | **FSIM luma approximation**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_fsim_luma.svg" width="360"> |
 | **HaarPSI luma approximation**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma approximation, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_psnr_hvs_m_luma.svg" width="360"> |
-| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_msssim_rgb.svg" width="360"> |
+| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_psnr_rgb.svg" width="360"> | **MS-SSIM-RGB index**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_msssim_rgb.svg" width="360"> |
 
 </details>
 

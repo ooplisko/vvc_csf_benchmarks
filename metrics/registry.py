@@ -12,12 +12,12 @@ _METRIC_DEFS: list[tuple[str, str, str]] = [
     ("ssim", "SSIM", "SSIM index"),
     ("xpsnr_y", "XPSNR-Y", "XPSNR-Y, dB"),
     ("vmaf", "VMAF", "VMAF score"),
-    ("msssim_luma", "MS-SSIM", "MS-SSIM luma index"),
-    ("fsim_luma", "FSIM approx", "FSIM luma approximation"),
-    ("haarpsi_luma", "HaarPSI approx", "HaarPSI luma approximation"),
-    ("psnr_hvs_m_luma", "PSNR-HVS-M approx", "PSNR-HVS-M luma approximation, dB"),
+    ("msssim_luma", "MS-SSIM luma", "MS-SSIM luma index"),
+    ("fsim_luma", "FSIM luma approx", "FSIM luma approximation"),
+    ("haarpsi_luma", "HaarPSI luma approx", "HaarPSI luma approximation"),
+    ("psnr_hvs_m_luma", "PSNR-HVS-M luma approx", "PSNR-HVS-M luma approximation, dB"),
     ("psnr_rgb", "PSNR-RGB", "PSNR-RGB, dB"),
-    ("msssim_rgb", "MS-SSIM-RGB", "MS-SSIM RGB index"),
+    ("msssim_rgb", "MS-SSIM-RGB", "MS-SSIM-RGB index"),
 ]
 
 METRICS: list[str] = [key for key, _, _ in _METRIC_DEFS]
