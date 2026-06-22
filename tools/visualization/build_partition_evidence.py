@@ -10,13 +10,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from tools.visualization.parse_vvenc_qp_trace import parse_trace, write_csv as write_partition_csv
 from tools.visualization.render_partition_map import render_svg
 from vvenc_csf.core import CommandRunner, ffprobe_size, platform_executable
+from vvenc_csf.encoding import VTM_ENCODER_CONFIG
 
 
-def ensure_yuv(image: Path, yuv: Path, width: int, height: int, runner: CommandRunner) -> None:
+def ensure_yuv(image: Path, yuv: Path, width: int, height: int, runner: CommandRunner, pix_fmt: str) -> None:
     if yuv.exists():
         return
     yuv.parent.mkdir(parents=True, exist_ok=True)
-    runner.run(["ffmpeg", "-y", "-v", "error", "-i", str(image), "-pix_fmt", "yuv420p", "-frames:v", "1", str(yuv)])
+    runner.run(["ffmpeg", "-y", "-v", "error", "-i", str(image), "-pix_fmt", pix_fmt, "-frames:v", "1", str(yuv)])
 
 
 def summarize(rows: list[dict[str, int | str]], image: str, mode: str, width: int, height: int) -> dict[str, object]:
@@ -48,11 +49,11 @@ def build_for_image(
     width, height = ffprobe_size(image, runner)
     name = image.stem
     yuv = args.work_dir / dataset / "yuv" / f"{name}_{width}x{height}_1.yuv"
-    ensure_yuv(image, yuv, width, height, runner)
+    ensure_yuv(image, yuv, width, height, runner, "yuv444p" if args.codec == "vtm" else "yuv420p")
 
     for mode, encoder, extra_args in (
         ("baseline", args.baseline_trace_encoder, []),
-        ("csf", args.csf_trace_encoder, ["--CSFScalingList", "1"]),
+        ("csf", args.csf_trace_encoder, ["--CSFScalingList=1"] if args.codec == "vtm" else ["--CSFScalingList", "1"]),
     ):
         run_dir = args.work_dir / dataset / name / mode
         bitstream = run_dir / f"{name}_{mode}.vvc"
@@ -61,32 +62,60 @@ def build_for_image(
         log = run_dir / f"{name}_{mode}.log"
         run_dir.mkdir(parents=True, exist_ok=True)
 
-        cmd = [
-            str(encoder),
-            "--InputFile",
-            str(yuv),
-            "--SourceWidth",
-            str(width),
-            "--SourceHeight",
-            str(height),
-            "--FrameRate",
-            "1",
-            "--FramesToBeEncoded",
-            "1",
-            "--QP",
-            str(args.qp),
-            "--preset",
-            args.preset,
-            "--BitstreamFile",
-            str(bitstream),
-            "--ReconFile",
-            str(recon),
-            "--tracefile",
-            str(trace),
-            "--tracerule",
-            "D_QP:poc==0",
-            *extra_args,
-        ]
+        if args.codec == "vtm":
+            cmd = [
+                str(encoder),
+                "-c",
+                str(VTM_ENCODER_CONFIG),
+                "-i",
+                str(yuv),
+                "-wdt",
+                str(width),
+                "-hgt",
+                str(height),
+                "-fr",
+                "1",
+                "-f",
+                "1",
+                "-q",
+                str(args.qp),
+                "-b",
+                str(bitstream),
+                "-o",
+                str(recon),
+                "--InputChromaFormat=444",
+                "--InputBitDepth=8",
+                f"--TraceFile={trace}",
+                "--TraceRule=D_QP:poc==0",
+                *extra_args,
+            ]
+        else:
+            cmd = [
+                str(encoder),
+                "--InputFile",
+                str(yuv),
+                "--SourceWidth",
+                str(width),
+                "--SourceHeight",
+                str(height),
+                "--FrameRate",
+                "1",
+                "--FramesToBeEncoded",
+                "1",
+                "--QP",
+                str(args.qp),
+                "--preset",
+                args.preset,
+                "--BitstreamFile",
+                str(bitstream),
+                "--ReconFile",
+                str(recon),
+                "--tracefile",
+                str(trace),
+                "--tracerule",
+                "D_QP:poc==0",
+                *extra_args,
+            ]
         runner.run(cmd, log)
         rows = parse_trace(trace, frame=0, mode=mode)
         csv_path = args.work_dir / dataset / name / mode / f"{name}_{mode}.csv"
@@ -117,6 +146,8 @@ class PartitionEvidenceBuilder:
             ("standard_grayscale", self.args.standard_grayscale_dir),
         ):
             images = sorted(png_dir.glob("*.png"))
+            if self.args.limit:
+                images = images[: self.args.limit]
             if not images:
                 raise RuntimeError(f"No PNG images found in {png_dir}")
             dataset_rows: list[dict[str, object]] = []
@@ -129,17 +160,35 @@ class PartitionEvidenceBuilder:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build VVenC D_QP partition maps for image datasets.")
+    parser = argparse.ArgumentParser(description="Build D_QP partition maps for VVenC or VTM image datasets.")
+    parser.add_argument("--codec", choices=["vvenc", "vtm"], default="vvenc")
     parser.add_argument("--synthetic-dir", type=Path, default=Path("data/datasets/images/synthetic/png"))
     parser.add_argument("--kodak-dir", type=Path, default=Path("data/datasets/images/kodak/png"))
     parser.add_argument("--standard-grayscale-dir", type=Path, default=Path("data/datasets/images/standard_grayscale/png"))
-    parser.add_argument("--output", type=Path, default=Path("docs/partition_maps"))
-    parser.add_argument("--work-dir", type=Path, default=Path("results/partition_maps"))
-    parser.add_argument("--baseline-trace-encoder", type=Path, default=platform_executable(Path("binaries/vvenc_default_trace")))
-    parser.add_argument("--csf-trace-encoder", type=Path, default=platform_executable(Path("binaries/vvenc_csf_trace")))
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--work-dir", type=Path)
+    parser.add_argument("--baseline-trace-encoder", type=Path)
+    parser.add_argument("--csf-trace-encoder", type=Path)
     parser.add_argument("--qp", type=int, default=32)
     parser.add_argument("--preset", default="medium")
+    parser.add_argument("--limit", type=int, help="Optional maximum number of images per dataset, useful for smoke checks.")
     args = parser.parse_args()
+    if args.output is None:
+        args.output = Path("docs/partition_maps") / args.codec
+    if args.work_dir is None:
+        args.work_dir = Path("results/partition_maps") / args.codec
+    if args.baseline_trace_encoder is None:
+        args.baseline_trace_encoder = platform_executable(
+            Path("binaries/vtm/vtm23/baseline_trace/EncoderApp")
+            if args.codec == "vtm"
+            else Path("binaries/vvenc/vvenc_default_trace")
+        )
+    if args.csf_trace_encoder is None:
+        args.csf_trace_encoder = platform_executable(
+            Path("binaries/vtm/vtm23/csf_trace/EncoderApp")
+            if args.codec == "vtm"
+            else Path("binaries/vvenc/vvenc_csf_trace")
+        )
 
     PartitionEvidenceBuilder(args).build()
     print(f"Wrote partition evidence to {args.output}")
