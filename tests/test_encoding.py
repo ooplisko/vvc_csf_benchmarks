@@ -43,6 +43,35 @@ def test_encoder_runner_builds_vvenc_command(tmp_path: Path) -> None:
 
 def test_encoder_runner_builds_vtm_command(tmp_path: Path) -> None:
     runner = RecordingRunner()
+    encoder = Path("EncoderApp_csf.exe")
+    EncoderRunner(runner).encode(
+        EncodeJob(
+            encoder=encoder,
+            yuv=Path("input.yuv"),
+            width=512,
+            height=512,
+            qp=32,
+            preset="medium",
+            bitstream=tmp_path / "out.vvc",
+            recon=tmp_path / "out.yuv",
+            log=tmp_path / "encode.log",
+            extra_args=("--CSFScalingList=1", "--TraceFile", "trace.csv"),
+            codec="vtm",
+        )
+    )
+
+    cmd, log_file = runner.calls[0]
+    assert cmd[:2] == [str(encoder), "-c"]
+    assert "-wdt" in cmd and "512" in cmd
+    assert "-q" in cmd and "32" in cmd
+    assert "--InputChromaFormat=444" in cmd
+    assert "--CSFScalingList=1" in cmd
+    assert "--TraceFile" in cmd and "trace.csv" in cmd
+    assert log_file == tmp_path / "encode.log"
+
+
+def test_encoder_runner_builds_vtm_validation_command(tmp_path: Path) -> None:
+    runner = RecordingRunner()
     encoder = Path("EncoderApp.exe")
     EncoderRunner(runner).encode(
         EncodeJob(
@@ -55,18 +84,14 @@ def test_encoder_runner_builds_vtm_command(tmp_path: Path) -> None:
             bitstream=tmp_path / "out.vvc",
             recon=tmp_path / "out.yuv",
             log=tmp_path / "encode.log",
-            extra_args=("--CSFScalingList", "1", "--TraceFile", "trace.csv"),
+            codec="vtm_validation",
         )
     )
 
-    cmd, log_file = runner.calls[0]
+    cmd, _log_file = runner.calls[0]
     assert cmd[:2] == [str(encoder), "-c"]
-    assert "-wdt" in cmd and "512" in cmd
-    assert "-q" in cmd and "32" in cmd
     assert "--InputChromaFormat=444" in cmd
-    assert "--CSFScalingList" not in cmd
-    assert "--TraceFile" in cmd and "trace.csv" in cmd
-    assert log_file == tmp_path / "encode.log"
+    assert not any(arg.startswith("--CSFScalingList") for arg in cmd)
 
 
 def test_decoder_runner_builds_vvdec_command(tmp_path: Path) -> None:

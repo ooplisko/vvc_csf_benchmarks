@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -34,18 +35,19 @@ class EncodeJob:
     recon: Path
     log: Path
     extra_args: tuple[str, ...] = ()
+    codec: str | None = None
 
 
 # ====================================================================================================================
-# External VVenC/VVdeC commands
+# External codec commands
 # ====================================================================================================================
 
 
-VTM_ENCODER_CONFIG = ROOT / "VVCSoftware_VTM" / "cfg" / "encoder_intra_vtm.cfg"
+VTM_ENCODER_CONFIG = Path(os.environ.get("VTM_ENCODER_CONFIG", ROOT.parent / "VVCSoftware_VTM" / "cfg" / "encoder_intra_vtm.cfg"))
 
 
 class ImageConverter:
-    """Converts benchmark input images to the YUV format expected by VVenC."""
+    """Converts benchmark input images to the YUV format expected by the selected codec."""
 
     def __init__(self, runner: CommandRunner | None = None) -> None:
         self.runner = runner or CommandRunner()
@@ -77,7 +79,7 @@ class ImageConverter:
 
 
 class EncoderRunner:
-    """Builds and executes one VVenC encode command.
+    """Builds and executes one encoder command for VVenC or VTM.
 
     Parameters
     ----------
@@ -95,9 +97,15 @@ class EncoderRunner:
 
     def encode(self, job: EncodeJob) -> str:
         job.bitstream.parent.mkdir(parents=True, exist_ok=True)
-        if "EncoderApp" in job.encoder.name:
+        if self._codec(job) in {"vtm", "vtm_validation"}:
             return self._encode_vtm(job)
         return self._encode_vvenc(job)
+
+    @staticmethod
+    def _codec(job: EncodeJob) -> str:
+        if job.codec:
+            return job.codec.lower()
+        return "vtm" if "EncoderApp" in job.encoder.name else "vvenc"
 
     def _encode_vvenc(self, job: EncodeJob) -> str:
         cmd = [
@@ -147,13 +155,13 @@ class EncoderRunner:
             str(job.recon),
             "--InputChromaFormat=444",
             "--InputBitDepth=8",
-            *_vtm_extra_args(job.extra_args),
+            *job.extra_args,
         ]
         return self.runner.run(cmd, job.log).stdout
 
 
 class DecoderRunner:
-    """Runs VVdeC for reconstruction-vs-decoder consistency checks.
+    """Runs a decoder for reconstruction-vs-decoder consistency checks.
 
     Parameters
     ----------
@@ -175,17 +183,3 @@ class DecoderRunner:
     def decode(self, bitstream: Path, output: Path, log: Path) -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
         self.runner.run([str(self.decoder), "-b", str(bitstream), "-o", str(output)], log)
-
-
-def _vtm_extra_args(extra_args: tuple[str, ...]) -> list[str]:
-    filtered_extra_args = []
-    skip_next = False
-    for arg in extra_args:
-        if skip_next:
-            skip_next = False
-            continue
-        if arg == "--CSFScalingList":
-            skip_next = True
-            continue
-        filtered_extra_args.append(arg)
-    return filtered_extra_args

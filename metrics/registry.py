@@ -35,7 +35,7 @@ METRIC_COLUMNS: list[tuple[str, str]] = [
 """Per-image summary column keys paired with short labels."""
 
 CHARTS: list[tuple[str, str]] = [
-    (chart, f"docs/image_benchmark/combined/charts/rd_{key}.svg")
+    (chart, f"rd_{key}.svg")
     for key, _, chart in _METRIC_DEFS
 ]
-"""Chart display labels paired with SVG file paths relative to project root."""
+"""Chart display labels paired with generated SVG filenames."""

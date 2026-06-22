@@ -9,6 +9,7 @@ from pathlib import Path
 
 from vvenc_csf.config import load_benchmark_config
 from vvenc_csf.core import CommandRunner, ffprobe_size, files_equal, platform_executable, repo_path, resolve_project_path
+from vvenc_csf.encoding import VTM_ENCODER_CONFIG
 
 
 logger = logging.getLogger(__name__)
@@ -19,11 +20,19 @@ SYNTHETIC_DIR = Path("data/datasets/images/synthetic/png")
 KODAK_DIR = Path("data/datasets/images/kodak/png")
 QPS = "22,27,32,37"
 RUNNER = CommandRunner(ROOT)
-DEFAULT_BASELINE_ENCODER = platform_executable(Path("binaries/vvenc_default"))
-DEFAULT_CSF_ENCODER = platform_executable(Path("binaries/vvenc_csf"))
-DEFAULT_DECODER = platform_executable(Path("binaries/vvdecapp"))
-DEFAULT_BASELINE_TRACE_ENCODER = platform_executable(Path("binaries/vvenc_default_trace"))
-DEFAULT_CSF_TRACE_ENCODER = platform_executable(Path("binaries/vvenc_csf_trace"))
+DEFAULT_BASELINE_ENCODER = platform_executable(Path("binaries/vvenc/vvenc_default"))
+DEFAULT_CSF_ENCODER = platform_executable(Path("binaries/vvenc/vvenc_csf"))
+DEFAULT_DECODER = platform_executable(Path("binaries/vvenc/vvdecapp"))
+DEFAULT_BASELINE_TRACE_ENCODER = platform_executable(Path("binaries/vvenc/vvenc_default_trace"))
+DEFAULT_CSF_TRACE_ENCODER = platform_executable(Path("binaries/vvenc/vvenc_csf_trace"))
+DEFAULT_VTM_BASELINE_ENCODER = platform_executable(Path("binaries/vtm/vtm23/baseline/EncoderApp"))
+DEFAULT_VTM_CSF_ENCODER = platform_executable(Path("binaries/vtm/vtm23/csf/EncoderApp"))
+DEFAULT_VTM_BASELINE_DECODER = platform_executable(Path("binaries/vtm/vtm23/baseline/DecoderApp"))
+DEFAULT_VTM_BASELINE_TRACE_ENCODER = platform_executable(Path("binaries/vtm/vtm23/baseline_trace/EncoderApp"))
+DEFAULT_VTM_CSF_TRACE_ENCODER = platform_executable(Path("binaries/vtm/vtm23/csf_trace/EncoderApp"))
+DEFAULT_RUN_ROOT = Path("results/run_all")
+DOCS_IMAGE_ROOT = Path("docs/image_benchmark")
+DOCS_PARTITION_ROOT = Path("docs/partition_maps")
 
 
 def rel(path: Path) -> str:
@@ -39,11 +48,11 @@ def run(cmd: list[str], label: str, log_file: Path) -> None:
     logger.info("PASS %s (log: %s)", label, rel(log_file))
 
 
-def ensure_yuv(image: Path, output: Path, width: int, height: int, log_file: Path) -> None:
+def ensure_yuv(image: Path, output: Path, width: int, height: int, log_file: Path, pix_fmt: str = "yuv420p") -> None:
     if output.exists():
         return
     output.parent.mkdir(parents=True, exist_ok=True)
-    run(["ffmpeg", "-y", "-v", "error", "-i", str(image), "-pix_fmt", "yuv420p", "-frames:v", "1", str(output)], "convert smoke image to YUV", log_file)
+    run(["ffmpeg", "-y", "-v", "error", "-i", str(image), "-pix_fmt", pix_fmt, "-frames:v", "1", str(output)], "convert smoke image to YUV", log_file)
 
 
 def encode(
@@ -59,28 +68,54 @@ def encode(
     log_file: Path,
 ) -> None:
     bitstream.parent.mkdir(parents=True, exist_ok=True)
-    cmd = [
-        str(encoder),
-        "--InputFile",
-        str(yuv),
-        "--SourceWidth",
-        str(width),
-        "--SourceHeight",
-        str(height),
-        "--FrameRate",
-        "1",
-        "--FramesToBeEncoded",
-        "1",
-        "--QP",
-        str(qp),
-        "--preset",
-        "medium",
-        "--BitstreamFile",
-        str(bitstream),
-        "--ReconFile",
-        str(recon),
-        *extra_args,
-    ]
+    if "EncoderApp" in encoder.name:
+        cmd = [
+            str(encoder),
+            "-c",
+            str(VTM_ENCODER_CONFIG),
+            "-i",
+            str(yuv),
+            "-wdt",
+            str(width),
+            "-hgt",
+            str(height),
+            "-fr",
+            "1",
+            "-f",
+            "1",
+            "-q",
+            str(qp),
+            "-b",
+            str(bitstream),
+            "-o",
+            str(recon),
+            "--InputChromaFormat=444",
+            "--InputBitDepth=8",
+            *extra_args,
+        ]
+    else:
+        cmd = [
+            str(encoder),
+            "--InputFile",
+            str(yuv),
+            "--SourceWidth",
+            str(width),
+            "--SourceHeight",
+            str(height),
+            "--FrameRate",
+            "1",
+            "--FramesToBeEncoded",
+            "1",
+            "--QP",
+            str(qp),
+            "--preset",
+            "medium",
+            "--BitstreamFile",
+            str(bitstream),
+            "--ReconFile",
+            str(recon),
+            *extra_args,
+        ]
     run(cmd, label, log_file)
 
 
@@ -104,11 +139,11 @@ def smoke_check(args: argparse.Namespace) -> None:
     root = args.root / "smoke"
     logs = args.root / "logs"
     yuv = root / "yuv" / f"{image.stem}_{width}x{height}_1.yuv"
-    ensure_yuv(image, yuv, width, height, logs / "smoke_convert_yuv.log")
+    ensure_yuv(image, yuv, width, height, logs / "smoke_convert_yuv.log", "yuv444p" if args.codec == "vtm" else "yuv420p")
 
     for mode, encoder, extra_args in (
         ("baseline", args.baseline_encoder, []),
-        ("csf", args.csf_encoder, ["--CSFScalingList", "1"]),
+        ("csf", args.csf_encoder, ["--CSFScalingList=1"] if args.codec == "vtm" else ["--CSFScalingList", "1"]),
     ):
         bitstream = root / mode / f"{image.stem}_{mode}.vvc"
         recon = root / mode / f"{image.stem}_{mode}_rec.yuv"
@@ -120,6 +155,10 @@ def smoke_check(args: argparse.Namespace) -> None:
 
 
 def neutral_check(args: argparse.Namespace) -> None:
+    if args.codec != "vvenc":
+        logger.info("\n== Neutral 16 checks ==")
+        logger.info("SKIP neutral 16 checks for codec=%s; this check is VVenC-specific.", args.codec)
+        return
     logger.info("\n== Neutral 16 checks ==")
     logs = args.root / "logs"
     run(
@@ -171,7 +210,11 @@ def benchmark(args: argparse.Namespace, name: str, png_dir: Path, extra: list[st
         str(args.csf_encoder),
         "--decoder",
         str(args.decoder),
+        "--codec",
+        args.codec,
     ]
+    if args.codec == "vtm":
+        cmd.extend(["--conversion", "ffmpeg_444"])
     if extra:
         cmd.extend(extra)
     run(cmd, f"{name} image benchmark", args.root / "logs" / f"benchmark_{name}.log")
@@ -184,7 +227,7 @@ def write_image_report(name: str, metrics_csv: Path, args: argparse.Namespace) -
         "tools/reporting/report_image_benchmark.py",
         str(metrics_csv),
         "--output",
-        f"docs/image_benchmark/{name}",
+        str(args.docs_image_root / name),
     ]
     if args.write_xlsx:
         cmd.append("--xlsx")
@@ -196,18 +239,19 @@ def write_image_report(name: str, metrics_csv: Path, args: argparse.Namespace) -
 
 
 def regenerate_reports(metric_csvs: list[Path], args: argparse.Namespace) -> None:
+    combined_csv = args.docs_image_root / "combined_image_metrics.csv"
     run(
         [
             sys.executable,
             "tools/reporting/merge_image_metrics.py",
             *[str(path) for path in metric_csvs],
             "--output",
-            "docs/image_benchmark/combined_image_metrics.csv",
+            str(combined_csv),
         ],
         "merge image metrics",
         args.root / "logs" / "merge_image_metrics.log",
     )
-    cmd = [sys.executable, "tools/reporting/report_image_benchmark.py", "docs/image_benchmark/combined_image_metrics.csv", "--output", "docs/image_benchmark/combined"]
+    cmd = [sys.executable, "tools/reporting/report_image_benchmark.py", str(combined_csv), "--output", str(args.docs_image_root / "combined")]
     if args.write_xlsx:
         cmd.append("--xlsx")
     run(cmd, "combined CSV summaries and RD charts", args.root / "logs" / "report_combined.log")
@@ -219,6 +263,8 @@ def generate_partition_maps(args: argparse.Namespace) -> None:
         [
             sys.executable,
             "tools/visualization/build_partition_evidence.py",
+            "--codec",
+            args.codec,
             "--qp",
             str(args.partition_qp),
             "--standard-grayscale-dir",
@@ -231,6 +277,10 @@ def generate_partition_maps(args: argparse.Namespace) -> None:
             str(args.baseline_trace_encoder),
             "--csf-trace-encoder",
             str(args.csf_trace_encoder),
+            "--output",
+            str(args.docs_partition_root),
+            "--work-dir",
+            str(args.root / "partition_maps"),
         ],
         "partition-map evidence",
         args.root / "logs" / "partition_maps.log",
@@ -248,10 +298,11 @@ def print_summary(csv_path: Path) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the image-only VVenC CSF checks and report generators.")
+    parser = argparse.ArgumentParser(description="Run image-only VVenC/VTM CSF checks and report generators.")
     parser.add_argument("suite", nargs="?", default="quick", choices=["quick", "full"], help="quick runs console sanity checks. full runs all image benchmarks and regenerates docs.")
+    parser.add_argument("--codec", choices=["vvenc", "vtm"], default="vvenc", help="Codec binary set and command dialect to use.")
     parser.add_argument("--config", type=Path, default=Path("configs/image_benchmark.ini"))
-    parser.add_argument("--root", type=Path, default=Path("results/run_all"))
+    parser.add_argument("--root", type=Path, default=DEFAULT_RUN_ROOT)
     parser.add_argument("--qps", default=QPS)
     parser.add_argument("--smoke-dir", type=Path, default=STANDARD_DIR)
     parser.add_argument("--synthetic-dir", type=Path, default=SYNTHETIC_DIR)
@@ -289,7 +340,8 @@ class RunAllPipeline:
         self.args.config = resolve_project_path(self.args.config)
         if self.args.config.exists():
             config = load_benchmark_config(self.args.config)
-            self.args.root = config.run_root if self.args.root == Path("results/run_all") else self.args.root
+            self.args.codec = config.codec if self.args.codec == "vvenc" else self.args.codec
+            self.args.root = config.run_root if self.args.root == DEFAULT_RUN_ROOT else self.args.root
             self.args.smoke_dir = config.standard_grayscale_dir if self.args.smoke_dir == STANDARD_DIR else self.args.smoke_dir
             self.args.synthetic_dir = config.synthetic_dir if self.args.synthetic_dir == SYNTHETIC_DIR else self.args.synthetic_dir
             self.args.kodak_dir = config.kodak_dir if self.args.kodak_dir == KODAK_DIR else self.args.kodak_dir
@@ -304,8 +356,32 @@ class RunAllPipeline:
             self.args.partition_qp = config.partition_qp if self.args.partition_qp == 32 else self.args.partition_qp
             self.args.write_xlsx = config.write_xlsx if self.args.write_xlsx is None else self.args.write_xlsx
 
+            if self.args.codec == "vtm":
+                self.args.baseline_encoder = config.vtm_baseline_encoder if self.args.baseline_encoder == DEFAULT_BASELINE_ENCODER else self.args.baseline_encoder
+                self.args.csf_encoder = config.vtm_csf_encoder if self.args.csf_encoder == DEFAULT_CSF_ENCODER else self.args.csf_encoder
+                self.args.decoder = config.vtm_baseline_decoder if self.args.decoder == DEFAULT_DECODER else self.args.decoder
+                self.args.baseline_trace_encoder = config.vtm_baseline_trace_encoder if self.args.baseline_trace_encoder == DEFAULT_BASELINE_TRACE_ENCODER else self.args.baseline_trace_encoder
+                self.args.csf_trace_encoder = config.vtm_csf_trace_encoder if self.args.csf_trace_encoder == DEFAULT_CSF_TRACE_ENCODER else self.args.csf_trace_encoder
+
+        if self.args.root == DEFAULT_RUN_ROOT or self.args.root == Path("results/run_all"):
+            self.args.root = self.args.root / self.args.codec
+        self.args.docs_image_root = DOCS_IMAGE_ROOT / self.args.codec
+        self.args.docs_partition_root = DOCS_PARTITION_ROOT / self.args.codec
+
         if self.args.write_xlsx is None:
             self.args.write_xlsx = False
+
+        if self.args.codec == "vtm":
+            if self.args.baseline_encoder == DEFAULT_BASELINE_ENCODER:
+                self.args.baseline_encoder = DEFAULT_VTM_BASELINE_ENCODER
+            if self.args.csf_encoder == DEFAULT_CSF_ENCODER:
+                self.args.csf_encoder = DEFAULT_VTM_CSF_ENCODER
+            if self.args.decoder == DEFAULT_DECODER:
+                self.args.decoder = DEFAULT_VTM_BASELINE_DECODER
+            if self.args.baseline_trace_encoder == DEFAULT_BASELINE_TRACE_ENCODER:
+                self.args.baseline_trace_encoder = DEFAULT_VTM_BASELINE_TRACE_ENCODER
+            if self.args.csf_trace_encoder == DEFAULT_CSF_TRACE_ENCODER:
+                self.args.csf_trace_encoder = DEFAULT_VTM_CSF_TRACE_ENCODER
 
         for name in (
             "root",
@@ -318,6 +394,8 @@ class RunAllPipeline:
             "decoder",
             "baseline_trace_encoder",
             "csf_trace_encoder",
+            "docs_image_root",
+            "docs_partition_root",
         ):
             setattr(self.args, name, resolve_project_path(getattr(self.args, name)))
 
@@ -337,7 +415,7 @@ class RunAllPipeline:
             write_image_report(name, metrics_csv, args)
         regenerate_reports([metrics_csv for _name, metrics_csv in named_metric_csvs], args)
         generate_partition_maps(args)
-        print_summary(Path("docs/image_benchmark/combined/same_qp_summary.csv"))
+        print_summary(args.docs_image_root / "combined" / "same_qp_summary.csv")
 
 
 def main() -> int:

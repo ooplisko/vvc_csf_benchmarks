@@ -33,6 +33,7 @@ class ImageBenchmarkConfig:
     csf_encoder: Path
     decoder: Path
     qps: list[int]
+    codec: str = "vvenc"
     preset: str = "medium"
     conversion: str = "ffmpeg_420"
 
@@ -152,7 +153,7 @@ class ImageBenchmarkRunner:
     metrics : VisualMetricCalculator, optional
         Calculator for image quality metrics.
     parser : EncoderLogParser, optional
-        Parser for extracting VVenC log metrics.
+        Parser for extracting encoder log metrics.
 
     Examples
     --------
@@ -231,7 +232,7 @@ class ImageBenchmarkRunner:
             bitstream = out_dir / f"{name}_QP{qp}_{mode}.vvc"
             recon = out_dir / f"{name}_QP{qp}_{mode}_rec.yuv"
             decoded = out_dir / f"{name}_QP{qp}_{mode}_dec.yuv"
-            extra_args = ("--CSFScalingList", "1") if csf_enabled else ()
+            extra_args = self._csf_args(csf_enabled)
             text = self.encoder.encode(
                 EncodeJob(
                     encoder=encoder_path,
@@ -244,6 +245,7 @@ class ImageBenchmarkRunner:
                     recon=recon,
                     log=out_dir / f"{name}_QP{qp}_{mode}_enc.log",
                     extra_args=extra_args,
+                    codec=self.config.codec,
                 )
             )
             self.decoder.decode(bitstream, decoded, out_dir / f"{name}_QP{qp}_{mode}_dec.log")
@@ -269,3 +271,10 @@ class ImageBenchmarkRunner:
                 }
             )
         return rows
+
+    def _csf_args(self, csf_enabled: bool) -> tuple[str, ...]:
+        if self.config.codec == "vtm_validation":
+            return ()
+        if self.config.codec == "vtm":
+            return ("--CSFScalingList=1",) if csf_enabled else ()
+        return ("--CSFScalingList", "1") if csf_enabled else ()
