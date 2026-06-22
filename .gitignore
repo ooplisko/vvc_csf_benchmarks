@@ -5,6 +5,7 @@ __pycache__/
 .idea/
 
 results/
+dist/
 metrics.csv
 
 sequences/
