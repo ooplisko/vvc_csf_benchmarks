@@ -1,33 +1,37 @@
 # Image Benchmark Report
 
-This report expands the root README with the exact binaries, commands, CSV outputs, charts, and partition-map evidence used in the image benchmark. Standard grayscale images are listed first because they are the primary control set for this stage of the experiment.
+This report expands the root README with the exact binaries, commands, CSV outputs, charts, and partition-map evidence used in the image benchmark. Results are organized by codec: VVenC and VTM 23.0 use the same image sets and QP points, but their reports are stored under separate directories.
 
 ## Binaries
 
 | File | Purpose |
 | --- | --- |
-| `binaries/vvenc_default[.exe]` | Clean upstream/default VVenC encoder without CSF. Local build from [fraunhoferhhi/vvenc](https://github.com/fraunhoferhhi/vvenc) |
-| `binaries/vvenc_csf[.exe]` | Modified VVenC encoder. CSF is enabled with `--CSFScalingList 1`. Local build from the [CSF VVenC branch](https://github.com/For2natop1ua/vvenc/tree/feature-branch) |
-| `binaries/vvenc_default_trace[.exe]` | Default encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only. Local build from [fraunhoferhhi/vvenc](https://github.com/fraunhoferhhi/vvenc) |
-| `binaries/vvenc_csf_trace[.exe]` | CSF encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only. Local build from the [CSF VVenC branch](https://github.com/For2natop1ua/vvenc/tree/feature-branch) |
-| `binaries/vvdecapp[.exe]` | VVdeC decoder used to verify bitstream decoding. Local build from [Fraunhofer HHI VVdeC](https://github.com/fraunhoferhhi/vvdec) |
+| `binaries/vvenc/vvenc_default[.exe]` | Clean upstream/default VVenC encoder without CSF. Local build from [fraunhoferhhi/vvenc](https://github.com/fraunhoferhhi/vvenc) |
+| `binaries/vvenc/vvenc_csf[.exe]` | Modified VVenC encoder. CSF is enabled with `--CSFScalingList 1`. Local build from the [CSF VVenC branch](https://github.com/For2natop1ua/vvenc/tree/feature-branch) |
+| `binaries/vvenc/vvenc_default_trace[.exe]` | Default encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only. Local build from [fraunhoferhhi/vvenc](https://github.com/fraunhoferhhi/vvenc) |
+| `binaries/vvenc/vvenc_csf_trace[.exe]` | CSF encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only. Local build from the [CSF VVenC branch](https://github.com/For2natop1ua/vvenc/tree/feature-branch) |
+| `binaries/vvenc/vvdecapp[.exe]` | VVdeC decoder used to verify VVenC bitstreams. Local build from [Fraunhofer HHI VVdeC](https://github.com/fraunhoferhhi/vvdec) |
+| `binaries/vtm/vtm18/baseline/EncoderApp[.exe]` | Clean VTM 18.0 encoder used only by the historical Kodak validation against Duan et al. anchors. |
+| `binaries/vtm/vtm18/baseline/DecoderApp[.exe]` | Clean VTM 18.0 decoder used only by the historical Kodak validation. |
+| `binaries/vtm/vtm23/baseline/EncoderApp[.exe]` | Clean VTM 23.0 encoder built from `VVCSoftware_VTM` tag `VTM-23.0`. |
+| `binaries/vtm/vtm23/baseline/DecoderApp[.exe]` | Clean VTM 23.0 decoder used for normative cross-checks, including CSF bitstreams. |
+| `binaries/vtm/vtm23/csf/EncoderApp[.exe]` | Modified VTM 23.0 encoder with `--CSFScalingList=1` support. |
+| `binaries/vtm/vtm23/baseline_trace/EncoderApp[.exe]` | Clean VTM 23.0 encoder built with `ENABLE_TRACING=ON` for partition maps only. |
+| `binaries/vtm/vtm23/csf_trace/EncoderApp[.exe]` | Modified VTM 23.0 encoder built with `ENABLE_TRACING=ON` for partition maps only. |
 
-The repository currently stores Windows `.exe` binaries. On Linux/macOS, place suffixless binaries with the same stems in `binaries/`. The scripts select the platform-specific executable names automatically. More detail is available in [`binaries/README.md`](../binaries/README.md).
+A separate CSF decoder is not required for the VTM 23.0 experiment. The modified encoder writes the scaling-list data into the bitstream; the clean decoder is the stricter compatibility check.
+
+VVenC encoder binaries are built through `tools/building/build_vvenc.py`. VTM binary sets are built through `tools/building/build_vtm.py`: `vtm18-validation` for historical anchor checks, `vtm23-baseline` and `vtm23-csf` for RD experiments, plus `vtm23-baseline-trace` and `vtm23-csf-trace` for partition maps.
+
+Windows `.exe` binaries are distributed through GitHub Releases as `binaries.zip`; the archive contains the complete top-level `binaries/` folder. On Linux/macOS, place suffixless binaries with the same stems under `binaries/vvenc/` or `binaries/vtm/`. The scripts select the platform-specific executable names automatically. More detail is available in [`binaries/README.md`](../binaries/README.md).
 
 <details>
-<summary>Default encoder rebuild commands</summary>
+<summary>Encoder rebuild commands</summary>
 
 ```powershell
-git clone https://github.com/fraunhoferhhi/vvenc ..\vvenc_upstream
-cd ..\vvenc_upstream
-git checkout 6f76748
-cmake -S . -B build\release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DVVENC_ENABLE_LINK_TIME_OPT=OFF
-cmake --build build\release --target vvencFFapp --parallel 8
-Copy-Item bin\release-static\vvencFFapp.exe ..\vvenc_csf_tests\binaries\vvenc_default.exe
-
-cmake -S . -B build\trace -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DVVENC_ENABLE_TRACING=ON -DVVENC_ENABLE_LINK_TIME_OPT=OFF
-cmake --build build\trace --target vvencFFapp --parallel 8
-Copy-Item bin\release-static\vvencFFapp.exe ..\vvenc_csf_tests\binaries\vvenc_default_trace.exe
+python tools\building\build_vvenc.py all
+python tools\building\build_vtm.py all
+python tools\building\package_binaries.py
 ```
 
 </details>
@@ -84,7 +88,7 @@ cs.useSubStructure( *bestCS, partitioner->chType, TREE_D,
   CS::getArea( *bestCS, area, partitioner->chType, partitioner->treeType ) );
 ```
 
-The maps in this repository come from the VVenC `D_QP` trace, not from a synthetic approximation. The trace records final luma CUs in `CABACWriter.cpp`:
+The maps in this repository come from codec `D_QP` traces, not from a synthetic approximation. Both VVenC and VTM trace final luma CUs in `CABACWriter.cpp`:
 
 ```cpp
 DTRACE_COND( ( isEncoding() ), g_trace_ctx, D_QP,
@@ -92,14 +96,15 @@ DTRACE_COND( ( isEncoding() ), g_trace_ctx, D_QP,
   cu.Y().x, cu.Y().y, cu.Y().width, cu.Y().height, cu.qp );
 ```
 
-Baseline maps are generated with `vvenc_default_trace`; CSF maps are generated with `vvenc_csf_trace` (`.exe` suffix on Windows). Both binaries write final luma CU coordinates through the same `D_QP` trace, so a denser CSF map means the encoder selected more small CUs under the CSF configuration.
+VVenC maps are generated with `vvenc_default_trace` and `vvenc_csf_trace`; VTM maps are generated with `vtm23/baseline_trace/EncoderApp` and `vtm23/csf_trace/EncoderApp` (`.exe` suffix on Windows). A denser CSF map means the selected encoder emitted more final luma CUs under the CSF configuration.
 
 ## Reproducing the Run
 
 ```powershell
 py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe run_all.py full --clean
+.\.venv\Scripts\python.exe run_all.py full --codec vvenc --clean
+.\.venv\Scripts\python.exe run_all.py full --codec vtm --clean
 ```
 
 ## Experiment Conditions
@@ -109,12 +114,13 @@ py -3 -m venv .venv
 | Primary dataset | 5 standard grayscale images |
 | Additional datasets | 4 synthetic + 24 Kodak images |
 | Frames | 1 frame per image |
-| Encode pixel format | `yuv420p`, 8-bit |
+| VVenC encode pixel format | `yuv420p`, 8-bit |
+| VTM encode pixel format | `yuv444p`, 8-bit |
 | QP points | 22, 27, 32, 37 |
 | Preset | `medium` |
-| Baseline mode | `vvenc_default`, without `--CSFScalingList` (`.exe` suffix on Windows) |
-| CSF mode | `vvenc_csf --CSFScalingList 1` (`.exe` suffix on Windows) |
-| Decoder | `vvdecapp` (`.exe` suffix on Windows) |
+| VVenC baseline/CSF | `vvenc_default` vs. `vvenc_csf --CSFScalingList 1` |
+| VTM baseline/CSF | `vtm23/baseline/EncoderApp` vs. `vtm23/csf/EncoderApp --CSFScalingList=1` |
+| Decoder checks | VVenC uses `vvdecapp`; VTM uses clean `vtm23/baseline/DecoderApp` |
 
 The compression control parameter is `QP`. All other conditions are fixed. Compression ratio is computed per `image + QP + mode` point:
 
@@ -143,9 +149,13 @@ Encoder behavior is evaluated through same-QP comparison and equal-bpp interpola
 
 The local luma metrics are not bit-exact replacements for pinned external implementations. External implementations can differ by RGB/YUV input handling, chroma use, padding, scaling, filters, multi-scale weights, phase congruency details, and Haar-wavelet details. Here they are reproducible in-repository indicators applied identically to baseline and CSF.
 
-## Same-QP Summary
+## Codec-Separated Results
 
-CSV: [`docs/image_benchmark/combined/same_qp_summary.csv`](image_benchmark/combined/same_qp_summary.csv)
+### VVenC Baseline vs. CSF
+
+Metrics CSV: [`docs/image_benchmark/vvenc/combined_image_metrics.csv`](../docs/image_benchmark/vvenc/combined_image_metrics.csv)
+
+Same-QP summary:
 
 | Metric | Mean | Min | Max |
 | --- | --- | --- | --- |
@@ -160,26 +170,7 @@ CSV: [`docs/image_benchmark/combined/same_qp_summary.csv`](image_benchmark/combi
 | psnr_rgb_delta | -0.399617 | -1.269984 | 0.350753 |
 | msssim_rgb_delta | -0.000451 | -0.002451 | 0.000281 |
 
-## Equal-bpp Summary
-
-CSV: [`docs/image_benchmark/combined/equal_bpp_metric_summary.csv`](image_benchmark/combined/equal_bpp_metric_summary.csv)
-
-| Metric | Mean | Min | Max |
-| --- | --- | --- | --- |
-| psnr_y_equal_bpp_delta | -0.825877 | -6.534639 | 0.000000 |
-| ssim_equal_bpp_delta | -0.002743 | -0.009478 | 0.000000 |
-| xpsnr_y_equal_bpp_delta | -0.733665 | -5.767764 | 0.000000 |
-| vmaf_equal_bpp_delta | -0.071758 | -0.821547 | 0.198170 |
-| msssim_luma_equal_bpp_delta | -0.000468 | -0.001365 | 0.000000 |
-| fsim_luma_equal_bpp_delta | -0.004360 | -0.012932 | 0.000000 |
-| haarpsi_luma_equal_bpp_delta | -0.003864 | -0.013726 | 0.000000 |
-| psnr_hvs_m_luma_equal_bpp_delta | -0.678115 | -4.082148 | 0.000000 |
-| psnr_rgb_equal_bpp_delta | -0.580042 | -3.993145 | 0.000000 |
-| msssim_rgb_equal_bpp_delta | -0.000558 | -0.003687 | 0.000000 |
-
-## BD-Rate Summary
-
-CSV: [`docs/image_benchmark/combined/bd_rate_summary.csv`](image_benchmark/combined/bd_rate_summary.csv). Per-image values are stored in [`docs/image_benchmark/combined/bd_rate_by_image.csv`](image_benchmark/combined/bd_rate_by_image.csv). Negative BD-Rate means the CSF encoder needs fewer bits than baseline for the same quality metric; positive BD-Rate means it needs more bits.
+BD-Rate summary:
 
 | Metric | Valid images | BD-Rate mean, % | BD-Rate min, % | BD-Rate max, % | BD quality mean |
 | --- | --- | --- | --- | --- | --- |
@@ -195,175 +186,74 @@ CSV: [`docs/image_benchmark/combined/bd_rate_summary.csv`](image_benchmark/combi
 | MS-SSIM-RGB | 33 | 13.690 | 0.883 | 249.799 | -0.000712 |
 
 <details>
-<summary>Show BD-Rate per image</summary>
-
-| Dataset | Image | PSNR-Y, % | SSIM, % | XPSNR-Y, % | VMAF, % | MS-SSIM, % | FSIM approx, % | HaarPSI approx, % | PSNR-HVS-M approx, % | PSNR-RGB, % | MS-SSIM-RGB, % |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Standard grayscale | baboon | 10.014 | 9.433 | 10.058 | 0.115 | 3.696 | 11.463 | 15.081 | 9.729 | 9.991 | 3.696 |
-| Standard grayscale | barbara | 13.160 | 9.491 | 12.171 | 0.297 | 3.760 | 13.564 | 18.828 | 12.382 | 13.043 | 3.760 |
-| Standard grayscale | goldhill | 9.410 | 8.727 | 9.062 | 4.543 | 4.973 | 10.478 | 12.532 | 9.271 | 9.519 | 4.974 |
-| Standard grayscale | lenna | 10.490 | 9.901 | 10.206 | 7.566 | 6.708 | 12.213 | 13.861 | 10.271 | 10.635 | 6.708 |
-| Standard grayscale | peppers | 15.102 | 18.025 | 14.832 | 3.760 | 6.075 | 11.730 | 20.528 | 15.379 | 14.786 | 6.075 |
-| Synthetic | fine_texture_512x512 | 28.814 | 52.701 | 29.016 | 1.697 | 33.343 | 49.964 | 55.274 | 28.541 | 29.567 | 33.347 |
-| Synthetic | mixed_content_512x512 | 32.919 | 34.768 | 34.015 | 34.928 | 35.187 | 37.607 | 39.866 | 35.097 | 39.485 | 36.925 |
-| Synthetic | sharp_edges_512x512 | 31.362 | 33.872 | 31.966 | 34.428 | 35.558 | 33.683 | 33.530 | 33.010 | 31.666 | 34.656 |
-| Synthetic | smooth_gradient_512x512 | 254.387 | 321.259 | 266.394 | 313.512 | 255.544 | 275.315 | 284.523 | 254.424 | 309.561 | 249.799 |
-| Kodak | kodim01 | 9.251 | 8.590 | 8.893 | -1.231 | 4.250 | 11.185 | 13.321 | 9.051 | 8.729 | 4.120 |
-| Kodak | kodim02 | 9.214 | 7.707 | 8.827 | -1.169 | 4.925 | 10.718 | 13.544 | 8.969 | 7.654 | 3.731 |
-| Kodak | kodim03 | 9.640 | 8.458 | 8.802 | 2.885 | 5.450 | 12.301 | 14.450 | 9.468 | 7.900 | 4.039 |
-| Kodak | kodim04 | 10.650 | 7.384 | 10.105 | -4.767 | 2.859 | 11.395 | 16.391 | 10.424 | 8.459 | 3.127 |
-| Kodak | kodim05 | 5.678 | 3.592 | 5.423 | 0.661 | 2.019 | 6.181 | 7.965 | 5.481 | 3.968 | 1.213 |
-| Kodak | kodim06 | 9.925 | 7.828 | 9.543 | 2.228 | 3.249 | 10.866 | 13.420 | 9.696 | 8.765 | 2.570 |
-| Kodak | kodim07 | 5.941 | 4.239 | 5.700 | 3.771 | 4.529 | 7.157 | 8.344 | 5.891 | 4.394 | 2.761 |
-| Kodak | kodim08 | 8.029 | 4.750 | 7.834 | 0.771 | 2.391 | 7.718 | 11.313 | 7.761 | 6.483 | 1.336 |
-| Kodak | kodim09 | 9.144 | 7.599 | 8.945 | 6.099 | 5.590 | 9.493 | 11.643 | 8.848 | 7.180 | 4.410 |
-| Kodak | kodim10 | 7.575 | 5.254 | 7.201 | 1.937 | 4.326 | 7.397 | 9.103 | 7.358 | 6.272 | 3.157 |
-| Kodak | kodim11 | 8.372 | 6.809 | 7.965 | 2.547 | 4.225 | 8.519 | 11.211 | 8.050 | 6.491 | 3.010 |
-| Kodak | kodim12 | 9.675 | 8.403 | 9.298 | 3.121 | 4.705 | 10.250 | 12.439 | 9.680 | 8.137 | 3.875 |
-| Kodak | kodim13 | 8.787 | 7.859 | 8.813 | -0.269 | 3.714 | 11.141 | 12.971 | 8.495 | 7.599 | 3.026 |
-| Kodak | kodim14 | 7.104 | 5.404 | 6.809 | 1.895 | 3.026 | 7.778 | 9.498 | 6.874 | 5.383 | 2.081 |
-| Kodak | kodim15 | 10.815 | 8.548 | 9.699 | 3.376 | 4.935 | 12.962 | 15.261 | 10.486 | 8.096 | 4.039 |
-| Kodak | kodim16 | 10.300 | 8.764 | 10.071 | -0.554 | 3.597 | 11.322 | 14.403 | 10.091 | 9.679 | 2.854 |
-| Kodak | kodim17 | 6.409 | 5.445 | 5.869 | 6.308 | 4.112 | 7.489 | 9.039 | 5.988 | 5.427 | 3.839 |
-| Kodak | kodim18 | 8.356 | 4.834 | 7.633 | -1.985 | 2.637 | 8.964 | 11.399 | 8.062 | 6.019 | 1.364 |
-| Kodak | kodim19 | 9.917 | 8.810 | 10.500 | 0.273 | 2.858 | 12.982 | 14.702 | 9.925 | 8.521 | 1.754 |
-| Kodak | kodim20 | 10.526 | 10.746 | 10.331 | -0.580 | 7.116 | 13.919 | 15.113 | 10.821 | 8.465 | 5.254 |
-| Kodak | kodim21 | 8.862 | 6.396 | 8.661 | -0.918 | 3.287 | 10.361 | 12.424 | 8.609 | 7.604 | 2.542 |
-| Kodak | kodim22 | 9.355 | 6.505 | 8.797 | -3.218 | 3.044 | 11.815 | 14.651 | 9.149 | 6.002 | 0.883 |
-| Kodak | kodim23 | 9.227 | 6.983 | 8.511 | 4.626 | 5.922 | 10.317 | 13.566 | 8.697 | 6.316 | 5.081 |
-| Kodak | kodim24 | 7.866 | 4.825 | 7.028 | -0.271 | 2.227 | 7.681 | 11.523 | 7.218 | 6.645 | 1.770 |
-
-</details>
-
-The generated XLSX workbook `docs/image_benchmark/combined/results.xlsx` contains the full metrics table, same-QP summary, and BD-Rate summary when `openpyxl` is installed and XLSX output is enabled.
-
-## Per-Image Summary
-
-The table aggregates four QP points for each image. The full per-image/QP/mode table is stored in [`docs/image_benchmark/combined_image_metrics.csv`](image_benchmark/combined_image_metrics.csv).
-
-<details>
-<summary>Show per-image summary</summary>
-
-| Dataset | Image | bpp CSF vs base, % | Compression ratio CSF vs base, % | PSNR-Y | SSIM | XPSNR-Y | VMAF | MS-SSIM | FSIM approx | HaarPSI approx | PSNR-HVS-M approx | PSNR-RGB | MS-SSIM-RGB |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Standard grayscale | baboon | 0.75 | -0.74 | -0.907 | -0.004020 | -0.877 | -0.105 | -0.000492 | -0.004722 | -0.006154 | -0.843083 | -0.818 | -0.000492 |
-| Standard grayscale | barbara | -0.10 | 0.11 | -0.837 | -0.002742 | -0.722 | -0.187 | -0.000491 | -0.004608 | -0.004363 | -0.758940 | -0.757 | -0.000491 |
-| Standard grayscale | goldhill | -0.53 | 0.65 | -0.632 | -0.003304 | -0.603 | -0.234 | -0.000583 | -0.005045 | -0.003634 | -0.603223 | -0.569 | -0.000583 |
-| Standard grayscale | lenna | 2.02 | -1.53 | -0.430 | -0.001643 | -0.420 | -0.024 | -0.000236 | -0.002915 | -0.001961 | -0.397827 | -0.377 | -0.000236 |
-| Standard grayscale | peppers | 1.00 | 0.11 | -0.651 | -0.004001 | -0.624 | -0.207 | -0.000408 | -0.003587 | -0.003058 | -0.613511 | -0.562 | -0.000408 |
-| Synthetic | fine_texture_512x512 | 10.39 | -9.07 | -0.898 | -0.003980 | -0.878 | 0.489 | -0.000316 | -0.005406 | -0.006529 | -0.852831 | -0.819 | -0.000317 |
-| Synthetic | mixed_content_512x512 | 33.52 | -24.53 | -0.019 | 0.000189 | -0.049 | 0.152 | -0.000004 | -0.000014 | -0.000031 | -0.039002 | -0.096 | 0.000006 |
-| Synthetic | sharp_edges_512x512 | 30.36 | -23.11 | -0.043 | 0.000121 | -0.092 | 0.043 | 0.000048 | 0.000750 | 0.000431 | 0.012121 | -0.070 | 0.000024 |
-| Synthetic | smooth_gradient_512x512 | 262.71 | -70.55 | 0.000 | 0.000000 | 0.000 | 0.000 | 0.000000 | 0.000000 | 0.000000 | 0.000000 | 0.000 | 0.000000 |
-| Kodak | kodim01 | -0.93 | 0.96 | -0.810 | -0.004287 | -0.741 | 0.093 | -0.000736 | -0.005796 | -0.005827 | -0.766701 | -0.633 | -0.000842 |
-| Kodak | kodim02 | 1.30 | -1.14 | -0.409 | -0.002509 | -0.369 | 0.196 | -0.000447 | -0.005634 | -0.003412 | -0.383767 | -0.284 | -0.000600 |
-| Kodak | kodim03 | 2.96 | -2.82 | -0.380 | -0.001405 | -0.302 | 0.288 | -0.000238 | -0.004494 | -0.002884 | -0.348112 | -0.231 | -0.000128 |
-| Kodak | kodim04 | -0.80 | 0.87 | -0.574 | -0.003082 | -0.535 | 0.280 | -0.000576 | -0.006197 | -0.004366 | -0.545942 | -0.406 | -0.000732 |
-| Kodak | kodim05 | -0.77 | 0.78 | -0.575 | -0.001811 | -0.529 | -0.085 | -0.000290 | -0.002512 | -0.002650 | -0.538104 | -0.359 | -0.000398 |
-| Kodak | kodim06 | 0.51 | -0.50 | -0.673 | -0.003388 | -0.620 | -0.106 | -0.000588 | -0.004911 | -0.004882 | -0.622344 | -0.496 | -0.000653 |
-| Kodak | kodim07 | 1.92 | -1.83 | -0.282 | -0.000394 | -0.252 | -0.092 | -0.000105 | -0.001513 | -0.001305 | -0.252857 | -0.152 | 0.000024 |
-| Kodak | kodim08 | -1.07 | 1.08 | -0.751 | -0.002456 | -0.695 | -0.035 | -0.000401 | -0.002754 | -0.003604 | -0.699844 | -0.514 | -0.000379 |
-| Kodak | kodim09 | 1.21 | -1.08 | -0.351 | -0.001118 | -0.316 | -0.164 | -0.000224 | -0.002482 | -0.002106 | -0.307622 | -0.233 | -0.000210 |
-| Kodak | kodim10 | 1.57 | -1.43 | -0.300 | -0.000902 | -0.263 | 0.140 | -0.000201 | -0.001991 | -0.001559 | -0.268724 | -0.204 | -0.000186 |
-| Kodak | kodim11 | -0.49 | 0.51 | -0.603 | -0.003359 | -0.538 | -0.183 | -0.000744 | -0.004442 | -0.003744 | -0.556585 | -0.400 | -0.000880 |
-| Kodak | kodim12 | 1.04 | -0.91 | -0.448 | -0.002280 | -0.415 | -0.239 | -0.000481 | -0.003930 | -0.002439 | -0.415406 | -0.310 | -0.000387 |
-| Kodak | kodim13 | -1.44 | 1.48 | -0.990 | -0.005901 | -0.955 | -0.092 | -0.001013 | -0.006487 | -0.007109 | -0.937136 | -0.689 | -0.001108 |
-| Kodak | kodim14 | -1.17 | 1.20 | -0.631 | -0.003252 | -0.583 | -0.194 | -0.000640 | -0.004723 | -0.003730 | -0.593605 | -0.421 | -0.000714 |
-| Kodak | kodim15 | -0.38 | 0.47 | -0.612 | -0.002731 | -0.529 | 0.019 | -0.000517 | -0.006119 | -0.004243 | -0.562263 | -0.401 | -0.000555 |
-| Kodak | kodim16 | 0.21 | -0.19 | -0.594 | -0.003249 | -0.554 | -0.190 | -0.000579 | -0.005679 | -0.004391 | -0.559220 | -0.458 | -0.000633 |
-| Kodak | kodim17 | 0.98 | -0.89 | -0.340 | -0.001118 | -0.249 | -0.405 | -0.000242 | -0.002504 | -0.001971 | -0.301259 | -0.226 | -0.000249 |
-| Kodak | kodim18 | -2.49 | 2.56 | -0.801 | -0.003808 | -0.705 | -0.072 | -0.000769 | -0.005511 | -0.005240 | -0.757806 | -0.525 | -0.000928 |
-| Kodak | kodim19 | -1.41 | 1.48 | -0.629 | -0.003395 | -0.619 | -0.120 | -0.000642 | -0.005001 | -0.003974 | -0.589388 | -0.453 | -0.000656 |
-| Kodak | kodim20 | 0.60 | -0.53 | -0.584 | -0.002268 | -0.570 | -0.008 | -0.000459 | -0.005765 | -0.004013 | -0.529037 | -0.345 | -0.000546 |
-| Kodak | kodim21 | -0.12 | 0.12 | -0.607 | -0.001931 | -0.566 | -0.057 | -0.000366 | -0.004447 | -0.004740 | -0.543732 | -0.430 | -0.000387 |
-| Kodak | kodim22 | -1.52 | 1.56 | -0.632 | -0.003923 | -0.581 | -0.034 | -0.000788 | -0.006965 | -0.005176 | -0.593885 | -0.376 | -0.000787 |
-| Kodak | kodim23 | 3.34 | -3.09 | -0.264 | -0.000501 | -0.207 | -0.282 | -0.000116 | -0.001893 | -0.001521 | -0.220639 | -0.125 | -0.000077 |
-| Kodak | kodim24 | -0.07 | 0.07 | -0.647 | -0.002300 | -0.541 | 0.116 | -0.000331 | -0.003707 | -0.004554 | -0.569061 | -0.448 | -0.000387 |
-
-</details>
-
-## RD Charts
-
-The charts are rendered by `tools/report_image_benchmark.py` from `docs/image_benchmark/combined_image_metrics.csv`. They plot bpp against each quality metric for baseline and CSF, averaged over the combined image set. Dataset-specific charts are stored under `docs/image_benchmark/standard_grayscale/`, `docs/image_benchmark/synthetic/`, and `docs/image_benchmark/kodak/`.
-
-<details>
-<summary>Show combined RD charts</summary>
+<summary>Show VVenC Baseline vs. CSF RD charts</summary>
 
 | Chart | Chart |
 | --- | --- |
-| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/combined/charts/rd_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/combined/charts/rd_ssim.svg" width="360"> |
-| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/combined/charts/rd_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/combined/charts/rd_vmaf.svg" width="360"> |
-| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/combined/charts/rd_msssim_luma.svg" width="360"> | **FSIM luma approximation**<br><img src="../docs/image_benchmark/combined/charts/rd_fsim_luma.svg" width="360"> |
-| **HaarPSI luma approximation**<br><img src="../docs/image_benchmark/combined/charts/rd_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma approximation, dB**<br><img src="../docs/image_benchmark/combined/charts/rd_psnr_hvs_m_luma.svg" width="360"> |
-| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/combined/charts/rd_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="../docs/image_benchmark/combined/charts/rd_msssim_rgb.svg" width="360"> |
+| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_ssim.svg" width="360"> |
+| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_vmaf.svg" width="360"> |
+| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_msssim_luma.svg" width="360"> | **FSIM luma approximation**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_fsim_luma.svg" width="360"> |
+| **HaarPSI luma approximation**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma approximation, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_psnr_hvs_m_luma.svg" width="360"> |
+| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_msssim_rgb.svg" width="360"> |
 
 </details>
 
-## Standard Grayscale Metric-vs-QP Charts
+### VTM 23.0 Baseline vs. CSF
 
-The following charts use only the `standard_grayscale` benchmark rows. They are rendered from `docs/image_benchmark/standard_grayscale/` and show one measured metric as a function of QP for one image.
+Metrics CSV: [`docs/image_benchmark/vtm/combined_image_metrics.csv`](../docs/image_benchmark/vtm/combined_image_metrics.csv)
+
+Same-QP summary:
+
+| Metric | Mean | Min | Max |
+| --- | --- | --- | --- |
+| psnr_y_delta | -0.588779 | -2.112600 | 0.000000 |
+| ssim_delta | -0.001250 | -0.009749 | 0.000153 |
+| xpsnr_y_delta | -0.523373 | -1.958000 | 0.000000 |
+| vmaf_delta | -0.275069 | -1.507135 | 1.214826 |
+| msssim_luma_delta | -0.000498 | -0.002891 | 0.000153 |
+| fsim_luma_delta | -0.004600 | -0.028883 | 0.000001 |
+| haarpsi_luma_delta | -0.004183 | -0.026922 | 0.000000 |
+| psnr_hvs_m_luma_delta | -0.532796 | -1.929102 | 0.000000 |
+| psnr_rgb_delta | -0.459547 | -1.878842 | 0.013646 |
+| msssim_rgb_delta | -0.000512 | -0.002934 | 0.000154 |
+
+BD-Rate summary:
+
+| Metric | Valid images | BD-Rate mean, % | BD-Rate min, % | BD-Rate max, % | BD quality mean |
+| --- | --- | --- | --- | --- | --- |
+| PSNR-Y | 33 | 8.816 | 3.404 | 34.383 | -0.484157 |
+| SSIM | 33 | 4.282 | -0.564 | 34.329 | -0.000788 |
+| XPSNR-Y | 33 | 8.049 | 2.783 | 34.380 | -0.401046 |
+| VMAF | 33 | 2.179 | -9.402 | 27.744 | -0.115815 |
+| MS-SSIM | 33 | 1.707 | -1.179 | 27.149 | -0.000125 |
+| FSIM approx | 33 | 7.436 | 2.879 | 33.536 | -0.003738 |
+| HaarPSI approx | 33 | 10.551 | 3.923 | 37.207 | -0.003802 |
+| PSNR-HVS-M approx | 33 | 8.253 | 2.930 | 33.667 | -0.406051 |
+| PSNR-RGB | 33 | 8.046 | 2.350 | 34.428 | -0.348684 |
+| MS-SSIM-RGB | 33 | 1.454 | -1.143 | 27.152 | -0.000088 |
 
 <details>
-<summary>Show standard grayscale metric-vs-QP charts</summary>
+<summary>Show VTM 23.0 Baseline vs. CSF RD charts</summary>
 
-### baboon
-
-| Metric vs QP | Metric vs QP |
+| Chart | Chart |
 | --- | --- |
-| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_ssim.svg" width="360"> |
-| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_vmaf.svg" width="360"> |
-| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_msssim_luma.svg" width="360"> | **FSIM luma approximation**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_fsim_luma.svg" width="360"> |
-| **HaarPSI luma approximation**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma approximation, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_psnr_hvs_m_luma.svg" width="360"> |
-| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/baboon/qp_msssim_rgb.svg" width="360"> |
-
-### barbara
-
-| Metric vs QP | Metric vs QP |
-| --- | --- |
-| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_ssim.svg" width="360"> |
-| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_vmaf.svg" width="360"> |
-| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_msssim_luma.svg" width="360"> | **FSIM luma approximation**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_fsim_luma.svg" width="360"> |
-| **HaarPSI luma approximation**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma approximation, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_psnr_hvs_m_luma.svg" width="360"> |
-| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/barbara/qp_msssim_rgb.svg" width="360"> |
-
-### goldhill
-
-| Metric vs QP | Metric vs QP |
-| --- | --- |
-| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_ssim.svg" width="360"> |
-| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_vmaf.svg" width="360"> |
-| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_msssim_luma.svg" width="360"> | **FSIM luma approximation**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_fsim_luma.svg" width="360"> |
-| **HaarPSI luma approximation**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma approximation, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_psnr_hvs_m_luma.svg" width="360"> |
-| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/goldhill/qp_msssim_rgb.svg" width="360"> |
-
-### lenna
-
-| Metric vs QP | Metric vs QP |
-| --- | --- |
-| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_ssim.svg" width="360"> |
-| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_vmaf.svg" width="360"> |
-| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_msssim_luma.svg" width="360"> | **FSIM luma approximation**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_fsim_luma.svg" width="360"> |
-| **HaarPSI luma approximation**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma approximation, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_psnr_hvs_m_luma.svg" width="360"> |
-| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/lenna/qp_msssim_rgb.svg" width="360"> |
-
-### peppers
-
-| Metric vs QP | Metric vs QP |
-| --- | --- |
-| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_ssim.svg" width="360"> |
-| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_vmaf.svg" width="360"> |
-| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_msssim_luma.svg" width="360"> | **FSIM luma approximation**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_fsim_luma.svg" width="360"> |
-| **HaarPSI luma approximation**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma approximation, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_psnr_hvs_m_luma.svg" width="360"> |
-| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="../docs/image_benchmark/standard_grayscale/qp_charts/peppers/qp_msssim_rgb.svg" width="360"> |
-
+| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_ssim.svg" width="360"> |
+| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_vmaf.svg" width="360"> |
+| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_msssim_luma.svg" width="360"> | **FSIM luma approximation**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_fsim_luma.svg" width="360"> |
+| **HaarPSI luma approximation**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma approximation, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_psnr_hvs_m_luma.svg" width="360"> |
+| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_psnr_rgb.svg" width="360"> | **MS-SSIM RGB index**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_msssim_rgb.svg" width="360"> |
 
 </details>
 
 ## Partition Map Summary
 
-Each map shows final luma CUs encoded at `QP=32`, `preset=medium`, and one frame.
+Each generated map shows final luma CUs encoded at `QP=32`, `preset=medium`, and one frame. New runs write codec-separated partition reports to `docs/partition_maps/vvenc/` and `docs/partition_maps/vtm/`.
 
-### Standard grayscale
+### VVenC Partition Maps
+
+Summary CSV: [`docs/partition_maps/vvenc/summary.csv`](../docs/partition_maps/vvenc/summary.csv)
+
+#### Standard grayscale
 
 <details>
 <summary>Show Standard grayscale partition summary</summary>
@@ -378,7 +268,7 @@ Each map shows final luma CUs encoded at `QP=32`, `preset=medium`, and one frame
 
 </details>
 
-### Synthetic
+#### Synthetic
 
 <details>
 <summary>Show Synthetic partition summary</summary>
@@ -392,7 +282,7 @@ Each map shows final luma CUs encoded at `QP=32`, `preset=medium`, and one frame
 
 </details>
 
-### Kodak
+#### Kodak
 
 <details>
 <summary>Show Kodak partition summary</summary>
@@ -426,6 +316,75 @@ Each map shows final luma CUs encoded at `QP=32`, `preset=medium`, and one frame
 
 </details>
 
+
+### VTM 23.0 Partition Maps
+
+Summary CSV: [`docs/partition_maps/vtm/summary.csv`](../docs/partition_maps/vtm/summary.csv)
+
+#### Standard grayscale
+
+<details>
+<summary>Show Standard grayscale partition summary</summary>
+
+| Image | Size | CU baseline | CU CSF | Delta, % | Dominant baseline | Dominant CSF |
+| --- | --- | --- | --- | --- | --- | --- |
+| baboon | 512x512 | 3016 | 4881 | 61.84 | 8x4:498; 4x8:399; 4x4:394; 8x8:357; 16x8:356; 16x4:332 | 4x4:1310; 8x4:1244; 4x8:801; 16x4:439; 32x4:253; 8x8:242 |
+| barbara | 512x512 | 1638 | 2326 | 42.00 | 8x16:241; 8x8:197; 4x16:183; 16x8:180; 4x8:154; 16x16:122 | 4x8:551; 4x16:264; 8x16:217; 8x8:208; 4x4:192; 8x4:191 |
+| goldhill | 512x512 | 2352 | 2890 | 22.87 | 8x8:390; 4x8:316; 8x4:254; 8x16:233; 16x8:228; 4x16:184 | 4x8:487; 8x4:432; 4x4:378; 8x8:366; 16x8:223; 4x16:213 |
+| lenna | 512x512 | 1627 | 1942 | 19.36 | 4x8:222; 8x16:202; 8x8:189; 4x4:152; 16x16:144; 8x4:134 | 4x8:338; 4x4:258; 8x8:253; 8x4:209; 8x16:191; 4x16:137 |
+| peppers | 512x512 | 1963 | 2021 | 2.95 | 8x8:281; 8x16:243; 8x4:194; 4x8:188; 4x4:180; 16x8:175 | 8x8:282; 8x4:215; 4x4:208; 4x8:203; 8x16:202; 16x8:197 |
+
+</details>
+
+#### Synthetic
+
+<details>
+<summary>Show Synthetic partition summary</summary>
+
+| Image | Size | CU baseline | CU CSF | Delta, % | Dominant baseline | Dominant CSF |
+| --- | --- | --- | --- | --- | --- | --- |
+| fine_texture_512x512 | 512x512 | 528 | 9341 | 1669.13 | 32x32:149; 16x16:141; 16x8:66; 32x16:59; 16x32:44; 8x16:30 | 4x4:3592; 8x4:2735; 4x8:2411; 8x8:338; 4x16:130; 16x4:113 |
+| mixed_content_512x512 | 512x512 | 891 | 873 | -2.02 | 16x16:398; 16x8:78; 16x4:64; 8x16:62; 4x16:61; 4x8:48 | 16x16:421; 16x8:69; 16x4:66; 4x16:57; 8x16:56; 4x4:42 |
+| sharp_edges_512x512 | 512x512 | 850 | 876 | 3.06 | 32x32:133; 4x32:90; 16x32:79; 16x16:72; 4x8:66; 8x32:63 | 32x32:132; 4x32:96; 4x8:79; 8x32:79; 16x32:74; 16x16:73 |
+| smooth_gradient_512x512 | 512x512 | 67 | 67 | 0.00 | 64x64:63; 32x32:4 | 64x64:63; 32x32:4 |
+
+</details>
+
+#### Kodak
+
+<details>
+<summary>Show Kodak partition summary</summary>
+
+| Image | Size | CU baseline | CU CSF | Delta, % | Dominant baseline | Dominant CSF |
+| --- | --- | --- | --- | --- | --- | --- |
+| kodim01 | 768x512 | 5142 | 8192 | 59.32 | 8x4:938; 16x4:826; 8x8:635; 4x8:589; 16x8:513; 4x4:502 | 8x4:2381; 4x4:2072; 4x8:1225; 16x4:803; 8x8:545; 4x16:373 |
+| kodim02 | 768x512 | 2796 | 3141 | 12.34 | 16x4:299; 8x8:295; 8x16:268; 16x8:261; 8x4:243; 4x16:233 | 8x4:342; 4x8:340; 16x4:316; 8x8:294; 4x4:276; 8x16:262 |
+| kodim03 | 768x512 | 2446 | 2858 | 16.84 | 8x4:339; 4x8:296; 8x8:255; 4x4:254; 16x16:179; 16x8:177 | 8x4:563; 4x4:420; 4x8:365; 8x8:224; 16x4:197; 8x16:185 |
+| kodim04 | 512x768 | 2205 | 2446 | 10.93 | 16x8:222; 8x16:221; 8x8:221; 4x4:198; 4x8:177; 16x16:172 | 8x4:268; 4x4:248; 4x8:232; 16x8:219; 8x8:209; 8x16:205 |
+| kodim05 | 768x512 | 8002 | 9248 | 15.57 | 4x4:2050; 8x4:1719; 4x8:1636; 8x8:1131; 16x4:360; 16x8:317 | 4x4:3070; 4x8:2039; 8x4:1970; 8x8:889; 16x4:334; 4x16:269 |
+| kodim06 | 768x512 | 3147 | 4035 | 28.22 | 8x4:619; 16x4:417; 16x8:405; 8x8:288; 4x4:282; 32x8:233 | 8x4:998; 16x4:709; 4x4:536; 16x8:338; 32x4:325; 4x8:310 |
+| kodim07 | 768x512 | 4112 | 4413 | 7.32 | 4x4:770; 8x4:714; 4x8:641; 8x8:488; 16x8:277; 8x16:250 | 4x4:984; 8x4:784; 4x8:736; 8x8:459; 8x16:275; 16x8:255 |
+| kodim08 | 768x512 | 6585 | 7411 | 12.54 | 4x8:1435; 8x4:1235; 4x4:1192; 8x8:736; 4x16:581; 16x4:408 | 4x4:1636; 4x8:1625; 8x4:1565; 8x8:680; 4x16:578; 16x4:428 |
+| kodim09 | 512x768 | 2267 | 2654 | 17.07 | 4x8:311; 4x4:286; 8x4:252; 8x8:239; 16x8:164; 8x16:156 | 8x4:405; 4x4:390; 4x8:364; 8x8:236; 16x4:206; 4x16:178 |
+| kodim10 | 512x768 | 3069 | 3352 | 9.22 | 4x8:434; 8x4:365; 4x4:330; 8x8:319; 8x16:262; 16x8:237 | 4x8:492; 8x4:491; 4x4:438; 8x8:304; 8x16:261; 16x4:242 |
+| kodim11 | 768x512 | 3981 | 4843 | 21.65 | 8x4:693; 4x8:536; 4x4:466; 16x4:424; 8x8:375; 16x8:311 | 4x4:1000; 8x4:954; 4x8:660; 16x4:516; 8x8:311; 16x8:308 |
+| kodim12 | 768x512 | 2457 | 2680 | 9.08 | 8x8:274; 16x8:261; 8x4:251; 4x4:246; 4x8:232; 16x4:207 | 8x4:342; 16x4:329; 4x8:263; 4x4:254; 8x8:252; 16x8:239 |
+| kodim13 | 768x512 | 6124 | 9775 | 59.62 | 8x4:1554; 4x4:1054; 8x8:782; 16x4:682; 4x8:627; 16x8:576 | 4x4:3106; 8x4:2904; 4x8:1621; 16x4:710; 8x8:583; 4x16:290 |
+| kodim14 | 768x512 | 5686 | 6658 | 17.09 | 8x4:1293; 4x4:1074; 8x8:719; 4x8:710; 16x4:545; 16x8:500 | 8x4:1840; 4x4:1502; 4x8:907; 8x8:645; 16x4:619; 16x8:432 |
+| kodim15 | 768x512 | 2107 | 2536 | 20.36 | 8x8:320; 4x8:283; 8x16:215; 8x4:176; 4x16:164; 4x4:162 | 4x8:467; 4x4:382; 8x8:249; 8x4:236; 8x16:191; 4x16:182 |
+| kodim16 | 768x512 | 2392 | 3141 | 31.31 | 32x8:294; 8x4:278; 32x4:255; 16x8:253; 8x8:235; 16x4:233 | 16x4:531; 8x4:501; 4x4:380; 32x4:362; 16x8:285; 8x8:223 |
+| kodim17 | 512x768 | 3795 | 4163 | 9.70 | 8x4:611; 8x8:581; 4x8:488; 4x4:486; 16x8:358; 8x16:277 | 8x4:724; 4x4:700; 4x8:606; 8x8:549; 8x16:319; 16x8:293 |
+| kodim18 | 512x768 | 4074 | 5716 | 40.30 | 4x8:628; 8x8:615; 8x4:612; 4x4:560; 8x16:341; 16x8:308 | 4x4:1620; 4x8:1134; 8x4:1024; 8x8:556; 8x16:255; 16x8:229 |
+| kodim19 | 512x768 | 2719 | 3644 | 34.02 | 8x4:437; 4x8:382; 4x4:350; 8x8:282; 16x8:230; 16x4:199 | 8x4:717; 4x4:626; 4x8:602; 16x4:347; 8x8:293; 16x8:248 |
+| kodim20 | 768x512 | 2433 | 2740 | 12.62 | 8x4:402; 8x8:315; 4x4:292; 4x8:286; 16x8:259; 16x4:244 | 4x4:486; 8x4:483; 4x8:384; 8x8:281; 16x8:257; 16x4:226 |
+| kodim21 | 768x512 | 3591 | 5193 | 44.61 | 8x4:816; 4x4:586; 16x4:481; 8x8:404; 16x8:387; 4x8:339 | 8x4:1618; 4x4:1558; 4x8:523; 16x4:479; 8x8:306; 16x8:237 |
+| kodim22 | 768x512 | 2996 | 3878 | 29.44 | 8x8:389; 4x8:344; 8x4:341; 16x8:328; 8x16:285; 4x4:266 | 4x4:720; 8x4:615; 4x8:545; 8x8:352; 8x16:290; 16x8:280 |
+| kodim23 | 768x512 | 1922 | 2044 | 6.35 | 8x16:238; 8x8:231; 4x8:216; 8x4:169; 4x16:168; 16x16:158 | 8x4:269; 4x8:255; 4x4:208; 8x8:208; 8x16:191; 16x8:141 |
+| kodim24 | 768x512 | 4552 | 5786 | 27.11 | 8x4:674; 8x8:645; 4x8:637; 4x4:618; 16x8:381; 8x16:377 | 4x4:1280; 8x4:1077; 4x8:977; 8x8:623; 8x16:377; 16x4:335 |
+
+</details>
+
+
 ## Partition Maps
 
 ### Standard grayscale
@@ -433,15 +392,15 @@ Each map shows final luma CUs encoded at `QP=32`, `preset=medium`, and one frame
 <details>
 <summary>Show Standard grayscale original images and map pairs</summary>
 
-Each row links the original PNG with baseline and CSF SVG maps generated from VVenC `D_QP` traces at the same image size and QP. A denser CSF map indicates more small CUs selected by the encoder.
+Each row links the original PNG with baseline and CSF SVG maps generated from VVenC `D_QP` traces at the same image size and QP. VTM map pairs are stored under `docs/partition_maps/vtm/` after a VTM full run.
 
 | Image | Original | Baseline | CSF |
 | --- | --- | --- | --- |
-| baboon | <img src="../data/datasets/images/standard_grayscale/png/baboon.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/baboon_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/baboon_csf.svg" width="240"> |
-| barbara | <img src="../data/datasets/images/standard_grayscale/png/barbara.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/barbara_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/barbara_csf.svg" width="240"> |
-| goldhill | <img src="../data/datasets/images/standard_grayscale/png/goldhill.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/goldhill_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/goldhill_csf.svg" width="240"> |
-| lenna | <img src="../data/datasets/images/standard_grayscale/png/lenna.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/lenna_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/lenna_csf.svg" width="240"> |
-| peppers | <img src="../data/datasets/images/standard_grayscale/png/peppers.png" width="180"> | <img src="../docs/partition_maps/standard_grayscale/peppers_baseline.svg" width="240"> | <img src="../docs/partition_maps/standard_grayscale/peppers_csf.svg" width="240"> |
+| baboon | <img src="../data/datasets/images/standard_grayscale/png/baboon.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/baboon_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/baboon_csf.svg" width="240"> |
+| barbara | <img src="../data/datasets/images/standard_grayscale/png/barbara.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/barbara_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/barbara_csf.svg" width="240"> |
+| goldhill | <img src="../data/datasets/images/standard_grayscale/png/goldhill.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/goldhill_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/goldhill_csf.svg" width="240"> |
+| lenna | <img src="../data/datasets/images/standard_grayscale/png/lenna.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/lenna_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/lenna_csf.svg" width="240"> |
+| peppers | <img src="../data/datasets/images/standard_grayscale/png/peppers.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/peppers_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/peppers_csf.svg" width="240"> |
 
 </details>
 
@@ -450,14 +409,14 @@ Each row links the original PNG with baseline and CSF SVG maps generated from VV
 <details>
 <summary>Show Synthetic original images and map pairs</summary>
 
-Each row links the original PNG with baseline and CSF SVG maps generated from VVenC `D_QP` traces at the same image size and QP. A denser CSF map indicates more small CUs selected by the encoder.
+Each row links the original PNG with baseline and CSF SVG maps generated from VVenC `D_QP` traces at the same image size and QP. VTM map pairs are stored under `docs/partition_maps/vtm/` after a VTM full run.
 
 | Image | Original | Baseline | CSF |
 | --- | --- | --- | --- |
-| fine_texture_512x512 | <img src="../data/datasets/images/synthetic/png/fine_texture_512x512.png" width="180"> | <img src="../docs/partition_maps/synthetic/fine_texture_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/synthetic/fine_texture_512x512_csf.svg" width="240"> |
-| mixed_content_512x512 | <img src="../data/datasets/images/synthetic/png/mixed_content_512x512.png" width="180"> | <img src="../docs/partition_maps/synthetic/mixed_content_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/synthetic/mixed_content_512x512_csf.svg" width="240"> |
-| sharp_edges_512x512 | <img src="../data/datasets/images/synthetic/png/sharp_edges_512x512.png" width="180"> | <img src="../docs/partition_maps/synthetic/sharp_edges_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/synthetic/sharp_edges_512x512_csf.svg" width="240"> |
-| smooth_gradient_512x512 | <img src="../data/datasets/images/synthetic/png/smooth_gradient_512x512.png" width="180"> | <img src="../docs/partition_maps/synthetic/smooth_gradient_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/synthetic/smooth_gradient_512x512_csf.svg" width="240"> |
+| fine_texture_512x512 | <img src="../data/datasets/images/synthetic/png/fine_texture_512x512.png" width="180"> | <img src="../docs/partition_maps/vvenc/synthetic/fine_texture_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/synthetic/fine_texture_512x512_csf.svg" width="240"> |
+| mixed_content_512x512 | <img src="../data/datasets/images/synthetic/png/mixed_content_512x512.png" width="180"> | <img src="../docs/partition_maps/vvenc/synthetic/mixed_content_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/synthetic/mixed_content_512x512_csf.svg" width="240"> |
+| sharp_edges_512x512 | <img src="../data/datasets/images/synthetic/png/sharp_edges_512x512.png" width="180"> | <img src="../docs/partition_maps/vvenc/synthetic/sharp_edges_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/synthetic/sharp_edges_512x512_csf.svg" width="240"> |
+| smooth_gradient_512x512 | <img src="../data/datasets/images/synthetic/png/smooth_gradient_512x512.png" width="180"> | <img src="../docs/partition_maps/vvenc/synthetic/smooth_gradient_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/synthetic/smooth_gradient_512x512_csf.svg" width="240"> |
 
 </details>
 
@@ -466,34 +425,34 @@ Each row links the original PNG with baseline and CSF SVG maps generated from VV
 <details>
 <summary>Show Kodak original images and map pairs</summary>
 
-Each row links the original PNG with baseline and CSF SVG maps generated from VVenC `D_QP` traces at the same image size and QP. A denser CSF map indicates more small CUs selected by the encoder.
+Each row links the original PNG with baseline and CSF SVG maps generated from VVenC `D_QP` traces at the same image size and QP. VTM map pairs are stored under `docs/partition_maps/vtm/` after a VTM full run.
 
 | Image | Original | Baseline | CSF |
 | --- | --- | --- | --- |
-| kodim01 | <img src="../data/datasets/images/kodak/png/kodim01.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim01_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim01_csf.svg" width="240"> |
-| kodim02 | <img src="../data/datasets/images/kodak/png/kodim02.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim02_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim02_csf.svg" width="240"> |
-| kodim03 | <img src="../data/datasets/images/kodak/png/kodim03.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim03_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim03_csf.svg" width="240"> |
-| kodim04 | <img src="../data/datasets/images/kodak/png/kodim04.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim04_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim04_csf.svg" width="240"> |
-| kodim05 | <img src="../data/datasets/images/kodak/png/kodim05.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim05_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim05_csf.svg" width="240"> |
-| kodim06 | <img src="../data/datasets/images/kodak/png/kodim06.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim06_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim06_csf.svg" width="240"> |
-| kodim07 | <img src="../data/datasets/images/kodak/png/kodim07.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim07_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim07_csf.svg" width="240"> |
-| kodim08 | <img src="../data/datasets/images/kodak/png/kodim08.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim08_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim08_csf.svg" width="240"> |
-| kodim09 | <img src="../data/datasets/images/kodak/png/kodim09.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim09_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim09_csf.svg" width="240"> |
-| kodim10 | <img src="../data/datasets/images/kodak/png/kodim10.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim10_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim10_csf.svg" width="240"> |
-| kodim11 | <img src="../data/datasets/images/kodak/png/kodim11.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim11_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim11_csf.svg" width="240"> |
-| kodim12 | <img src="../data/datasets/images/kodak/png/kodim12.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim12_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim12_csf.svg" width="240"> |
-| kodim13 | <img src="../data/datasets/images/kodak/png/kodim13.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim13_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim13_csf.svg" width="240"> |
-| kodim14 | <img src="../data/datasets/images/kodak/png/kodim14.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim14_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim14_csf.svg" width="240"> |
-| kodim15 | <img src="../data/datasets/images/kodak/png/kodim15.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim15_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim15_csf.svg" width="240"> |
-| kodim16 | <img src="../data/datasets/images/kodak/png/kodim16.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim16_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim16_csf.svg" width="240"> |
-| kodim17 | <img src="../data/datasets/images/kodak/png/kodim17.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim17_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim17_csf.svg" width="240"> |
-| kodim18 | <img src="../data/datasets/images/kodak/png/kodim18.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim18_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim18_csf.svg" width="240"> |
-| kodim19 | <img src="../data/datasets/images/kodak/png/kodim19.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim19_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim19_csf.svg" width="240"> |
-| kodim20 | <img src="../data/datasets/images/kodak/png/kodim20.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim20_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim20_csf.svg" width="240"> |
-| kodim21 | <img src="../data/datasets/images/kodak/png/kodim21.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim21_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim21_csf.svg" width="240"> |
-| kodim22 | <img src="../data/datasets/images/kodak/png/kodim22.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim22_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim22_csf.svg" width="240"> |
-| kodim23 | <img src="../data/datasets/images/kodak/png/kodim23.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim23_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim23_csf.svg" width="240"> |
-| kodim24 | <img src="../data/datasets/images/kodak/png/kodim24.png" width="180"> | <img src="../docs/partition_maps/kodak/kodim24_baseline.svg" width="240"> | <img src="../docs/partition_maps/kodak/kodim24_csf.svg" width="240"> |
+| kodim01 | <img src="../data/datasets/images/kodak/png/kodim01.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim01_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim01_csf.svg" width="240"> |
+| kodim02 | <img src="../data/datasets/images/kodak/png/kodim02.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim02_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim02_csf.svg" width="240"> |
+| kodim03 | <img src="../data/datasets/images/kodak/png/kodim03.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim03_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim03_csf.svg" width="240"> |
+| kodim04 | <img src="../data/datasets/images/kodak/png/kodim04.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim04_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim04_csf.svg" width="240"> |
+| kodim05 | <img src="../data/datasets/images/kodak/png/kodim05.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim05_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim05_csf.svg" width="240"> |
+| kodim06 | <img src="../data/datasets/images/kodak/png/kodim06.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim06_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim06_csf.svg" width="240"> |
+| kodim07 | <img src="../data/datasets/images/kodak/png/kodim07.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim07_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim07_csf.svg" width="240"> |
+| kodim08 | <img src="../data/datasets/images/kodak/png/kodim08.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim08_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim08_csf.svg" width="240"> |
+| kodim09 | <img src="../data/datasets/images/kodak/png/kodim09.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim09_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim09_csf.svg" width="240"> |
+| kodim10 | <img src="../data/datasets/images/kodak/png/kodim10.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim10_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim10_csf.svg" width="240"> |
+| kodim11 | <img src="../data/datasets/images/kodak/png/kodim11.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim11_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim11_csf.svg" width="240"> |
+| kodim12 | <img src="../data/datasets/images/kodak/png/kodim12.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim12_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim12_csf.svg" width="240"> |
+| kodim13 | <img src="../data/datasets/images/kodak/png/kodim13.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim13_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim13_csf.svg" width="240"> |
+| kodim14 | <img src="../data/datasets/images/kodak/png/kodim14.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim14_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim14_csf.svg" width="240"> |
+| kodim15 | <img src="../data/datasets/images/kodak/png/kodim15.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim15_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim15_csf.svg" width="240"> |
+| kodim16 | <img src="../data/datasets/images/kodak/png/kodim16.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim16_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim16_csf.svg" width="240"> |
+| kodim17 | <img src="../data/datasets/images/kodak/png/kodim17.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim17_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim17_csf.svg" width="240"> |
+| kodim18 | <img src="../data/datasets/images/kodak/png/kodim18.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim18_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim18_csf.svg" width="240"> |
+| kodim19 | <img src="../data/datasets/images/kodak/png/kodim19.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim19_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim19_csf.svg" width="240"> |
+| kodim20 | <img src="../data/datasets/images/kodak/png/kodim20.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim20_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim20_csf.svg" width="240"> |
+| kodim21 | <img src="../data/datasets/images/kodak/png/kodim21.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim21_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim21_csf.svg" width="240"> |
+| kodim22 | <img src="../data/datasets/images/kodak/png/kodim22.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim22_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim22_csf.svg" width="240"> |
+| kodim23 | <img src="../data/datasets/images/kodak/png/kodim23.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim23_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim23_csf.svg" width="240"> |
+| kodim24 | <img src="../data/datasets/images/kodak/png/kodim24.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim24_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim24_csf.svg" width="240"> |
 
 </details>
 
