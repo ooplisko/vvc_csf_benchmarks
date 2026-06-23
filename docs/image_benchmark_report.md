@@ -7,9 +7,9 @@ This report expands the root README with the exact binaries, commands, CSV outpu
 | File | Purpose |
 | --- | --- |
 | `binaries/vvenc/vvenc_default[.exe]` | Clean upstream/default VVenC encoder without CSF. Local build from [fraunhoferhhi/vvenc](https://github.com/fraunhoferhhi/vvenc) |
-| `binaries/vvenc/vvenc_csf[.exe]` | Modified VVenC encoder. CSF is enabled with `--CSFScalingList 1`. Local build from the [CSF VVenC branch](https://github.com/For2natop1ua/vvenc/tree/feature-branch) |
+| `binaries/vvenc/vvenc_csf[.exe]` | Modified VVenC encoder. CSF is enabled with `--CSFScalingList 1`. Local build from the [CSF VVenC branch](https://github.com/ooplisko/vvenc/tree/feature-branch) |
 | `binaries/vvenc/vvenc_default_trace[.exe]` | Default encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only. Local build from [fraunhoferhhi/vvenc](https://github.com/fraunhoferhhi/vvenc) |
-| `binaries/vvenc/vvenc_csf_trace[.exe]` | CSF encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only. Local build from the [CSF VVenC branch](https://github.com/For2natop1ua/vvenc/tree/feature-branch) |
+| `binaries/vvenc/vvenc_csf_trace[.exe]` | CSF encoder built with `VVENC_ENABLE_TRACING=ON` for partition maps only. Local build from the [CSF VVenC branch](https://github.com/ooplisko/vvenc/tree/feature-branch) |
 | `binaries/vvenc/vvdecapp[.exe]` | VVdeC decoder used to verify VVenC bitstreams. Local build from [Fraunhofer HHI VVdeC](https://github.com/fraunhoferhhi/vvdec) |
 | `binaries/vtm/vtm18/baseline/EncoderApp[.exe]` | Clean VTM 18.0 encoder used only by the historical Kodak validation against Duan et al. anchors. |
 | `binaries/vtm/vtm18/baseline/DecoderApp[.exe]` | Clean VTM 18.0 decoder used only by the historical Kodak validation. |

@@ -1,19 +1,19 @@
 # VVenC/VTM CSF Image Benchmark
 
 <p align="center">
-  <a href="https://github.com/For2natop1ua/vvenc_csf_tests/blob/master/LICENSE">
+  <a href="https://github.com/ooplisko/vvenc_csf_tests/blob/master/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license">
   </a>
   <a href="https://www.python.org/downloads/">
     <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   </a>
-  <a href="https://github.com/For2natop1ua/vvenc_csf_tests/actions/workflows/build.yml">
-    <img src="https://github.com/For2natop1ua/vvenc_csf_tests/actions/workflows/build.yml/badge.svg" alt="Tests">
+  <a href="https://github.com/ooplisko/vvenc_csf_tests/actions/workflows/build.yml">
+    <img src="https://github.com/ooplisko/vvenc_csf_tests/actions/workflows/build.yml/badge.svg" alt="Tests">
   </a>
-  <a href="https://github.com/For2natop1ua/vvenc_csf_tests/actions">
+  <a href="https://github.com/ooplisko/vvenc_csf_tests/actions">
     <img src="https://img.shields.io/badge/build-validation-brightgreen" alt="Build validation">
   </a>
-  <a href="https://github.com/For2natop1ua/vvenc_csf_tests/releases">
+  <a href="https://github.com/ooplisko/vvenc_csf_tests/releases">
     <img src="https://img.shields.io/badge/release-assets-blue" alt="Release assets">
   </a>
 </p>

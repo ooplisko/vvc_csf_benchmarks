@@ -19,7 +19,7 @@ If you are on Linux/macOS, or want to compile the executables yourself, place th
 | Binary stem | Purpose |
 | --- | --- |
 | `vvenc/vvenc_default` | Upstream/default VVenC encoder used as the baseline. Local build from [fraunhoferhhi/vvenc](https://github.com/fraunhoferhhi/vvenc) |
-| `vvenc/vvenc_csf` | Modified VVenC encoder with `--CSFScalingList` support. Local build from the [CSF VVenC branch](https://github.com/For2natop1ua/vvenc/tree/feature-branch) |
+| `vvenc/vvenc_csf` | Modified VVenC encoder with `--CSFScalingList` support. Local build from the [CSF VVenC branch](https://github.com/ooplisko/vvenc/tree/feature-branch) |
 | `vvenc/vvenc_default_trace` | Baseline VVenC encoder built with tracing enabled for CU partition maps. |
 | `vvenc/vvenc_csf_trace` | CSF VVenC encoder built with tracing enabled for CU partition maps. |
 | `vvenc/vvdecapp` | VVdeC decoder used to verify generated VVenC bitstreams. Local build from [Fraunhofer HHI VVdeC](https://github.com/fraunhoferhhi/vvdec) |
