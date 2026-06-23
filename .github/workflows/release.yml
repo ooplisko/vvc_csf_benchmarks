@@ -20,14 +20,14 @@ jobs:
       - name: Create package
         shell: pwsh
         run: |
-          $name = "vvenc-csf-tests-${{ github.ref_name }}"
+          $name = "vvc-csf-benchmarks-${{ github.ref_name }}"
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Compress-Archive -Path README.md,LICENSE,CITATION.cff,requirements.txt,requirements-dev.txt,pytest.ini,run_all.py,binaries/README.md,configs,data,metrics,tools,vvenc_csf,tests,docs -DestinationPath "dist/$name.zip" -Force
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: vvenc-csf-tests-${{ github.ref_name }}
+          name: vvc-csf-benchmarks-${{ github.ref_name }}
           path: dist/*.zip
 
       - name: Publish GitHub release
