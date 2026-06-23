@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REPO_BLOB_PREFIX = "https://github.com/ooplisko/vvenc_csf_tests/blob/master/"
+REPO_BLOB_PREFIX = "https://github.com/ooplisko/vvc_csf_benchmarks/blob/master/"
 MARKDOWN_LINK = re.compile(r"!?\[[^\]]*]\(([^)]+)\)")
 HTML_SRC = re.compile(r"""<img\s+[^>]*src=["']([^"']+)["']""", re.IGNORECASE)
 DEPRECATED_DOC_PATHS = (

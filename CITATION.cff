@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: "VVenC CSF Image Benchmark"
+title: "VVC CSF Benchmarks"
 authors:
   - family-names: "Plisko"
     given-names: "O. O."
@@ -9,4 +9,4 @@ authors:
 version: "1.0.0"
 date-released: "2026-06-16"
 license: MIT
-repository-code: "https://github.com/For2natop1ua/vvenc_csf_tests"
+repository-code: "https://github.com/ooplisko/vvc_csf_benchmarks"

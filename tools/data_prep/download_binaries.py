@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_BINARIES_URL = "https://github.com/ooplisko/vvenc_csf_tests/releases/download/v1.1.0/binaries.zip"
+DEFAULT_BINARIES_URL = "https://github.com/ooplisko/vvc_csf_benchmarks/releases/download/v1.1.0/binaries.zip"
 
 
 def _has_binaries_root(zip_file: zipfile.ZipFile) -> bool:

@@ -100,7 +100,7 @@ git clone https://github.com/fraunhoferhhi/vvdec ..\vvdec
 cd ..\vvdec
 cmake -S . -B build\release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DVVDEC_ENABLE_LINK_TIME_OPT=OFF
 cmake --build build\release --target vvdecapp --parallel 8
-Copy-Item bin\release-static\vvdecapp.exe ..\vvenc_csf_tests\binaries\vvenc\vvdecapp.exe
+Copy-Item bin\release-static\vvdecapp.exe ..\vvc_csf_benchmarks\binaries\vvenc\vvdecapp.exe
 
 # VTM encoders/decoders, including trace builds.
 python tools\building\build_vtm.py all
