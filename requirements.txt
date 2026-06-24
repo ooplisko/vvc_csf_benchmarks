@@ -4,7 +4,7 @@ opencv-python-headless>=4.10
 pandas>=2.2
 matplotlib>=3.8
 scipy>=1.11
-reportlab>=4.0
+reportlab[pycairo]>=4.0
 svglib>=1.5
 
 # External command-line tools are still required: ffmpeg, ffprobe, and curl/curl.exe.
