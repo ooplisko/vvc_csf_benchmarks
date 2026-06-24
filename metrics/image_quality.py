@@ -7,6 +7,10 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from scipy import ndimage, signal
+
+from metrics.psnr_hvs_m import psnr_hvs_m
+from third_party.haarpsi.haarPsi import haar_psi_numpy
 
 
 def read_luma(path: Path, width: int, height: int, bit_depth: int) -> list[float]:
@@ -33,15 +37,15 @@ def read_luma(path: Path, width: int, height: int, bit_depth: int) -> list[float
 
 
 def msssim_luma(reference: list[float], distorted: list[float], width: int, height: int) -> float:
-    """Compute standard Gaussian-window MS-SSIM on normalized luma samples."""
+    """Compute Wang et al. MS-SSIM on normalized luma samples."""
 
     reference_image = _as_image(reference, width, height)
     distorted_image = _as_image(distorted, width, height)
-    return _ms_ssim_image(reference_image, distorted_image)
+    return _wang_ms_ssim_image(reference_image, distorted_image)
 
 
 def fsim_luma(reference: list[float], distorted: list[float], width: int, height: int) -> float:
-    """Compute a gradient-magnitude FSIM approximation on luma samples."""
+    """Compute a local gradient-magnitude FSIM approximation on luma samples."""
 
     ref_grad = _gradient_magnitude(reference, width, height)
     dis_grad = _gradient_magnitude(distorted, width, height)
@@ -57,39 +61,20 @@ def fsim_luma(reference: list[float], distorted: list[float], width: int, height
 
 
 def haarpsi_luma(reference: list[float], distorted: list[float], width: int, height: int) -> float:
-    """Compute a Haar wavelet perceptual similarity approximation on luma samples."""
+    """Compute HaarPSI with the authors' published Python/NumPy implementation."""
 
-    scores = []
-    for scale in (1, 2):
-        ref_h, ref_v = _haar_coefficients(reference, width, height, scale)
-        dis_h, dis_v = _haar_coefficients(distorted, width, height, scale)
-        scores.append(_weighted_similarity(ref_h, dis_h))
-        scores.append(_weighted_similarity(ref_v, dis_v))
-    return sum(scores) / len(scores)
+    reference_image = _as_image(reference, width, height) * 255.0
+    distorted_image = _as_image(distorted, width, height) * 255.0
+    score, _similarities, _weights = haar_psi_numpy(reference_image, distorted_image)
+    return float(score)
 
 
 def psnr_hvs_m_luma(reference: list[float], distorted: list[float], width: int, height: int) -> float:
-    """Compute a lightweight block-based PSNR-HVS-M approximation for luma."""
+    """Compute the PSNR-HVS-M luma metric using the published algorithm."""
 
-    total = 0.0
-    samples = 0
-    for y in range(0, height - 7, 8):
-        for x in range(0, width - 7, 8):
-            ref_block = _block(reference, width, x, y)
-            mean = sum(ref_block) / 64.0
-            variance = sum((value - mean) ** 2 for value in ref_block) / 64.0
-            masking = 1.0 + min(variance * 18.0, 0.45)
-            for row in range(8):
-                for col in range(8):
-                    index = (y + row) * width + x + col
-                    freq_weight = 1.0 + 0.08 * math.hypot(row, col)
-                    error = (reference[index] - distorted[index]) * freq_weight / masking
-                    total += error * error
-                    samples += 1
-    if total <= 0.0:
-        return 99.0
-    mse = total / samples
-    return 10.0 * math.log10(1.0 / mse)
+    reference_image = _as_image(reference, width, height) * 255.0
+    distorted_image = _as_image(distorted, width, height) * 255.0
+    return psnr_hvs_m(reference_image, distorted_image)
 
 
 def calculate_luma_metrics(
@@ -222,9 +207,9 @@ def msssim_rgb(
 ) -> float:
     """Compute standard Gaussian-window MS-SSIM averaged across RGB channels."""
 
-    score_r = msssim_luma(ref_r, dis_r, width, height)
-    score_g = msssim_luma(ref_g, dis_g, width, height)
-    score_b = msssim_luma(ref_b, dis_b, width, height)
+    score_r = _validated_ms_ssim_image(_as_image(ref_r, width, height), _as_image(dis_r, width, height))
+    score_g = _validated_ms_ssim_image(_as_image(ref_g, width, height), _as_image(dis_g, width, height))
+    score_b = _validated_ms_ssim_image(_as_image(ref_b, width, height), _as_image(dis_b, width, height))
     return (score_r + score_g + score_b) / 3.0
 
 
@@ -232,7 +217,55 @@ def _as_image(values: list[float], width: int, height: int) -> np.ndarray:
     return np.asarray(values, dtype=np.float64).reshape((height, width))
 
 
-def _ms_ssim_image(reference: np.ndarray, distorted: np.ndarray) -> float:
+def _wang_ms_ssim_image(reference: np.ndarray, distorted: np.ndarray) -> float:
+    if reference.shape != distorted.shape:
+        raise ValueError(f"MS-SSIM inputs have different shapes: {reference.shape} != {distorted.shape}")
+
+    weights = np.asarray([0.0448, 0.2856, 0.3001, 0.2363, 0.1333], dtype=np.float64)
+    if min(reference.shape) / (2 ** (len(weights) - 1)) < 11:
+        raise ValueError("Wang et al. MS-SSIM requires at least 176 pixels in each dimension for five scales")
+
+    ref = np.clip(reference.astype(np.float64, copy=False), 0.0, 1.0) * 255.0
+    dis = np.clip(distorted.astype(np.float64, copy=False), 0.0, 1.0) * 255.0
+    ssim_scores = []
+    contrast_scores = []
+    for _level in range(len(weights)):
+        ssim_value, contrast_value = _wang_ssim_components(ref, dis)
+        ssim_scores.append(max(ssim_value, 0.0))
+        contrast_scores.append(max(contrast_value, 0.0))
+        ref = ndimage.uniform_filter(ref, size=2, mode="reflect")[::2, ::2]
+        dis = ndimage.uniform_filter(dis, size=2, mode="reflect")[::2, ::2]
+
+    value = float(np.prod(np.power(contrast_scores[:-1], weights[:-1])))
+    value *= float(ssim_scores[-1] ** weights[-1])
+    return max(0.0, min(1.0, value))
+
+
+def _wang_ssim_components(reference: np.ndarray, distorted: np.ndarray) -> tuple[float, float]:
+    axis = np.arange(11, dtype=np.float64) - 5.0
+    gaussian = np.exp(-(axis**2) / (2.0 * 1.5**2))
+    window = np.outer(gaussian, gaussian)
+    window /= window.sum()
+
+    mu_ref = signal.convolve2d(reference, window, mode="valid")
+    mu_dis = signal.convolve2d(distorted, window, mode="valid")
+    mu_ref_sq = mu_ref * mu_ref
+    mu_dis_sq = mu_dis * mu_dis
+    mu_ref_dis = mu_ref * mu_dis
+    sigma_ref_sq = signal.convolve2d(reference * reference, window, mode="valid") - mu_ref_sq
+    sigma_dis_sq = signal.convolve2d(distorted * distorted, window, mode="valid") - mu_dis_sq
+    sigma_ref_dis = signal.convolve2d(reference * distorted, window, mode="valid") - mu_ref_dis
+    c1 = (0.01 * 255.0) ** 2
+    c2 = (0.03 * 255.0) ** 2
+
+    contrast_map = (2.0 * sigma_ref_dis + c2) / (sigma_ref_sq + sigma_dis_sq + c2)
+    ssim_map = ((2.0 * mu_ref_dis + c1) * (2.0 * sigma_ref_dis + c2)) / (
+        (mu_ref_sq + mu_dis_sq + c1) * (sigma_ref_sq + sigma_dis_sq + c2)
+    )
+    return float(np.mean(ssim_map)), float(np.mean(contrast_map))
+
+
+def _validated_ms_ssim_image(reference: np.ndarray, distorted: np.ndarray) -> float:
     if reference.shape != distorted.shape:
         raise ValueError(f"MS-SSIM inputs have different shapes: {reference.shape} != {distorted.shape}")
 
@@ -363,33 +396,3 @@ def _gradient_magnitude(values: list[float], width: int, height: int) -> list[fl
             gy = values[row + width + x] - values[row - width + x]
             output[row + x] = math.sqrt(gx * gx + gy * gy)
     return output
-
-
-def _haar_coefficients(values: list[float], width: int, height: int, scale: int) -> tuple[list[float], list[float]]:
-    horizontal = []
-    vertical = []
-    step = max(1, scale)
-    for y in range(0, height - step, step):
-        row = y * width
-        next_row = (y + step) * width
-        for x in range(0, width - step, step):
-            horizontal.append(abs(values[row + x] - values[row + x + step]))
-            vertical.append(abs(values[row + x] - values[next_row + x]))
-    return horizontal, vertical
-
-
-def _weighted_similarity(reference: list[float], distorted: list[float]) -> float:
-    constant = 0.01
-    weighted_sum = 0.0
-    weight_total = 0.0
-    for ref, dis in zip(reference, distorted):
-        similarity = (2.0 * ref * dis + constant) / (ref * ref + dis * dis + constant)
-        weight = max(ref, dis)
-        weighted_sum += similarity * weight
-        weight_total += weight
-    return weighted_sum / weight_total if weight_total else 1.0
-
-
-def _block(values: list[float], width: int, x: int, y: int) -> list[float]:
-    return [values[(y + row) * width + x + col] for row in range(8) for col in range(8)]
-

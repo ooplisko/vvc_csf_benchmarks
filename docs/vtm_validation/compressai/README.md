@@ -21,7 +21,7 @@ This validation directly checks:
 - BPP/PSNR-RGB consistency between the local VTM 18.0 Kodak run and the nearest CompressAI VTM 9.1 RD points.
 - The CompressAI metric protocol: RGB PSNR and RGB MS-SSIM averaged over the dataset.
 
-It does not, by itself, fully validate VVenC CSF behavior or local luma/approximation metrics such as `MS-SSIM luma`, `FSIM luma approx`, `HaarPSI luma approx`, `PSNR-HVS-M luma approx`, or `VMAF`.
+It does not, by itself, fully validate VVenC CSF behavior or the luma metrics `MS-SSIM luma`, `HaarPSI luma`, `PSNR-HVS-M luma`, `FSIM luma approx`, or `VMAF`. The first three now use pinned published algorithms, but their source-level verification is separate from this external CompressAI protocol validation.
 
 ## Scenario 1: VTM Anchor Overlap
 
@@ -42,7 +42,7 @@ The table below compares the CompressAI VTM 9.1 anchor with the nearest local VT
 
 Unlike the Duan et al. VTM 18.0 anchor, CompressAI publishes `ms-ssim-rgb` values alongside BPP and PSNR-RGB. The `lossy-vae` repository's `kodak-vtm18.0.json` file only contains `bpp` and `psnr`; `lossy-vae` also keeps a separate [`kodak-vtm-compressai.json`](https://raw.githubusercontent.com/duanzhiihao/lossy-vae/main/results/kodak/kodak-vtm-compressai.json) file with CompressAI-style `ms-ssim`, but that is not the VTM 18.0 anchor used by the lossy-vae validation report. This CompressAI report therefore treats MS-SSIM-RGB as a CompressAI-protocol validation target.
 
-Any residual difference between the CompressAI curve and local curves should be interpreted cautiously: CompressAI reports RGB MS-SSIM from its PyTorch pipeline, while the local project reports a standard Gaussian-window MS-SSIM implementation from `metrics/image_quality.py`. The curves are useful for trend and reporting-protocol checks, but they are not a proof of bit-exact numerical equivalence with `pytorch_msssim`.
+Any residual difference between the CompressAI curve and local curves should be interpreted cautiously: CompressAI reports RGB MS-SSIM from its PyTorch pipeline, while the local project reports its independently validated RGB metric path from `metrics/image_quality.py`. The curves are useful for trend and reporting-protocol checks, but they are not a proof of bit-exact numerical equivalence with `pytorch_msssim`.
 
 ### Table 2: CompressAI VTM 9.1 Anchor Published Metrics
 
@@ -107,6 +107,6 @@ The following table compares CompressAI points to the nearest points from the Du
 
 ## Conclusion
 
-The CompressAI anchor supports the correctness of the local research protocol for BPP, PSNR-RGB naming, MS-SSIM-RGB naming, RD-point ordering, and dataset-level averaging. It also provides an external reference for MS-SSIM-RGB reporting, which the Duan validation did not cover. Local luma and approximation metrics remain secondary diagnostics.
+The CompressAI anchor supports the correctness of the local research protocol for BPP, PSNR-RGB naming, MS-SSIM-RGB naming, RD-point ordering, and dataset-level averaging. It also provides an external reference for MS-SSIM-RGB reporting, which the Duan validation did not cover. Luma metrics remain separate source-level verification targets.
 
 Exact same-binary VTM replication would require adding VTM 9.1 to the validation toolchain. Current monotonic checks: BPP `True`, PSNR-RGB `True`, MS-SSIM-RGB `True`.
