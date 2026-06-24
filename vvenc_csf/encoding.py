@@ -43,7 +43,7 @@ class EncodeJob:
 # ====================================================================================================================
 
 
-VTM_ENCODER_CONFIG = Path(os.environ.get("VTM_ENCODER_CONFIG", ROOT.parent / "VVCSoftware_VTM" / "cfg" / "encoder_intra_vtm.cfg"))
+VTM_ENCODER_CONFIG = Path(os.environ.get("VTM_ENCODER_CONFIG", ROOT / "configs" / "vtm_encoder_intra.cfg"))
 
 
 class ImageConverter:

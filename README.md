@@ -28,7 +28,8 @@ This repository is a reproducible image-only benchmark for Contrast Sensitivity 
 | --- | --- |
 | Smoke checks | One-image encode/decode checks for VVenC or VTM |
 | Full image benchmark | Per-image/per-QP metric CSVs, summaries, XLSX workbooks, and RD charts |
-| Partition maps | CU SVG overlays and summaries from `D_QP` traces for VVenC and VTM |
+| Partition maps | CU PNG overlays and summaries from `D_QP` traces for VVenC and VTM |
+| Focused VTM QP study | Five grayscale + five color standard images, QP-axis charts, and per-QP partition overlays |
 | VTM validation | Historical VTM 18.0 anchor replication plus local VTM 23.0 baseline/CSF curves |
 | Report rendering | Root README and detailed benchmark report regenerated from committed artifacts |
 
@@ -51,6 +52,7 @@ Requirements: Python 3.10+, `ffmpeg`, and `ffprobe` in `PATH`. Windows release b
 | --- | --- |
 | Run full VVenC benchmark | `.\.venv\Scripts\python.exe run_all.py full --codec vvenc --clean` |
 | Run full VTM benchmark | `.\.venv\Scripts\python.exe run_all.py full --codec vtm --clean` |
+| Run focused VTM QP study | `.\.venv\Scripts\python.exe tools\research\run_vtm_qp_study.py --clean` |
 | Re-render existing reports | `.\.venv\Scripts\python.exe tools\reporting\render_readme.py` |
 | Run tests | `.\.venv\Scripts\python.exe -m pytest -q` |
 | Build VVenC encoders | `.\.venv\Scripts\python.exe tools\building\build_vvenc.py all` |
@@ -81,6 +83,7 @@ A CSF decoder is intentionally not used. The CSF changes are encoder-side; the c
 | VTM 23.0 metrics | [`docs/image_benchmark/vtm/`](docs/image_benchmark/vtm/) |
 | VVenC partition maps | [`docs/partition_maps/vvenc/`](docs/partition_maps/vvenc/) |
 | VTM partition maps | [`docs/partition_maps/vtm/`](docs/partition_maps/vtm/) |
+| Focused VTM QP study | [`docs/vtm_qp_study/`](docs/vtm_qp_study/) |
 | VTM validation | [`docs/vtm_validation/`](docs/vtm_validation/) |
 | Matrix evidence | [`docs/matrices/`](docs/matrices/) |
 
@@ -103,6 +106,7 @@ Current generated results show that CSF bitstreams decode correctly and reconstr
 | Document | Use |
 | --- | --- |
 | [`docs/image_benchmark_report.md`](docs/image_benchmark_report.md) | Main scientific report for image benchmark results |
+| [`docs/vtm_qp_study/`](docs/vtm_qp_study/) | Focused VTM-only QP-axis study for the standard grayscale/color images |
 | [`binaries/README.md`](binaries/README.md) | Binary layout, download, and build instructions |
 | [`docs/vtm_validation/`](docs/vtm_validation/) | VTM anchor validation and VTM 23.0 cross-checks |
 | [`CITATION.cff`](CITATION.cff) | Citation metadata |
