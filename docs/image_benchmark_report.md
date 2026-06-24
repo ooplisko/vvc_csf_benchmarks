@@ -115,7 +115,8 @@ py -3 -m venv .venv
 | Additional datasets | 4 synthetic + 24 Kodak images |
 | Frames | 1 frame per image |
 | VVenC encode pixel format | `yuv420p`, 8-bit |
-| VTM encode pixel format | `yuv444p`, 8-bit |
+| VTM broad benchmark conversion | `ffmpeg_444`, 8-bit |
+| Focused VTM QP study conversion | `opencv_444`, 8-bit by default; `ffmpeg_444` available as a control |
 | QP points | 22, 27, 32, 37 |
 | Preset | `medium` |
 | VVenC baseline/CSF | `vvenc_default` vs. `vvenc_csf --CSFScalingList 1` |
@@ -134,7 +135,7 @@ bpp = bitstream_bytes * 8 / (width * height)
 
 Encoder behavior is evaluated through same-QP comparison and equal-bpp interpolation. For scientific interpretation, PSNR-RGB and MS-SSIM-RGB are the primary metrics because the validation reports cross-check those naming and measurement protocols against external VTM anchors: [CompressAI](vtm_validation/compressai/README.md) covers both PSNR-RGB and MS-SSIM-RGB, while [lossy-vae](vtm_validation/lossy-vae/README.md) independently checks PSNR-RGB and BPP.
 
-Luma means the Y component in the YUV representation. The luma metrics and approximations remain useful diagnostic indicators, but they are not the primary externally anchored claims in this repository.
+Luma means the Y component in the YUV representation. The luma metrics remain useful diagnostic indicators, but they are not the primary externally anchored claims in this repository.
 
 | Metric | Source |
 | --- | --- |
@@ -149,7 +150,7 @@ Luma means the Y component in the YUV representation. The luma metrics and appro
 | PSNR-RGB | Local YUV-to-RGB (BT.601) conversion + per-channel MSE in `metrics/image_quality.py` |
 | MS-SSIM-RGB | Local YUV-to-RGB (BT.601) conversion + per-channel MS-SSIM in `metrics/image_quality.py` |
 
-The local luma and approximation metrics are not bit-exact replacements for pinned external implementations. External implementations can differ by RGB/YUV input handling, chroma use, padding, scaling, filters, multi-scale weights, phase congruency details, and Haar-wavelet details. Here they are reproducible in-repository indicators applied identically to baseline and CSF.
+The local approximation metrics are not bit-exact replacements for pinned external implementations. External implementations can differ by RGB/YUV input handling, chroma use, padding, scaling, filters, multi-scale weights, phase congruency details, and Haar-wavelet details. Here they are reproducible in-repository indicators applied identically to baseline and CSF.
 
 ## Codec-Separated Results
 
@@ -215,11 +216,11 @@ BD-Rate summary:
 
 | Chart | Chart |
 | --- | --- |
-| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_ssim.svg" width="360"> |
-| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_vmaf.svg" width="360"> |
-| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_msssim_luma.svg" width="360"> | **FSIM luma approximation**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_fsim_luma.svg" width="360"> |
-| **HaarPSI luma approximation**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma approximation, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_psnr_hvs_m_luma.svg" width="360"> |
-| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_psnr_rgb.svg" width="360"> | **MS-SSIM-RGB index**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_msssim_rgb.svg" width="360"> |
+| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_psnr_y.png" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_ssim.png" width="360"> |
+| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_xpsnr_y.png" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_vmaf.png" width="360"> |
+| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_msssim_luma.png" width="360"> | **FSIM luma approximation**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_fsim_luma.png" width="360"> |
+| **HaarPSI luma approximation**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_haarpsi_luma.png" width="360"> | **PSNR-HVS-M luma approximation, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_psnr_hvs_m_luma.png" width="360"> |
+| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_psnr_rgb.png" width="360"> | **MS-SSIM-RGB index**<br><img src="../docs/image_benchmark/vvenc/combined/charts/rd_msssim_rgb.png" width="360"> |
 
 </details>
 
@@ -285,11 +286,11 @@ BD-Rate summary:
 
 | Chart | Chart |
 | --- | --- |
-| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_psnr_y.svg" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_ssim.svg" width="360"> |
-| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_xpsnr_y.svg" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_vmaf.svg" width="360"> |
-| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_msssim_luma.svg" width="360"> | **FSIM luma approximation**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_fsim_luma.svg" width="360"> |
-| **HaarPSI luma approximation**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_haarpsi_luma.svg" width="360"> | **PSNR-HVS-M luma approximation, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_psnr_hvs_m_luma.svg" width="360"> |
-| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_psnr_rgb.svg" width="360"> | **MS-SSIM-RGB index**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_msssim_rgb.svg" width="360"> |
+| **PSNR-Y, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_psnr_y.png" width="360"> | **SSIM index**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_ssim.png" width="360"> |
+| **XPSNR-Y, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_xpsnr_y.png" width="360"> | **VMAF score**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_vmaf.png" width="360"> |
+| **MS-SSIM luma index**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_msssim_luma.png" width="360"> | **FSIM luma approximation**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_fsim_luma.png" width="360"> |
+| **HaarPSI luma approximation**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_haarpsi_luma.png" width="360"> | **PSNR-HVS-M luma approximation, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_psnr_hvs_m_luma.png" width="360"> |
+| **PSNR-RGB, dB**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_psnr_rgb.png" width="360"> | **MS-SSIM-RGB index**<br><img src="../docs/image_benchmark/vtm/combined/charts/rd_msssim_rgb.png" width="360"> |
 
 </details>
 
@@ -440,15 +441,15 @@ Summary CSV: [`docs/partition_maps/vtm/summary.csv`](../docs/partition_maps/vtm/
 <details>
 <summary>Show Standard grayscale original images and map pairs</summary>
 
-Each row links the original PNG with baseline and CSF SVG maps generated from VVenC `D_QP` traces at the same image size and QP. VTM map pairs are stored under `docs/partition_maps/vtm/` after a VTM full run.
+Each row links the original PNG with baseline and CSF PNG maps generated from VVenC `D_QP` traces at the same image size and QP. VTM map pairs are stored under `docs/partition_maps/vtm/` after a VTM full run.
 
 | Image | Original | Baseline | CSF |
 | --- | --- | --- | --- |
-| baboon | <img src="../data/datasets/images/standard_grayscale/png/baboon.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/baboon_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/baboon_csf.svg" width="240"> |
-| barbara | <img src="../data/datasets/images/standard_grayscale/png/barbara.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/barbara_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/barbara_csf.svg" width="240"> |
-| goldhill | <img src="../data/datasets/images/standard_grayscale/png/goldhill.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/goldhill_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/goldhill_csf.svg" width="240"> |
-| lenna | <img src="../data/datasets/images/standard_grayscale/png/lenna.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/lenna_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/lenna_csf.svg" width="240"> |
-| peppers | <img src="../data/datasets/images/standard_grayscale/png/peppers.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/peppers_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/peppers_csf.svg" width="240"> |
+| baboon | <img src="../data/datasets/images/standard_grayscale/png/baboon.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/baboon_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/baboon_csf.png" width="240"> |
+| barbara | <img src="../data/datasets/images/standard_grayscale/png/barbara.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/barbara_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/barbara_csf.png" width="240"> |
+| goldhill | <img src="../data/datasets/images/standard_grayscale/png/goldhill.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/goldhill_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/goldhill_csf.png" width="240"> |
+| lenna | <img src="../data/datasets/images/standard_grayscale/png/lenna.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/lenna_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/lenna_csf.png" width="240"> |
+| peppers | <img src="../data/datasets/images/standard_grayscale/png/peppers.png" width="180"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/peppers_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/standard_grayscale/peppers_csf.png" width="240"> |
 
 </details>
 
@@ -457,14 +458,14 @@ Each row links the original PNG with baseline and CSF SVG maps generated from VV
 <details>
 <summary>Show Synthetic original images and map pairs</summary>
 
-Each row links the original PNG with baseline and CSF SVG maps generated from VVenC `D_QP` traces at the same image size and QP. VTM map pairs are stored under `docs/partition_maps/vtm/` after a VTM full run.
+Each row links the original PNG with baseline and CSF PNG maps generated from VVenC `D_QP` traces at the same image size and QP. VTM map pairs are stored under `docs/partition_maps/vtm/` after a VTM full run.
 
 | Image | Original | Baseline | CSF |
 | --- | --- | --- | --- |
-| fine_texture_512x512 | <img src="../data/datasets/images/synthetic/png/fine_texture_512x512.png" width="180"> | <img src="../docs/partition_maps/vvenc/synthetic/fine_texture_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/synthetic/fine_texture_512x512_csf.svg" width="240"> |
-| mixed_content_512x512 | <img src="../data/datasets/images/synthetic/png/mixed_content_512x512.png" width="180"> | <img src="../docs/partition_maps/vvenc/synthetic/mixed_content_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/synthetic/mixed_content_512x512_csf.svg" width="240"> |
-| sharp_edges_512x512 | <img src="../data/datasets/images/synthetic/png/sharp_edges_512x512.png" width="180"> | <img src="../docs/partition_maps/vvenc/synthetic/sharp_edges_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/synthetic/sharp_edges_512x512_csf.svg" width="240"> |
-| smooth_gradient_512x512 | <img src="../data/datasets/images/synthetic/png/smooth_gradient_512x512.png" width="180"> | <img src="../docs/partition_maps/vvenc/synthetic/smooth_gradient_512x512_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/synthetic/smooth_gradient_512x512_csf.svg" width="240"> |
+| fine_texture_512x512 | <img src="../data/datasets/images/synthetic/png/fine_texture_512x512.png" width="180"> | <img src="../docs/partition_maps/vvenc/synthetic/fine_texture_512x512_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/synthetic/fine_texture_512x512_csf.png" width="240"> |
+| mixed_content_512x512 | <img src="../data/datasets/images/synthetic/png/mixed_content_512x512.png" width="180"> | <img src="../docs/partition_maps/vvenc/synthetic/mixed_content_512x512_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/synthetic/mixed_content_512x512_csf.png" width="240"> |
+| sharp_edges_512x512 | <img src="../data/datasets/images/synthetic/png/sharp_edges_512x512.png" width="180"> | <img src="../docs/partition_maps/vvenc/synthetic/sharp_edges_512x512_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/synthetic/sharp_edges_512x512_csf.png" width="240"> |
+| smooth_gradient_512x512 | <img src="../data/datasets/images/synthetic/png/smooth_gradient_512x512.png" width="180"> | <img src="../docs/partition_maps/vvenc/synthetic/smooth_gradient_512x512_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/synthetic/smooth_gradient_512x512_csf.png" width="240"> |
 
 </details>
 
@@ -473,34 +474,34 @@ Each row links the original PNG with baseline and CSF SVG maps generated from VV
 <details>
 <summary>Show Kodak original images and map pairs</summary>
 
-Each row links the original PNG with baseline and CSF SVG maps generated from VVenC `D_QP` traces at the same image size and QP. VTM map pairs are stored under `docs/partition_maps/vtm/` after a VTM full run.
+Each row links the original PNG with baseline and CSF PNG maps generated from VVenC `D_QP` traces at the same image size and QP. VTM map pairs are stored under `docs/partition_maps/vtm/` after a VTM full run.
 
 | Image | Original | Baseline | CSF |
 | --- | --- | --- | --- |
-| kodim01 | <img src="../data/datasets/images/kodak/png/kodim01.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim01_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim01_csf.svg" width="240"> |
-| kodim02 | <img src="../data/datasets/images/kodak/png/kodim02.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim02_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim02_csf.svg" width="240"> |
-| kodim03 | <img src="../data/datasets/images/kodak/png/kodim03.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim03_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim03_csf.svg" width="240"> |
-| kodim04 | <img src="../data/datasets/images/kodak/png/kodim04.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim04_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim04_csf.svg" width="240"> |
-| kodim05 | <img src="../data/datasets/images/kodak/png/kodim05.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim05_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim05_csf.svg" width="240"> |
-| kodim06 | <img src="../data/datasets/images/kodak/png/kodim06.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim06_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim06_csf.svg" width="240"> |
-| kodim07 | <img src="../data/datasets/images/kodak/png/kodim07.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim07_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim07_csf.svg" width="240"> |
-| kodim08 | <img src="../data/datasets/images/kodak/png/kodim08.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim08_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim08_csf.svg" width="240"> |
-| kodim09 | <img src="../data/datasets/images/kodak/png/kodim09.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim09_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim09_csf.svg" width="240"> |
-| kodim10 | <img src="../data/datasets/images/kodak/png/kodim10.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim10_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim10_csf.svg" width="240"> |
-| kodim11 | <img src="../data/datasets/images/kodak/png/kodim11.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim11_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim11_csf.svg" width="240"> |
-| kodim12 | <img src="../data/datasets/images/kodak/png/kodim12.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim12_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim12_csf.svg" width="240"> |
-| kodim13 | <img src="../data/datasets/images/kodak/png/kodim13.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim13_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim13_csf.svg" width="240"> |
-| kodim14 | <img src="../data/datasets/images/kodak/png/kodim14.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim14_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim14_csf.svg" width="240"> |
-| kodim15 | <img src="../data/datasets/images/kodak/png/kodim15.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim15_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim15_csf.svg" width="240"> |
-| kodim16 | <img src="../data/datasets/images/kodak/png/kodim16.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim16_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim16_csf.svg" width="240"> |
-| kodim17 | <img src="../data/datasets/images/kodak/png/kodim17.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim17_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim17_csf.svg" width="240"> |
-| kodim18 | <img src="../data/datasets/images/kodak/png/kodim18.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim18_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim18_csf.svg" width="240"> |
-| kodim19 | <img src="../data/datasets/images/kodak/png/kodim19.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim19_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim19_csf.svg" width="240"> |
-| kodim20 | <img src="../data/datasets/images/kodak/png/kodim20.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim20_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim20_csf.svg" width="240"> |
-| kodim21 | <img src="../data/datasets/images/kodak/png/kodim21.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim21_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim21_csf.svg" width="240"> |
-| kodim22 | <img src="../data/datasets/images/kodak/png/kodim22.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim22_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim22_csf.svg" width="240"> |
-| kodim23 | <img src="../data/datasets/images/kodak/png/kodim23.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim23_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim23_csf.svg" width="240"> |
-| kodim24 | <img src="../data/datasets/images/kodak/png/kodim24.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim24_baseline.svg" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim24_csf.svg" width="240"> |
+| kodim01 | <img src="../data/datasets/images/kodak/png/kodim01.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim01_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim01_csf.png" width="240"> |
+| kodim02 | <img src="../data/datasets/images/kodak/png/kodim02.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim02_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim02_csf.png" width="240"> |
+| kodim03 | <img src="../data/datasets/images/kodak/png/kodim03.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim03_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim03_csf.png" width="240"> |
+| kodim04 | <img src="../data/datasets/images/kodak/png/kodim04.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim04_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim04_csf.png" width="240"> |
+| kodim05 | <img src="../data/datasets/images/kodak/png/kodim05.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim05_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim05_csf.png" width="240"> |
+| kodim06 | <img src="../data/datasets/images/kodak/png/kodim06.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim06_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim06_csf.png" width="240"> |
+| kodim07 | <img src="../data/datasets/images/kodak/png/kodim07.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim07_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim07_csf.png" width="240"> |
+| kodim08 | <img src="../data/datasets/images/kodak/png/kodim08.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim08_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim08_csf.png" width="240"> |
+| kodim09 | <img src="../data/datasets/images/kodak/png/kodim09.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim09_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim09_csf.png" width="240"> |
+| kodim10 | <img src="../data/datasets/images/kodak/png/kodim10.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim10_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim10_csf.png" width="240"> |
+| kodim11 | <img src="../data/datasets/images/kodak/png/kodim11.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim11_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim11_csf.png" width="240"> |
+| kodim12 | <img src="../data/datasets/images/kodak/png/kodim12.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim12_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim12_csf.png" width="240"> |
+| kodim13 | <img src="../data/datasets/images/kodak/png/kodim13.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim13_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim13_csf.png" width="240"> |
+| kodim14 | <img src="../data/datasets/images/kodak/png/kodim14.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim14_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim14_csf.png" width="240"> |
+| kodim15 | <img src="../data/datasets/images/kodak/png/kodim15.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim15_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim15_csf.png" width="240"> |
+| kodim16 | <img src="../data/datasets/images/kodak/png/kodim16.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim16_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim16_csf.png" width="240"> |
+| kodim17 | <img src="../data/datasets/images/kodak/png/kodim17.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim17_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim17_csf.png" width="240"> |
+| kodim18 | <img src="../data/datasets/images/kodak/png/kodim18.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim18_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim18_csf.png" width="240"> |
+| kodim19 | <img src="../data/datasets/images/kodak/png/kodim19.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim19_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim19_csf.png" width="240"> |
+| kodim20 | <img src="../data/datasets/images/kodak/png/kodim20.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim20_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim20_csf.png" width="240"> |
+| kodim21 | <img src="../data/datasets/images/kodak/png/kodim21.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim21_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim21_csf.png" width="240"> |
+| kodim22 | <img src="../data/datasets/images/kodak/png/kodim22.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim22_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim22_csf.png" width="240"> |
+| kodim23 | <img src="../data/datasets/images/kodak/png/kodim23.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim23_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim23_csf.png" width="240"> |
+| kodim24 | <img src="../data/datasets/images/kodak/png/kodim24.png" width="180"> | <img src="../docs/partition_maps/vvenc/kodak/kodim24_baseline.png" width="240"> | <img src="../docs/partition_maps/vvenc/kodak/kodim24_csf.png" width="240"> |
 
 </details>
 

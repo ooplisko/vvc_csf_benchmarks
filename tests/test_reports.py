@@ -61,8 +61,8 @@ def test_image_report_builder_writes_summaries_and_charts(tmp_path: Path) -> Non
     assert (output / "same_qp_summary.csv").exists()
     assert (output / "per_image_summary.csv").exists()
     assert (output / "bd_rate_summary.csv").exists()
-    assert (output / "charts" / "rd_psnr_y.svg").exists()
-    assert (output / "qp_charts" / "img" / "qp_psnr_y.svg").exists()
+    assert (output / "charts" / "rd_psnr_y.png").exists()
+    assert (output / "qp_charts" / "img" / "qp_psnr_y.png").exists()
 
 
 def test_image_report_builder_writes_xlsx(tmp_path: Path) -> None:

@@ -113,7 +113,7 @@ def bd_rate_summary_table(path: str) -> list[str]:
 
 def chart_grid(base: str = "docs/image_benchmark/vvenc/combined", from_docs: bool = False) -> list[str]:
     rows = []
-    charts = [(label, f"{base}/charts/rd_{metric}.svg") for metric, label in ((metric, METRIC_CHART_LABELS[metric]) for metric in METRICS)]
+    charts = [(label, f"{base}/charts/rd_{metric}.png") for metric, label in ((metric, METRIC_CHART_LABELS[metric]) for metric in METRICS)]
     for index in range(0, len(charts), 2):
         left = charts[index]
         right = charts[index + 1] if index + 1 < len(charts) else ("", "")
@@ -216,8 +216,8 @@ def partition_map_table(dataset: str, image_dir: str, codec: str = "vvenc", from
             [
                 name,
                 f'<img src="{rel(f"{image_dir}/{image.name}", from_docs)}" width="180">',
-                f'<img src="{rel(f"{root}/{name}_baseline.svg", from_docs)}" width="240">',
-                f'<img src="{rel(f"{root}/{name}_csf.svg", from_docs)}" width="240">',
+                f'<img src="{rel(f"{root}/{name}_baseline.png", from_docs)}" width="240">',
+                f'<img src="{rel(f"{root}/{name}_csf.png", from_docs)}" width="240">',
             ]
         )
     return markdown_table(["Image", "Original", "Baseline", "CSF"], rows)
@@ -282,7 +282,8 @@ def build_readme() -> str:
             [
                 ["Smoke checks", "One-image encode/decode checks for VVenC or VTM"],
                 ["Full image benchmark", "Per-image/per-QP metric CSVs, summaries, XLSX workbooks, and RD charts"],
-                ["Partition maps", "CU SVG overlays and summaries from `D_QP` traces for VVenC and VTM"],
+                ["Partition maps", "CU PNG overlays and summaries from `D_QP` traces for VVenC and VTM"],
+                ["Focused VTM QP study", "Five grayscale + five color standard images, QP-axis charts, and per-QP partition overlays"],
                 ["VTM validation", "Historical VTM 18.0 anchor replication plus local VTM 23.0 baseline/CSF curves"],
                 ["Report rendering", "Root README and detailed benchmark report regenerated from committed artifacts"],
             ],
@@ -308,6 +309,7 @@ def build_readme() -> str:
             [
                 ["Run full VVenC benchmark", "`.\\.venv\\Scripts\\python.exe run_all.py full --codec vvenc --clean`"],
                 ["Run full VTM benchmark", "`.\\.venv\\Scripts\\python.exe run_all.py full --codec vtm --clean`"],
+                ["Run focused VTM QP study", "`.\\.venv\\Scripts\\python.exe tools\\research\\run_vtm_qp_study.py --clean`"],
                 ["Re-render existing reports", "`.\\.venv\\Scripts\\python.exe tools\\reporting\\render_readme.py`"],
                 ["Run tests", "`.\\.venv\\Scripts\\python.exe -m pytest -q`"],
                 ["Build VVenC encoders", "`.\\.venv\\Scripts\\python.exe tools\\building\\build_vvenc.py all`"],
@@ -344,6 +346,7 @@ def build_readme() -> str:
                 ["VTM 23.0 metrics", "[`docs/image_benchmark/vtm/`](docs/image_benchmark/vtm/)"],
                 ["VVenC partition maps", "[`docs/partition_maps/vvenc/`](docs/partition_maps/vvenc/)"],
                 ["VTM partition maps", "[`docs/partition_maps/vtm/`](docs/partition_maps/vtm/)"],
+                ["Focused VTM QP study", "[`docs/vtm_qp_study/`](docs/vtm_qp_study/)"],
                 ["VTM validation", "[`docs/vtm_validation/`](docs/vtm_validation/)"],
                 ["Matrix evidence", "[`docs/matrices/`](docs/matrices/)"],
             ],
@@ -372,6 +375,7 @@ def build_readme() -> str:
             ["Document", "Use"],
             [
                 ["[`docs/image_benchmark_report.md`](docs/image_benchmark_report.md)", "Main scientific report for image benchmark results"],
+                ["[`docs/vtm_qp_study/`](docs/vtm_qp_study/)", "Focused VTM-only QP-axis study for the standard grayscale/color images"],
                 ["[`binaries/README.md`](binaries/README.md)", "Binary layout, download, and build instructions"],
                 ["[`docs/vtm_validation/`](docs/vtm_validation/)", "VTM anchor validation and VTM 23.0 cross-checks"],
                 ["[`CITATION.cff`](CITATION.cff)", "Citation metadata"],
@@ -505,7 +509,8 @@ def build_report() -> str:
                 ["Additional datasets", "4 synthetic + 24 Kodak images"],
                 ["Frames", "1 frame per image"],
                 ["VVenC encode pixel format", "`yuv420p`, 8-bit"],
-                ["VTM encode pixel format", "`yuv444p`, 8-bit"],
+                ["VTM broad benchmark conversion", "`ffmpeg_444`, 8-bit"],
+                ["Focused VTM QP study conversion", "`opencv_444`, 8-bit by default; `ffmpeg_444` available as a control"],
                 ["QP points", "22, 27, 32, 37"],
                 ["Preset", "`medium`"],
                 ["VVenC baseline/CSF", "`vvenc_default` vs. `vvenc_csf --CSFScalingList 1`"],
@@ -526,7 +531,7 @@ def build_report() -> str:
         "",
         "Encoder behavior is evaluated through same-QP comparison and equal-bpp interpolation. For scientific interpretation, PSNR-RGB and MS-SSIM-RGB are the primary metrics because the validation reports cross-check those naming and measurement protocols against external VTM anchors: [CompressAI](vtm_validation/compressai/README.md) covers both PSNR-RGB and MS-SSIM-RGB, while [lossy-vae](vtm_validation/lossy-vae/README.md) independently checks PSNR-RGB and BPP.",
         "",
-        "Luma means the Y component in the YUV representation. The luma metrics and approximations remain useful diagnostic indicators, but they are not the primary externally anchored claims in this repository.",
+        "Luma means the Y component in the YUV representation. The luma metrics remain useful diagnostic indicators, but they are not the primary externally anchored claims in this repository.",
         "",
         *markdown_table(
             ["Metric", "Source"],
@@ -544,7 +549,7 @@ def build_report() -> str:
             ],
         ),
         "",
-        "The local luma and approximation metrics are not bit-exact replacements for pinned external implementations. External implementations can differ by RGB/YUV input handling, chroma use, padding, scaling, filters, multi-scale weights, phase congruency details, and Haar-wavelet details. Here they are reproducible in-repository indicators applied identically to baseline and CSF.",
+        "The local approximation metrics are not bit-exact replacements for pinned external implementations. External implementations can differ by RGB/YUV input handling, chroma use, padding, scaling, filters, multi-scale weights, phase congruency details, and Haar-wavelet details. Here they are reproducible in-repository indicators applied identically to baseline and CSF.",
         "",
         "## Codec-Separated Results",
         "",
@@ -571,7 +576,7 @@ def build_report() -> str:
                 *details(
                     f"Show {title} original images and map pairs",
                     [
-                        "Each row links the original PNG with baseline and CSF SVG maps generated from VVenC `D_QP` traces at the same image size and QP. VTM map pairs are stored under `docs/partition_maps/vtm/` after a VTM full run.",
+                        "Each row links the original PNG with baseline and CSF PNG maps generated from VVenC `D_QP` traces at the same image size and QP. VTM map pairs are stored under `docs/partition_maps/vtm/` after a VTM full run.",
                         "",
                         *partition_map_table(dataset, image_dir, from_docs=True),
                     ],

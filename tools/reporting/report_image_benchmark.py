@@ -6,6 +6,7 @@ import html
 import logging
 import math
 import sys
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 
@@ -267,7 +268,7 @@ def render_metric_charts(rows: list[dict[str, str]], output_dir: Path) -> None:
             points[mode].append({"bpp": bpp, "quality": quality, "qp": int(group[0]["qp"])})
         for mode in points:
             points[mode].sort(key=lambda point: float(point["bpp"]))
-        (output_dir / f"rd_{metric}.svg").write_text(_svg_chart(metric, points), encoding="utf-8")
+        _write_svg_as_png(_svg_chart(metric, points), output_dir / f"rd_{metric}.png")
 
 
 def render_per_image_qp_charts(rows: list[dict[str, str]], output_dir: Path) -> None:
@@ -287,7 +288,31 @@ def render_per_image_qp_charts(rows: list[dict[str, str]], output_dir: Path) -> 
                     points[mode].append({"qp": int(row["qp"]), "quality": f(row, metric)})
             for mode in points:
                 points[mode].sort(key=lambda point: int(point["qp"]))
-            (image_dir / f"qp_{metric}.svg").write_text(_svg_qp_chart(image, metric, points), encoding="utf-8")
+            _write_svg_as_png(_svg_qp_chart(image, metric, points), image_dir / f"qp_{metric}.png")
+
+
+def _write_svg_as_png(svg: str, output: Path) -> None:
+    """Render an internally generated SVG string to a PNG artifact."""
+
+    try:
+        from reportlab.graphics import renderPM
+        from svglib.svglib import svg2rlg
+    except ImportError as exc:
+        raise RuntimeError(
+            "PNG chart rendering requires svglib and reportlab. Install them with: pip install -r requirements.txt"
+        ) from exc
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".svg", delete=False) as stream:
+        stream.write(svg)
+        temp_svg = Path(stream.name)
+    try:
+        drawing = svg2rlg(str(temp_svg))
+        if drawing is None:
+            raise RuntimeError(f"Could not parse generated SVG for {output}")
+        renderPM.drawToFile(drawing, str(output), fmt="PNG")
+    finally:
+        temp_svg.unlink(missing_ok=True)
 
 
 # ====================================================================================================================
@@ -335,7 +360,7 @@ def _interp_metric(rows: list[dict[str, str]], bpp: float, metric: str) -> float
 
 
 # ====================================================================================================================
-# SVG rendering
+# PNG chart rendering
 # ====================================================================================================================
 
 
@@ -594,7 +619,7 @@ def _safe_name(value: str) -> str:
 
 
 class ImageBenchmarkReportBuilder:
-    """Builds CSV summaries and SVG charts from an existing image_metrics.csv file."""
+    """Builds CSV summaries and PNG charts from an existing image_metrics.csv file."""
 
     def __init__(self, metrics_csv: Path, output: Path, write_xlsx_output: bool = False) -> None:
         self.metrics_csv = metrics_csv
@@ -623,7 +648,7 @@ class ImageBenchmarkReportBuilder:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Create summary CSVs and SVG charts for image CSF benchmark metrics.")
+    parser = argparse.ArgumentParser(description="Create summary CSVs and PNG charts for image CSF benchmark metrics.")
     parser.add_argument("metrics_csv", type=Path)
     parser.add_argument("--output", type=Path, default=Path("docs/image_benchmark"))
     parser.add_argument("--xlsx", action="store_true", help="Write results.xlsx with raw metrics, same-QP summary, and BD-Rate sheets.")

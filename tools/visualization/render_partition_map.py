@@ -4,6 +4,8 @@ import argparse
 import csv
 from pathlib import Path
 
+from tools.visualization.partition_overlay import render_partition_overlay
+
 
 COLORS = {
     "ctu": "#6b7280",
@@ -66,9 +68,10 @@ def render_svg(blocks: list[dict[str, str]], width: int, height: int) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Render a CU/TU partition CSV into an SVG block map.")
+    parser = argparse.ArgumentParser(description="Render a CU/TU partition CSV into a PNG block overlay.")
     parser.add_argument("csv", type=Path, help="CSV with frame/poc,type,x,y,width,height columns.")
-    parser.add_argument("--output", type=Path, default=None, help="Output SVG path.")
+    parser.add_argument("--output", type=Path, default=None, help="Output PNG path.")
+    parser.add_argument("--image", type=Path, default=None, help="Optional source image for visual overlay.")
     parser.add_argument("--frame", type=int, default=0, help="POC/frame to render.")
     parser.add_argument("--width", type=int, default=None, help="Picture width. Inferred from blocks when omitted.")
     parser.add_argument("--height", type=int, default=None, help="Picture height. Inferred from blocks when omitted.")
@@ -79,9 +82,8 @@ def main() -> int:
         raise RuntimeError(f"No blocks for frame {args.frame} in {args.csv}")
 
     width, height = infer_canvas(blocks, args.width, args.height)
-    output = args.output or args.csv.with_suffix(".svg")
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(render_svg(blocks, width, height), encoding="utf-8")
+    output = args.output or args.csv.with_suffix(".png")
+    render_partition_overlay(blocks, width, height, output, args.image)
     print(f"Wrote {output}")
     return 0
 

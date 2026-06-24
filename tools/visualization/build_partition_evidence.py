@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from tools.visualization.parse_vvenc_qp_trace import parse_trace, write_csv as write_partition_csv
-from tools.visualization.render_partition_map import render_svg
+from tools.visualization.partition_overlay import render_partition_overlay
 from vvenc_csf.core import CommandRunner, ffprobe_size, platform_executable
 from vvenc_csf.encoding import VTM_ENCODER_CONFIG
 
@@ -119,10 +119,9 @@ def build_for_image(
         runner.run(cmd, log)
         rows = parse_trace(trace, frame=0, mode=mode)
         csv_path = args.work_dir / dataset / name / mode / f"{name}_{mode}.csv"
-        svg_path = args.output / dataset / f"{name}_{mode}.svg"
+        png_path = args.output / dataset / f"{name}_{mode}.png"
         write_partition_csv(rows, csv_path)
-        svg_path.parent.mkdir(parents=True, exist_ok=True)
-        svg_path.write_text(render_svg([{key: str(value) for key, value in row.items()} for row in rows], width, height), encoding="utf-8")
+        render_partition_overlay([{key: str(value) for key, value in row.items()} for row in rows], width, height, png_path, image)
         summary_rows.append(summarize(rows, name, mode, width, height))
 
 
