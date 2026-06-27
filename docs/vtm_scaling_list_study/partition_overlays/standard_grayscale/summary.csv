@@ -1,0 +1,13 @@
+dataset,image,mode,qp,width,height,cu_count,min_area,max_area,avg_area,dominant_sizes
+standard_grayscale,baboon,scalinglist_default,22,512,512,4137,16,1024,63.365723954556444,8x4:811; 4x4:760; 4x8:737; 8x8:579; 16x8:307; 16x4:304
+standard_grayscale,baboon,scalinglist_default,27,512,512,3722,16,1024,70.4309511015583,8x4:678; 4x4:654; 4x8:543; 8x8:524; 16x4:409; 16x8:320
+standard_grayscale,baboon,scalinglist_default,32,512,512,3271,16,1024,80.14185264445123,8x4:560; 4x4:460; 4x8:458; 8x8:447; 16x4:367; 16x8:339
+standard_grayscale,baboon,scalinglist_default,37,512,512,2335,16,1024,112.26723768736616,8x4:314; 4x8:288; 4x4:256; 8x8:247; 16x8:246; 16x4:197
+standard_grayscale,goldhill,scalinglist_default,22,512,512,4518,16,1024,58.02213368747233,8x4:940; 4x8:931; 4x4:846; 8x8:584; 16x4:328; 4x16:293
+standard_grayscale,goldhill,scalinglist_default,27,512,512,3927,16,1024,66.75426534250063,8x4:771; 4x8:745; 4x4:704; 8x8:433; 4x16:315; 16x4:260
+standard_grayscale,goldhill,scalinglist_default,32,512,512,2727,16,1024,96.12907957462413,4x8:436; 8x4:385; 8x8:385; 4x4:270; 16x8:247; 8x16:230
+standard_grayscale,goldhill,scalinglist_default,37,512,512,1669,16,1024,157.0665068903535,8x16:233; 16x8:192; 8x8:185; 4x16:157; 16x4:126; 16x16:125
+standard_grayscale,peppers,scalinglist_default,22,512,512,3573,16,1024,73.36803806325217,8x4:663; 4x4:610; 8x8:561; 4x8:558; 16x8:252; 4x16:236
+standard_grayscale,peppers,scalinglist_default,27,512,512,2735,16,1024,95.84789762340037,8x8:425; 4x4:398; 8x4:396; 4x8:385; 8x16:211; 4x16:209
+standard_grayscale,peppers,scalinglist_default,32,512,512,2074,16,4096,126.3953712632594,8x8:311; 8x16:237; 4x8:221; 8x4:220; 4x4:198; 4x16:163
+standard_grayscale,peppers,scalinglist_default,37,512,512,1417,16,4096,184.99929428369796,8x8:197; 8x16:180; 16x8:179; 16x16:128; 16x4:116; 4x16:94
