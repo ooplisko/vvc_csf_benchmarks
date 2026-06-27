@@ -27,3 +27,23 @@ def test_partition_overlay_writes_png_on_source_image(tmp_path: Path) -> None:
     rendered = cv2.imread(str(output), cv2.IMREAD_COLOR)
     assert rendered is not None
     assert rendered.shape == (32, 32, 3)
+
+
+def test_partition_overlay_accepts_custom_cu_color(tmp_path: Path) -> None:
+    image = tmp_path / "source.png"
+    output = tmp_path / "overlay.png"
+    source = np.full((32, 32, 3), 40, dtype=np.uint8)
+    assert cv2.imwrite(str(image), source)
+
+    render_partition_overlay(
+        [{"type": "cu", "x": "2", "y": "2", "width": "24", "height": "24", "depth": "0"}],
+        32,
+        32,
+        output,
+        image,
+        cu_color=(178, 114, 0),
+    )
+
+    rendered = cv2.imread(str(output), cv2.IMREAD_COLOR)
+    assert rendered is not None
+    assert output.stat().st_size > 0

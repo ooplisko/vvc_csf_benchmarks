@@ -13,7 +13,6 @@ COLORS_BGR = {
     "pu": (234, 51, 147),
 }
 
-
 def row_int(row: dict[str, str], name: str, default: int = 0) -> int:
     value = row.get(name, "")
     return int(value) if value not in ("", None) else default
@@ -25,6 +24,7 @@ def render_partition_overlay(
     height: int,
     output: Path,
     image: Path | None = None,
+    cu_color: tuple[int, int, int] | None = None,
 ) -> None:
     """Render codec partition blocks as a PNG overlay on top of the source image."""
 
@@ -34,7 +34,7 @@ def render_partition_overlay(
 
     for row in blocks:
         kind = row.get("type", "cu").lower()
-        color = COLORS_BGR.get(kind, (17, 24, 39))
+        color = cu_color if cu_color is not None and kind == "cu" else COLORS_BGR.get(kind, (17, 24, 39))
         x = row_int(row, "x")
         y = row_int(row, "y")
         block_width = row_int(row, "width")
