@@ -2,6 +2,10 @@
 
 This study examines how source spatial information, quantization parameter (QP), additive disturbances, and AWGN realizations affect coding-unit partitioning in the unmodified [VTM 23.0 reference encoder](https://vcgit.hhi.fraunhofer.de/jvet/VVCSoftware_VTM/-/tree/VTM-23.0). The evaluation covers all 24 images in the [Kodak Lossless True Color Image Suite](https://r0k.us/graphics/kodak/). No custom or CSF matrix is used.
 
+## Spatial-Complexity Extension
+
+The [spatial-complexity comparison](spatial_complexity/README.md) compares Sobel SD with luma SD, edge fraction and three GLCM descriptors. It examines their correlations with CU count and the effect of disturbances at QP 22, 27, 32 and 37. All conditions and three AWGN realizations are represented by 1,248 encodings, with image-level tables, uncertainty estimates and sensitivity checks.
+
 ## Key Findings
 
 - Mean CU area increases from QP 22 to QP 37 for every Kodak image. At each fixed QP, higher source spatial information is associated with higher CU density and therefore smaller mean CUs.
@@ -26,7 +30,9 @@ The PNG-to-YUV conversion is implemented in [`ImageConverter.to_yuv444p_opencv()
 
 ## Reproduction
 
-Run the following commands from the repository root. The first command installs the published Windows codec binaries; the study runner then prepares the deterministic stimuli and executes the complete baseline experiment before the reporting command regenerates the committed tables and figures.
+For the existing spatial-complexity tables, use the [report-only regeneration command](spatial_complexity/README.md#reproduction). It requires no VTM encoding or statistical resampling.
+
+The commands below describe a fresh full experiment, not a prerequisite for reading or regenerating the saved extension report. Run them from the repository root only when a new encoding run is intended. The first command installs the published Windows codec binaries; the study runner then prepares the deterministic stimuli and executes the complete baseline experiment before the reporting command regenerates the committed tables and figures. Full encoding can take substantial time; its scope and duration should be assessed before the user starts it.
 
 ```powershell
 python tools/data_prep/download_binaries.py
