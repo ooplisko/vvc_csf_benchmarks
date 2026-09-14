@@ -123,10 +123,13 @@ def simultaneous_basic_intervals(
     distribution: np.ndarray,
     *,
     alpha: float = 0.025,
+    bounds: tuple[float | np.ndarray, float | np.ndarray] = (-2.0, 2.0),
 ) -> dict[str, np.ndarray | float]:
     """Max-absolute-error basic bootstrap CIs for one supplied contrast family.
 
-    Correlation differences have support [-2, 2]. Only fully evaluable contrasts
+    Bounds default to [-2, 2] for correlation differences; differences of changes
+    need [-4, 4]. Arrays permit coordinate-specific support in a mixed family.
+    Only fully evaluable contrasts
     enter the maximum; others retain NaN intervals and explicit status/counts.
     The caller constructs paired contrasts before calling this function.
     """
@@ -134,13 +137,16 @@ def simultaneous_basic_intervals(
     if not 0 < alpha < 1:
         raise ValueError("alpha must be between zero and one")
     observed, distribution, result = _interval_inputs(observed, distribution)
+    lower, upper = (np.broadcast_to(bound, observed.shape) for bound in bounds)
+    if not (np.isfinite(lower).all() and np.isfinite(upper).all() and (lower < upper).all()):
+        raise ValueError("Interval bounds must be finite and increasing")
     valid = result["evaluable"]
     critical = np.nan
     if valid.any():
         errors = np.max(np.abs(distribution[:, valid] - observed[valid]), axis=1)
         critical = float(np.quantile(errors, 1.0 - alpha, method="linear"))
-        result["low"][valid] = np.maximum(-2.0, observed[valid] - critical)
-        result["high"][valid] = np.minimum(2.0, observed[valid] + critical)
+        result["low"][valid] = np.maximum(lower[valid], observed[valid] - critical)
+        result["high"][valid] = np.minimum(upper[valid], observed[valid] + critical)
     return {**result, "critical_value": critical}
 
 

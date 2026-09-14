@@ -106,6 +106,21 @@ def test_simultaneous_intervals_use_joint_max_errors_and_clip_support() -> None:
     assert empty["invalid_resamples"].tolist() == [3]
 
 
+def test_difference_of_changes_and_mixed_families_keep_their_support() -> None:
+    observed = np.array([-1.5, -3.8])
+    draws = np.array([[-1.0, -3.3], [-0.5, -2.8]])
+    result = simultaneous_basic_intervals(observed, draws, alpha=0.5, bounds=(-4, 4))
+    assert result["critical_value"] == pytest.approx(0.75)
+    np.testing.assert_allclose(result["low"], [-2.25, -4])
+    np.testing.assert_allclose(result["high"], [-0.75, -3.05])
+    mixed = simultaneous_basic_intervals(
+        observed, draws, alpha=0.5, bounds=(np.array([-2, -4]), np.array([2, 4])))
+    np.testing.assert_allclose(mixed["low"], [-2, -4])
+    np.testing.assert_array_equal(mixed["high"], result["high"])
+    with pytest.raises(ValueError, match="bounds"):
+        simultaneous_basic_intervals(observed, draws, bounds=(2, -2))
+
+
 def test_holm_keeps_missing_hypotheses_in_family_size_and_original_order() -> None:
     pvalues = np.array([0.04, np.nan, 0.01, 0.03, 0.8])
     np.testing.assert_allclose(holm_adjust(pvalues), [0.12, np.nan, 0.05, 0.12, 1.0], equal_nan=True)
