@@ -539,6 +539,26 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
                           "Broader generalization requires other acquisition conditions, image domains and encoder configurations.")
                  for line in lines]
         plot_validation(tables, output / "figures", LABELS, QP_STYLES)
+    lines += [
+        "## References",
+        "",
+        "1. Bross, B., et al. *Overview of the Versatile Video Coding (VVC) Standard and its Applications*. IEEE Transactions on Circuits and Systems for Video Technology, 31(10), 3736–3764 (2021). [PDF](https://publications.rwth-aachen.de/record/835221/files/835221.pdf).",
+        "",
+        "2. Zhang, Y., Zhang, Z., Wang, X., Wang, X., Ge, J., Bian, F. *An Adaptive Infrared Image Preprocessing Method Based on Background Complexity Descriptors*. IMCCC, 344–349 (2018). [PDF](https://sci.bban.top/pdf/10.1109/imccc.2018.00079.pdf).",
+        "",
+        "3. Yu, H., Winkler, S. *Image Complexity and Spatial Information*. QoMEX, 12–17 (2013). [PDF](https://malea.winkler.site/Publications/qomex2013si.pdf).",
+        "",
+        "4. Zhao, J., Wu, A., Zhang, Q. *SVM-Based Fast CU Partition Decision Algorithm for VVC Intra Coding*. Electronics, 11(14), 2147 (2022). [PDF](https://mdpi-res.com/d_attachment/electronics/electronics-11-02147/article_deploy/electronics-11-02147.pdf).",
+        "",
+        "5. Liu, H., Zhu, S., Xiong, R., Liu, G., Zeng, B. *Cross-Block Difference Guided Fast CU Partition for VVC Intra Coding*. Author preprint, arXiv:2202.05677 (2022). [PDF](https://arxiv.org/pdf/2202.05677).",
+        "",
+        "6. Haralick, R. M., Shanmugam, K., Dinstein, I. *Textural Features for Image Classification*. IEEE Transactions on Systems, Man, and Cybernetics, SMC-3(6), 610–621 (1973). [PDF](https://haralick.org/journals/TexturalFeatures.pdf).",
+        "",
+        "7. Bakkouri, S., Bakkouri, I. *A Lightweight Learning-Based QTMT Decision Framework for VVC Inter-Coding*. Applied Sciences, 16(3), 1368 (2026). [PDF](https://mdpi-res.com/d_attachment/applsci/applsci-16-01368/article_deploy/applsci-16-01368.pdf).",
+        "",
+        "8. Kodak. *Kodak Lossless True Color Image Suite*. [Dataset](https://r0k.us/graphics/kodak/).",
+        "",
+    ]
     (output / "README.md").write_text("\n".join(lines), encoding="utf-8")
 
 

@@ -456,3 +456,21 @@ The analysis writes CSV tables and bootstrap caches to the results directory sho
 ## Limitations
 
 The results describe 24 Kodak images and 48 central DIV2K crops in single-frame intra coding, one VTM configuration and the tested disturbances. Additional seeds reuse the same images; sinusoidal bands have one orientation and period. No temporal prediction, motion or video-sequence behavior is evaluated. The tested synthetic disturbances do not represent every acquisition artifact. The measured endpoint is final image-level CU count, not local split prediction or the encoder's search cost. A high correlation does not by itself make a descriptor a validated predictor or a fast partitioning algorithm. These associations do not establish causation, predictive accuracy, encoding speedup or improved visual quality. Broader generalization requires other acquisition conditions, image domains and encoder configurations.
+
+## References
+
+1. Bross, B., et al. *Overview of the Versatile Video Coding (VVC) Standard and its Applications*. IEEE Transactions on Circuits and Systems for Video Technology, 31(10), 3736–3764 (2021). [PDF](https://publications.rwth-aachen.de/record/835221/files/835221.pdf).
+
+2. Zhang, Y., Zhang, Z., Wang, X., Wang, X., Ge, J., Bian, F. *An Adaptive Infrared Image Preprocessing Method Based on Background Complexity Descriptors*. IMCCC, 344–349 (2018). [PDF](https://sci.bban.top/pdf/10.1109/imccc.2018.00079.pdf).
+
+3. Yu, H., Winkler, S. *Image Complexity and Spatial Information*. QoMEX, 12–17 (2013). [PDF](https://malea.winkler.site/Publications/qomex2013si.pdf).
+
+4. Zhao, J., Wu, A., Zhang, Q. *SVM-Based Fast CU Partition Decision Algorithm for VVC Intra Coding*. Electronics, 11(14), 2147 (2022). [PDF](https://mdpi-res.com/d_attachment/electronics/electronics-11-02147/article_deploy/electronics-11-02147.pdf).
+
+5. Liu, H., Zhu, S., Xiong, R., Liu, G., Zeng, B. *Cross-Block Difference Guided Fast CU Partition for VVC Intra Coding*. Author preprint, arXiv:2202.05677 (2022). [PDF](https://arxiv.org/pdf/2202.05677).
+
+6. Haralick, R. M., Shanmugam, K., Dinstein, I. *Textural Features for Image Classification*. IEEE Transactions on Systems, Man, and Cybernetics, SMC-3(6), 610–621 (1973). [PDF](https://haralick.org/journals/TexturalFeatures.pdf).
+
+7. Bakkouri, S., Bakkouri, I. *A Lightweight Learning-Based QTMT Decision Framework for VVC Inter-Coding*. Applied Sciences, 16(3), 1368 (2026). [PDF](https://mdpi-res.com/d_attachment/applsci/applsci-16-01368/article_deploy/applsci-16-01368.pdf).
+
+8. Kodak. *Kodak Lossless True Color Image Suite*. [Dataset](https://r0k.us/graphics/kodak/).
