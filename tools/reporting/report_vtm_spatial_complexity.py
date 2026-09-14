@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -15,6 +16,10 @@ import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tools.reporting.vtm_noise_validation_report import (
+    TABLES as VALIDATION_TABLES, load_validation_tables, plot_validation, validation_section,
+)
 
 LABELS = {"sobel_si": "Sobel SD", "luma_sd": "Luma SD", "edge_fraction": "Edge fraction",
           "glcm_contrast": "GLCM contrast", "glcm_entropy": "GLCM entropy",
@@ -32,6 +37,10 @@ TABLE_DESCRIPTIONS = {
     "paired_change_correlations": "Supplementary association between within-image descriptor and CU changes",
     "paired_changes": "Individual descriptor and CU changes relative to the clean image",
 }
+NOISE_TABLES = {
+    "exploratory_noise_comparisons": "Direct comparisons of noise responses between homogeneity and other descriptors",
+    "noise_rank_diagnostics": "Changes in image ranks and descriptor spread under AWGN",
+}
 ROOT = Path(__file__).resolve().parents[2]
 QP_STYLES = {22: ("#0072B2", "o"), 27: ("#CC79A7", "D"),
              32: ("#D55E00", "s"), 37: ("#009E73", "^")}
@@ -41,9 +50,11 @@ def disturbance_qps(correlations: pd.DataFrame) -> tuple[int, ...]:
     return tuple(sorted(correlations.loc[correlations.primary & (correlations.distortion != "clean"), "qp"].unique()))
 
 
-def load_tables(analysis: Path) -> dict[str, pd.DataFrame]:
+def load_tables(analysis: Path, validation: Path | None = None) -> dict[str, pd.DataFrame]:
     """Check the saved measurement matrix before creating report artifacts."""
 
+    if validation is not None and not validation.is_dir():
+        raise ValueError(f"Missing DIV2K analysis directory: {validation}")
     tables = {}
     for name in TABLE_DESCRIPTIONS:
         path = analysis / f"{name}.csv"
@@ -105,7 +116,95 @@ def load_tables(analysis: Path) -> dict[str, pd.DataFrame]:
                           if row.distortion != "clean" or row.feature != "sobel_si"}
     if set(contrasts[["family", *condition_columns, "feature"]].itertuples(index=False, name=None)) != expected_contrasts:
         raise ValueError("Comparison cells do not match the primary correlations")
+    present = [(analysis / f"{name}.csv").is_file() for name in NOISE_TABLES]
+    if any(present) and not all(present):
+        raise ValueError("Both noise-sensitivity tables are required together")
+    if all(present):
+        for name in NOISE_TABLES:
+            tables[name] = pd.read_csv(analysis / f"{name}.csv", dtype={"seed": str}, float_precision="round_trip")
+        comparisons = tables["exploratory_noise_comparisons"]
+        expected = {(family, feature, qp) for family in ("primary_sigma30", "equal_mean3_sigma30")
+                    for feature in LABELS if feature != "glcm_homogeneity" for qp in QP_STYLES}
+        if (len(comparisons) != 40 or set(comparisons[["family", "feature", "qp"]].itertuples(index=False, name=None)) != expected
+                or not comparisons.analysis_status.eq("exploratory").all() or not comparisons.n_images.eq(24).all()
+                or not comparisons.family_size.eq(20).all() or not comparisons.alpha.eq(0.05).all()):
+            raise ValueError("Unexpected exploratory noise-comparison families")
+        if not np.allclose(comparisons.oriented_difference, comparisons.b_homogeneity - comparisons.b_other, atol=1e-12, rtol=0):
+            raise ValueError("Noise differences do not match their component changes")
+        supported = comparisons.evaluable & ((comparisons.simultaneous_low > 0) | (comparisons.simultaneous_high < 0))
+        if not supported.equals(comparisons.excludes_zero):
+            raise ValueError("Noise comparison flags do not match their intervals")
+        diagnostics = tables["noise_rank_diagnostics"]
+        variants = {(feature, "primary") for feature in LABELS}
+        variants |= {(feature, variant) for feature in LABELS if feature.startswith("glcm_")
+                     for variant in ("levels32", "horizontal")}
+        expected_diagnostics = {(feature, variant, level, seed, qp) for feature, variant in variants
+                                for level in (5, 15, 30) for seed in ("20260811", "20260812", "20260813") for qp in QP_STYLES}
+        if (len(diagnostics) != len(expected_diagnostics) or not diagnostics.n_images.eq(24).all()
+                or set(diagnostics[["feature", "variant", "level", "seed", "qp"]].itertuples(index=False, name=None)) != expected_diagnostics):
+            raise ValueError("Unexpected noise rank-diagnostic conditions")
+    tables.update(load_validation_tables(validation or analysis / "div2k"))
     return tables
+
+
+def noise_sensitivity_section(tables: dict[str, pd.DataFrame]) -> list[str]:
+    if "exploratory_noise_comparisons" not in tables:
+        return []
+    comparisons = tables["exploratory_noise_comparisons"]
+    lines = ["<details>", "<summary>Exploratory comparison of descriptor responses to strong AWGN</summary>", "",
+             "To compare noise responses directly, define `C = B[homogeneity] − B[other]` at sigma 30. "
+             "A negative C means a more negative direction-adjusted change for homogeneity. "
+             "Weakening of homogeneity itself additionally requires a negative B. "
+             "Comparing the significance labels of two separate B intervals does not test C.", "",
+             "These comparisons were selected after inspecting the original results and are exploratory. "
+             "Each of the two summaries below uses its own family of 20 simultaneous intervals at alpha 0.05; "
+             "they do not provide a joint error guarantee across both summaries or replace the original comparisons. "
+             "An asterisk means that the interval for C excludes zero. Independent images are needed to confirm the pattern.", ""]
+    for family, title in (("primary_sigma30", "Primary AWGN realization"),
+                          ("equal_mean3_sigma30", "Equal mean of three realization-specific changes")):
+        selected = comparisons[comparisons.family.eq(family)]
+        lines += [f"**{title}**", "", "| Compared with homogeneity | QP 22 | QP 27 | QP 32 | QP 37 |",
+                  "| --- | ---: | ---: | ---: | ---: |"]
+        for feature, label in LABELS.items():
+            if feature == "glcm_homogeneity":
+                continue
+            rows = selected[selected.feature.eq(feature)].set_index("qp").loc[list(QP_STYLES)]
+            lines.append(f"| {label} | " + " | ".join(
+                f"{row.oriented_difference:+.3f}{'*' if row.excludes_zero else ''}" for row in rows.itertuples()) + " |")
+        lines += ["", f"The simultaneous interval half-width is {selected.critical_value.iloc[0]:.3f}; "
+                  "exact intervals are in the comparison CSV.", ""]
+    lines += ["The second summary averages correlations/changes across seeds, with the same sampled images for each seed. "
+              "It keeps 24 independent images and describes uncertainty conditional on these three realizations. "
+              "Neither table establishes that edge fraction, contrast or entropy is stable.", "",
+              "**Image-rank diagnostic at QP 32, sigma 30, primary seed**", "",
+              "The following correlations compare clean and noisy rankings of the same images by each descriptor. "
+              "They are descriptive checks of rank preservation, not correlations with CU count or prediction tests.", "",
+              "| Measure | Clean–noisy rank correlation |", "| --- | ---: |"]
+    diagnostics = tables["noise_rank_diagnostics"]
+    selected = diagnostics[diagnostics.variant.eq("primary") & diagnostics.seed.eq("20260811")
+                           & diagnostics.qp.eq(32) & diagnostics.level.eq(30)].set_index("feature").loc[list(LABELS)]
+    for feature, row in selected.iterrows():
+        lines.append(f"| {LABELS[feature]} | {row.descriptor_rank_rho:.3f} |")
+    lines += ["", f"CU-count ranks have a clean–noisy correlation of {selected.cu_count_rank_rho.iloc[0]:.3f}. "
+              "Both the descriptor and the CU-count ordering can change. This diagnostic does not establish a causal mechanism. "
+              "The full table includes all AWGN strengths, seeds and QPs, descriptor spread and ties, and the two alternative GLCM settings.", ""]
+    strong = diagnostics[diagnostics.variant.eq("primary") & diagnostics.qp.eq(32) & diagnostics.level.eq(30)]
+    homogeneity = strong[strong.feature.eq("glcm_homogeneity")]
+    edge = strong[strong.feature.eq("edge_fraction")]
+    edge_iqr_ratio = edge.noisy_iqr / edge.clean_iqr
+    lines += [f"Across the three seeds at sigma 30, homogeneity's clean–noisy rank correlation is "
+              f"{homogeneity.descriptor_rank_rho.min():.3f}–{homogeneity.descriptor_rank_rho.max():.3f}. "
+              f"Edge fraction's between-image interquartile range is {100 * edge_iqr_ratio.min():.1f}–"
+              f"{100 * edge_iqr_ratio.max():.1f}% of its clean-image value. "
+              f"The minimum number of distinct noisy descriptor values is {int(strong.noisy_unique_values.min())} out of 24; "
+              f"{int(edge.noisy_exact_one_count.max())} images reach an edge fraction of exactly one. "
+              "The spread narrows without exact ties or complete edge saturation in this sample. "
+              "Narrowing alone cannot explain a Spearman-correlation change, because it depends on ordering.", "",
+              "The sign near zero also depends on the GLCM setting: horizontal-only homogeneity gives positive "
+              "primary-seed point estimates at QP 27 and 32, whereas the eight-level, four-direction descriptor "
+              "gives negative estimates. A universal sign reversal is therefore not a supported description.", "",
+              "</details>", ""]
+    return lines
 
 
 def image_omission_sensitivity(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
@@ -136,13 +235,16 @@ def image_omission_sensitivity(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame]) -> None:
+def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], validation: Path | None = None) -> None:
     """Export the CSVs and one research README."""
 
     table_dir = output / "tables"
     table_dir.mkdir(parents=True, exist_ok=True)
     for name in tables:
         source, destination = analysis / f"{name}.csv", table_dir / f"{name}.csv"
+        if name.startswith("div2k/") and validation is not None:
+            source = validation / f"{name.split('/')[1]}.csv"
+        destination.parent.mkdir(parents=True, exist_ok=True)
         if source.resolve() != destination.resolve():
             shutil.copyfile(source, destination)
 
@@ -253,18 +355,21 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame]) 
         "<details>", "<summary>Image examples and all-image scatter plots at QP 32</summary>", "",
         "The two examples retain the low- and high-Sobel images used in the original study. Both maps show final CU "
         "boundaries at QP 32. More CUs mean smaller blocks on average.", "",
+        "![Kodak images 02 and 08 with final CU boundaries at QP 32](figures/Kodak_partition_examples_QP32.png)", "",
+        "[PDF](figures/Kodak_partition_examples_QP32.pdf) · [SVG](figures/Kodak_partition_examples_QP32.svg). "
+        "Generate from the repository root with `python -m tools.visualization.plot_vtm_partition_examples`.", "",
         "| | kodim02.png | kodim08.png |", "| --- | :---: | :---: |",
-        '| Input | <img src="../examples/sources/kodim02.png" width="360" alt="Kodak image 02"> | <img src="../examples/sources/kodim08.png" width="360" alt="Kodak image 08"> |',
-        '| CU map, QP 32 | <img src="../examples/partition_maps/complexity/kodim02/QP32.png" width="360" alt="CU boundaries, image 02, QP 32"> | <img src="../examples/partition_maps/complexity/kodim08/QP32.png" width="360" alt="CU boundaries, image 08, QP 32"> |',
     ]
     examples = joined[joined.distortion.eq("clean") & joined.qp.eq(32)].set_index("source")
     a, b = examples.loc["kodim02.png"], examples.loc["kodim08.png"]
     lines.append(f"| CU count | {a.cu_count:,.0f} | {b.cu_count:,.0f} |")
     for feature, label in LABELS.items():
         lines.append(f"| {label} | {a[feature]:.3f} | {b[feature]:.3f} |")
-    lines += ["", "The scatter plots show all 24 clean images at QP 32. Each point is one image; labels 02 and 08 "
-              "identify the examples above. All panels use the same CU-count scale.", "",
-              "![All 24 images: complexity versus CU count at QP 32](figures/Fig5_all_images_QP32.png)", "",
+    lines += ["",
+              "The scatter plots show all 24 clean images at QP 32. Each point is one image; labels 02 and 08 "
+              "appear above the orange and purple circles, respectively. All panels use the same CU-count scale.", "",
+              "![All 24 images: complexity versus CU count at QP 32](figures/Fig5_all_images_QP32_manuscript.png)", "",
+              "[PDF](figures/Fig5_all_images_QP32_manuscript.pdf).", "",
               "These scatter plots expose the observations behind the correlations. Their appearance alone is not an influence test; "
               "the omission analysis below checks the two labelled images explicitly.", "", "</details>", "",
               "### Correlation at Each QP", "",
@@ -372,19 +477,43 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame]) 
               "Its clean candidate-versus-Sobel point differences span zero for GLCM entropy at QP 32 and 37; "
               "the other clean comparisons retain their point-difference signs. This further limits any claim of a universal descriptor ranking. "
               "The [omission table](tables/image_omission_sensitivity.csv) includes those ranges and the two-image omission results.", "",
-              "</details>", "", "## Data", "",
+              "</details>", ""]
+    lines += noise_sensitivity_section(tables)
+    lines += validation_section(tables, LABELS)
+    lines += ["## Data", "",
               "Leave-one-image-out comparisons, GLCM parameter changes and within-image descriptor/CU changes are supplementary checks. "
               "All measurements and comparisons are retained in these tables.", "",
               "| What can be checked | CSV |", "| --- | --- |"]
     for name, description in TABLE_DESCRIPTIONS.items():
         lines.append(f"| {description} | [{name}](tables/{name}.csv) |")
     lines.append("| Exploratory removal of images 02/08 and single-image omission ranges | [image_omission_sensitivity](tables/image_omission_sensitivity.csv) |")
+    for name, description in NOISE_TABLES.items():
+        if name in tables:
+            lines.append(f"| {description} | [{name}](tables/{name}.csv) |")
+    if "div2k/effects" in tables:
+        for name, description in VALIDATION_TABLES.items():
+            lines.append(f"| {description} | [div2k/{name}](tables/div2k/{name}.csv) |")
     lines += ["", "## Reproduction", "",
               "From the repository root, regenerate the README and figures from the saved CSVs:", "",
               "```powershell", "python tools/reporting/report_vtm_spatial_complexity.py", "```", "",
               "Use `--analysis-dir <directory>` to select another completed analysis and `--output <directory>` to write elsewhere. "
-              "This command also recalculates the descriptive image-omission check; it performs no encoding or statistical resampling. "
-              "To recompute the descriptors and statistical analysis from the saved input images and measurements, then verify the result:", "",
+              "This command also recalculates the descriptive image-omission check; it performs no encoding or statistical resampling.", ""]
+    if "exploratory_noise_comparisons" in tables:
+        lines += ["To reproduce the exploratory noise comparisons and rank diagnostics using the saved paired-bootstrap cache:", "",
+                  "```powershell",
+                  "python tools/research/analyze_vtm_noise_sensitivity.py --output docs/vtm_content_partition_study/spatial_complexity/tables",
+                  "python tools/reporting/report_vtm_spatial_complexity.py",
+                  "```", "",
+                  "The noise-analysis command checks the cached correlation order and values, and replays the first two paired bootstrap draws before export. "
+                  "It requires the completed analysis and its local bootstrap cache; it does not generate new resamples or encodings.", ""]
+    if "div2k/effects" in tables:
+        lines += ["To reproduce the independent DIV2K analysis from the completed encodings:", "",
+                  "```powershell", "python tools/research/analyze_vtm_noise_validation.py all",
+                  "python tools/reporting/report_vtm_spatial_complexity.py --validation-dir results/vtm_noise_validation/analysis",
+                  "```", "", "The analysis verifies the completed experiment, computes the descriptors and reuses matching completed "
+                  "bootstrap caches. Its first statistical run generates the two sets of 99,999 paired samples. "
+                  "The [DIV2K encoding runner](../../../tools/research/complete_vtm_noise_validation.py) retains the pilot and full-run provenance.", ""]
+    lines += ["To recompute the Kodak descriptors and statistical analysis from the saved input images and measurements, then verify the result:", "",
               "```powershell",
               "python tools/research/analyze_vtm_spatial_complexity.py all",
               "python tools/research/verify_vtm_spatial_complexity_analysis.py --analysis-dir results/vtm_content_partition_four_qp/analysis_workspace/analysis",
@@ -401,6 +530,15 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame]) 
               "A high correlation does not by itself make a descriptor a validated predictor or a fast partitioning algorithm. "
               "These associations do not establish causation, predictive accuracy, encoding speedup or improved visual quality. "
               "Validation on new images is needed before generalizing the findings.", ""]
+    if "div2k/effects" in tables:
+        lines = [line.replace("## Key Findings", "## Key Findings on Kodak")
+                 .replace("## Experimental Protocol", "## Kodak Protocol")
+                 .replace("The results describe 24 Kodak images in single-frame intra coding, one VTM configuration and the tested disturbances.",
+                          "The results describe 24 Kodak images and 48 central DIV2K crops in single-frame intra coding, one VTM configuration and the tested disturbances.")
+                 .replace("Validation on new images is needed before generalizing the findings.",
+                          "Broader generalization requires other acquisition conditions, image domains and encoder configurations.")
+                 for line in lines]
+        plot_validation(tables, output / "figures", LABELS, QP_STYLES)
     (output / "README.md").write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -455,8 +593,73 @@ def plot_disturbance_trends(correlations: pd.DataFrame, output: Path) -> None:
             save(figure, output, name + ("_zoomed" if zoomed else ""))
 
 
-def build(analysis: Path, report: Path) -> None:
-    tables = load_tables(analysis)
+def plot_disturbance_correlations(correlations: pd.DataFrame, output: Path) -> None:
+    """Show all primary correlation cells in compact QP panels."""
+    qps = disturbance_qps(correlations)
+    conditions = (("clean", 0), ("awgn", 5), ("awgn", 15), ("awgn", 30),
+                  ("stripes", 8), ("stripes", 16), ("stripes", 32))
+    condition_labels = ("Clean", "AWGN\n5", "AWGN\n15", "AWGN\n30", "Sine\n8", "Sine\n16", "Sine\n32")
+    rows = (len(qps) + 1) // 2
+    figure, axes = plt.subplots(rows, 2, figsize=(9.5, 3.0 * rows), squeeze=False, layout="constrained")
+    for panel, qp in enumerate(qps):
+        axis = axes.flat[panel]
+        selected = correlations[(correlations.qp == qp) & correlations.primary]
+        matrix = np.array([[float(selected[(selected.feature == feature) & (selected.distortion == distortion)
+                                           & (selected.level == level)].rho.iloc[0])
+                            for distortion, level in conditions] for feature in LABELS])
+        visual = axis.imshow(matrix, vmin=-1, vmax=1, cmap="RdBu_r", aspect="auto")
+        for i in range(6):
+            for j in range(7):
+                axis.text(j, i, f"{matrix[i, j]:.2f}", ha="center", va="center",
+                          color="white" if abs(matrix[i, j]) > 0.65 else "black", fontsize=8)
+        axis.set(title=f"QP {qp}", xticks=range(7), xticklabels=condition_labels,
+                 yticks=range(6), yticklabels=list(LABELS.values()) if panel % 2 == 0 else [])
+        axis.tick_params(length=0)
+        axis.tick_params(axis="x", labelsize=7, labelrotation=0)
+        for tick in axis.get_xticklabels():
+            tick.set_ha("center")
+            tick.set_multialignment("center")
+        axis.axvline(0.5, color="white", linewidth=1.4)
+        axis.axvline(3.5, color="white", linewidth=1.4)
+    for axis in list(axes.flat)[len(qps):]:
+        axis.set_visible(False)
+    figure.colorbar(visual, ax=list(axes.flat), location="right", orientation="vertical",
+                    fraction=0.025, pad=0.025, label="Signed Spearman correlation")
+    save(figure, output, "Fig2_disturbance_correlations")
+
+
+def plot_all_images(joined: pd.DataFrame, output: Path) -> None:
+    """Show all clean observations, with the two illustrated images identified."""
+    selected = joined[(joined.distortion == "clean") & (joined.qp == 32)].sort_values("source")
+    highlights = {"kodim02.png": "#D55E00", "kodim08.png": "#6A51A3"}
+    other = selected[~selected.source.isin(highlights)]
+    figure, axes = plt.subplots(3, 2, figsize=(7.16, 7.8), sharey=True, layout="constrained")
+    for axis, (feature, label) in zip(axes.flat, LABELS.items(), strict=True):
+        axis.scatter(other[feature], other.cu_count, s=32, c="#0072B2", alpha=0.75,
+                     label="Other 22 images")
+        axis.set_title(label, fontsize=11)
+        axis.set_ylim(0, 9500)
+        axis.set_yticks((0, 3000, 6000, 9000))
+        axis.tick_params(labelsize=9)
+        for source, color in highlights.items():
+            row = selected[selected.source == source].iloc[0]
+            axis.scatter(row[feature], row.cu_count, s=32, c=color, marker="o",
+                         edgecolors="white", linewidths=0.6, zorder=3, label=f"Image {source[5:7]}")
+            axis.annotate(source[5:7], (row[feature], row.cu_count),
+                          xytext=(0, 7), ha="center", va="bottom", textcoords="offset points",
+                          fontsize=9, fontweight="bold", color=color,
+                          bbox=dict(facecolor="white", edgecolor="none", alpha=0.85, pad=0.2))
+        axis.grid(alpha=0.16)
+    for axis in axes[:, 0]:
+        axis.set_ylabel("Final CU count at QP 32", fontsize=10)
+    handles, labels = axes.flat[0].get_legend_handles_labels()
+    figure.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 1.04),
+                  ncol=3, frameon=False, fontsize=10)
+    save(figure, output, "Fig5_all_images_QP32_manuscript")
+
+
+def build(analysis: Path, report: Path, validation: Path | None = None) -> None:
+    tables = load_tables(analysis, validation)
     output = report / "figures"
     output.mkdir(parents=True, exist_ok=True)
     correlations = tables["correlations"]
@@ -482,24 +685,7 @@ def build(analysis: Path, report: Path) -> None:
     conditions = (("clean", 0), ("awgn", 5), ("awgn", 15), ("awgn", 30),
                   ("stripes", 8), ("stripes", 16), ("stripes", 32))
     condition_labels = ("Clean", "AWGN\n5", "AWGN\n15", "AWGN\n30", "Sine\n8", "Sine\n16", "Sine\n32")
-    figure, axes = plt.subplots(len(qps), 1, figsize=(7.16, 2.27 * len(qps)), layout="constrained")
-    for axis, qp in zip(axes, qps, strict=True):
-        selected = correlations[(correlations.qp == qp) & correlations.primary]
-        matrix = np.array([[float(selected[(selected.feature == feature) & (selected.distortion == distortion)
-                                           & (selected.level == level)].rho.iloc[0])
-                            for distortion, level in conditions] for feature in LABELS])
-        visual = axis.imshow(matrix, vmin=-1, vmax=1, cmap="RdBu_r", aspect="auto")
-        for i in range(6):
-            for j in range(7):
-                axis.text(j, i, f"{matrix[i, j]:.2f}", ha="center", va="center",
-                          color="white" if abs(matrix[i, j]) > 0.65 else "black", fontsize=8)
-        axis.set(title=f"QP {qp}", xticks=range(7), xticklabels=condition_labels,
-                 yticks=range(6), yticklabels=list(LABELS.values()))
-        axis.tick_params(length=0)
-        axis.axvline(0.5, color="white", linewidth=1.4)
-        axis.axvline(3.5, color="white", linewidth=1.4)
-    figure.colorbar(visual, ax=axes, fraction=0.018, pad=0.02, label="Signed Spearman correlation")
-    save(figure, output, "Fig2_disturbance_correlations")
+    plot_disturbance_correlations(correlations, output)
 
     first = contrasts[contrasts.family == "RQ1"]
     figure, axis = plt.subplots(figsize=(7.16, 4.8), layout="constrained")
@@ -545,31 +731,10 @@ def build(analysis: Path, report: Path) -> None:
     figure.suptitle("Change from clean images: B = s × (rho disturbed − rho clean)\ns = −1 for homogeneity; +1 otherwise\n* Simultaneous interval for B excludes zero (family alpha = 0.025)", fontsize=9)
     save(figure, output, "Fig4_disturbance_changes")
 
-    # Every clean Kodak image is shown; source identities remain in the full CSV.
-    joined = tables["joined_measurements"]
-    selected = joined[(joined.distortion == "clean") & (joined.qp == 32)].sort_values("source")
-    figure, axes = plt.subplots(2, 3, figsize=(11, 6.6), sharey=True, layout="constrained")
-    for axis, (feature, label), color in zip(axes.flat, LABELS.items(), COLORS, strict=True):
-        axis.scatter(selected[feature], selected.cu_count, s=32, c=color, alpha=0.85)
-        rho = clean[(clean.feature == feature) & (clean.qp == 32)].rho.iloc[0]
-        axis.set_title(f"{label}\nrho = {rho:+.3f}", fontsize=11)
-        axis.set_xlabel(label)
-        axis.set_ylim(0, 9500)
-        axis.set_yticks((0, 3000, 6000, 9000))
-        axis.tick_params(labelsize=9)
-        for source in ("kodim02.png", "kodim08.png"):
-            row = selected[selected.source == source].iloc[0]
-            right_edge = row[feature] > selected[feature].quantile(0.9)
-            axis.annotate(source[5:7], (row[feature], row.cu_count), xytext=(-6 if right_edge else 5, 5),
-                          ha="right" if right_edge else "left", textcoords="offset points", fontsize=9)
-        axis.grid(alpha=0.16)
-    for axis in axes[:, 0]:
-        axis.set_ylabel("Final CU count at QP 32")
-    figure.suptitle("Clean images: one point per Kodak image (24 images)", fontsize=13)
-    save(figure, output, "Fig5_all_images_QP32")
+    plot_all_images(tables["joined_measurements"], output)
     plot_disturbance_trends(correlations, output)
-    write_report(analysis, report, tables)
-    print(f"Saved research README, CSV tables and nine PDF/PNG figures in {report}")
+    write_report(analysis, report, tables, validation)
+    print(f"Saved research README, CSV tables and PDF/PNG figures in {report}")
 
 
 if __name__ == "__main__":
@@ -577,5 +742,6 @@ if __name__ == "__main__":
     parser.add_argument("--analysis-dir", type=Path, default=ROOT / "docs/vtm_content_partition_study/spatial_complexity/tables",
                         help="Directory containing the completed CSV tables")
     parser.add_argument("--output", type=Path, default=ROOT / "docs/vtm_content_partition_study/spatial_complexity")
+    parser.add_argument("--validation-dir", type=Path, help="Completed independent DIV2K analysis; otherwise read tables/div2k when present")
     args = parser.parse_args()
-    build(args.analysis_dir, args.output)
+    build(args.analysis_dir, args.output, args.validation_dir)

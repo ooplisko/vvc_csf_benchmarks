@@ -4,14 +4,14 @@ This study extends the [content-partition study](../README.md) by comparing six 
 
 The focus of this extension is how these associations change after adding Gaussian noise and sinusoidal bands at a fixed QP. Clean-image correlations provide the reference for evaluating disturbance effects. Paired comparisons quantify the magnitude and uncertainty of the changes and identify which changes are supported in the studied sample. Together, these results characterize the sensitivity of descriptor–CU associations to the tested disturbances.
 
-## Key Findings
+## Key Findings on Kodak
 
 - Edge fraction has the largest positive point correlation at every clean-image QP.
 - GLCM contrast and entropy have positive clean-image correlations; homogeneity has a negative correlation. Brightness spread (Luma SD) is less strongly associated with CU count in these images.
 - The simultaneous comparisons do not establish that any candidate has a stronger association than Sobel.
 - GLCM homogeneity under AWGN at level 30 has a weaker direction-adjusted association at QP 22, 32. Other disturbance comparisons remain inconclusive.
 
-## Experimental Protocol
+## Kodak Protocol
 
 | Item | Setting |
 | --- | --- |
@@ -64,10 +64,12 @@ Auxiliary tests of independence use 99,999 permutations (seed 20260906) with Hol
 
 The two examples retain the low- and high-Sobel images used in the original study. Both maps show final CU boundaries at QP 32. More CUs mean smaller blocks on average.
 
+![Kodak images 02 and 08 with final CU boundaries at QP 32](figures/Kodak_partition_examples_QP32.png)
+
+[PDF](figures/Kodak_partition_examples_QP32.pdf) · [SVG](figures/Kodak_partition_examples_QP32.svg). Generate from the repository root with `python -m tools.visualization.plot_vtm_partition_examples`.
+
 | | kodim02.png | kodim08.png |
 | --- | :---: | :---: |
-| Input | <img src="../examples/sources/kodim02.png" width="360" alt="Kodak image 02"> | <img src="../examples/sources/kodim08.png" width="360" alt="Kodak image 08"> |
-| CU map, QP 32 | <img src="../examples/partition_maps/complexity/kodim02/QP32.png" width="360" alt="CU boundaries, image 02, QP 32"> | <img src="../examples/partition_maps/complexity/kodim08/QP32.png" width="360" alt="CU boundaries, image 08, QP 32"> |
 | CU count | 2,747 | 6,732 |
 | Sobel SD | 51.754 | 157.114 |
 | Luma SD | 20.594 | 63.282 |
@@ -76,9 +78,11 @@ The two examples retain the low- and high-Sobel images used in the original stud
 | GLCM entropy | 1.166 | 3.143 |
 | GLCM homogeneity | 0.937 | 0.756 |
 
-The scatter plots show all 24 clean images at QP 32. Each point is one image; labels 02 and 08 identify the examples above. All panels use the same CU-count scale.
+The scatter plots show all 24 clean images at QP 32. Each point is one image; labels 02 and 08 appear above the orange and purple circles, respectively. All panels use the same CU-count scale.
 
-![All 24 images: complexity versus CU count at QP 32](figures/Fig5_all_images_QP32.png)
+![All 24 images: complexity versus CU count at QP 32](figures/Fig5_all_images_QP32_manuscript.png)
+
+[PDF](figures/Fig5_all_images_QP32_manuscript.pdf).
 
 These scatter plots expose the observations behind the correlations. Their appearance alone is not an influence test; the omission analysis below checks the two labelled images explicitly.
 
@@ -277,6 +281,115 @@ The existing leave-one-image-out analysis reranks 23 images after each individua
 
 </details>
 
+<details>
+<summary>Exploratory comparison of descriptor responses to strong AWGN</summary>
+
+To compare noise responses directly, define `C = B[homogeneity] − B[other]` at sigma 30. A negative C means a more negative direction-adjusted change for homogeneity. Weakening of homogeneity itself additionally requires a negative B. Comparing the significance labels of two separate B intervals does not test C.
+
+These comparisons were selected after inspecting the original results and are exploratory. Each of the two summaries below uses its own family of 20 simultaneous intervals at alpha 0.05; they do not provide a joint error guarantee across both summaries or replace the original comparisons. An asterisk means that the interval for C excludes zero. Independent images are needed to confirm the pattern.
+
+**Primary AWGN realization**
+
+| Compared with homogeneity | QP 22 | QP 27 | QP 32 | QP 37 |
+| --- | ---: | ---: | ---: | ---: |
+| Sobel SD | -1.008* | -0.798* | -0.821* | -0.521 |
+| Luma SD | -1.420* | -1.057* | -1.141* | -0.643 |
+| Edge fraction | -0.327 | -0.317 | -0.350 | -0.328 |
+| GLCM contrast | -0.507 | -0.443 | -0.468 | -0.372 |
+| GLCM entropy | -0.325 | -0.190 | -0.293 | -0.174 |
+
+The simultaneous interval half-width is 0.769; exact intervals are in the comparison CSV.
+
+**Equal mean of three realization-specific changes**
+
+| Compared with homogeneity | QP 22 | QP 27 | QP 32 | QP 37 |
+| --- | ---: | ---: | ---: | ---: |
+| Sobel SD | -0.945* | -0.818* | -0.811* | -0.576 |
+| Luma SD | -1.297* | -1.080* | -1.097* | -0.732 |
+| Edge fraction | -0.309 | -0.305 | -0.333 | -0.315 |
+| GLCM contrast | -0.476 | -0.451 | -0.454 | -0.376 |
+| GLCM entropy | -0.242 | -0.215 | -0.252 | -0.190 |
+
+The simultaneous interval half-width is 0.747; exact intervals are in the comparison CSV.
+
+The second summary averages correlations/changes across seeds, with the same sampled images for each seed. It keeps 24 independent images and describes uncertainty conditional on these three realizations. Neither table establishes that edge fraction, contrast or entropy is stable.
+
+**Image-rank diagnostic at QP 32, sigma 30, primary seed**
+
+The following correlations compare clean and noisy rankings of the same images by each descriptor. They are descriptive checks of rank preservation, not correlations with CU count or prediction tests.
+
+| Measure | Clean–noisy rank correlation |
+| --- | ---: |
+| Sobel SD | 0.998 |
+| Luma SD | 0.986 |
+| Edge fraction | 0.848 |
+| GLCM contrast | 0.864 |
+| GLCM entropy | 0.683 |
+| GLCM homogeneity | 0.549 |
+
+CU-count ranks have a clean–noisy correlation of 0.762. Both the descriptor and the CU-count ordering can change. This diagnostic does not establish a causal mechanism. The full table includes all AWGN strengths, seeds and QPs, descriptor spread and ties, and the two alternative GLCM settings.
+
+Across the three seeds at sigma 30, homogeneity's clean–noisy rank correlation is 0.539–0.578. Edge fraction's between-image interquartile range is 7.7–8.3% of its clean-image value. The minimum number of distinct noisy descriptor values is 24 out of 24; 0 images reach an edge fraction of exactly one. The spread narrows without exact ties or complete edge saturation in this sample. Narrowing alone cannot explain a Spearman-correlation change, because it depends on ordering.
+
+The sign near zero also depends on the GLCM setting: horizontal-only homogeneity gives positive primary-seed point estimates at QP 27 and 32, whereas the eight-level, four-direction descriptor gives negative estimates. A universal sign reversal is therefore not a supported description.
+
+</details>
+
+## Independent Check on DIV2K
+
+The follow-up uses 48 DIV2K validation photographs, selected before examining their encoding results. Each contributes one central 768 × 512 crop without resizing. Clean inputs and AWGN sigma 30 with the same three base seeds are encoded at QP 22, 27, 32 and 37: 192 stimuli and 768 encodings. The VTM build, conversion and six descriptor definitions are the same as in the Kodak study. The official images are available from [DIV2K](https://data.vision.ee.ethz.ch/cvl/DIV2K/).
+
+Selection uses PCG64 seed 20260910 to permute the sorted 100 validation IDs and take the first 48. The full selection determines image-specific noise seeds; the two timing-pilot sources remain in the analysis. The source CSV records the selected IDs, original hashes and crop coordinates.
+
+**Prespecified comparison.** At each QP, average the three realization-specific Spearman correlations, then compute `B = s × (mean(rho noisy) − rho clean)` and `C = B[homogeneity] − B[other]`. The primary family contains all 24 B and 20 C intervals together, at alpha 0.05. It uses 99,999 paired image-bootstrap samples (seed 20260905), reranking within each sample. The same sampled images are used for every QP, descriptor and seed. There are 48 source images, not 144 independent noise realizations; uncertainty is conditional on the three fixed realizations. The interval method and its approximate finite-sample coverage are the same as above, with bounds B [−2,2] and C [−4,4].
+
+![Noise-related changes on Kodak and DIV2K](figures/Fig6_dataset_noise_changes.png)
+
+Both panels show mean-of-three B at sigma 30 on the same scale. Kodak values are exploratory point estimates. Only the DIV2K panel marks intervals from the prespecified family of 44 comparisons; asterisks refer to B, not to raw rho. The figure does not test the difference between datasets.
+
+Supported weakening of the direction-adjusted association on DIV2K (B < 0): Edge fraction at QP 22, 32; GLCM contrast at QP 22; GLCM entropy at QP 22, 32; GLCM homogeneity at QP 22, 27, 32, 37. Supported strengthening (B > 0): none.
+
+Direct comparisons support a more negative homogeneity change than Sobel SD at QP 22, 27, 32, 37; Luma SD at QP 22, 27, 32, 37. An interval containing zero remains inconclusive; it does not establish equivalence or stability.
+
+| C = homogeneity change minus the listed descriptor's change | QP 22 | QP 27 | QP 32 | QP 37 |
+| --- | ---: | ---: | ---: | ---: |
+| Sobel SD | -1.009* | -0.851* | -0.895* | -0.666* |
+| Luma SD | -1.084* | -0.816* | -0.887* | -0.772* |
+| Edge fraction | -0.263 | -0.272 | -0.262 | -0.274 |
+| GLCM contrast | -0.362 | -0.394 | -0.387 | -0.333 |
+| GLCM entropy | -0.282 | -0.202 | -0.207 | -0.194 |
+
+Here, an asterisk refers to the C interval in the same 44-comparison family. A negative C alone does not prove that homogeneity weakens: its B must also be negative.
+
+<details>
+<summary>Direct-comparison intervals and related-scene sensitivity</summary>
+
+**Raw correlations: clean → mean of the three AWGN realizations**
+
+| Descriptor | QP 22 | QP 27 | QP 32 | QP 37 |
+| --- | ---: | ---: | ---: | ---: |
+| Sobel SD | +0.658 → +0.782 | +0.678 → +0.849 | +0.759 → +0.885 | +0.845 → +0.878 |
+| Luma SD | +0.043 → +0.241 | +0.086 → +0.222 | +0.108 → +0.226 | +0.182 → +0.322 |
+| Edge fraction | +0.614 → -0.009 | +0.666 → +0.258 | +0.703 → +0.196 | +0.735 → +0.377 |
+| GLCM contrast | +0.742 → +0.218 | +0.767 → +0.481 | +0.823 → +0.441 | +0.876 → +0.577 |
+| GLCM entropy | +0.533 → -0.072 | +0.586 → +0.107 | +0.626 → +0.064 | +0.691 → +0.252 |
+| GLCM homogeneity | -0.667 → +0.219 | -0.713 → -0.033 | -0.753 → +0.016 | -0.799 → -0.167 |
+
+These are signed point estimates. Crossing zero here does not by itself establish a statistically supported association of the opposite sign.
+
+![Direct DIV2K comparisons with simultaneous intervals](figures/Fig7_validation_comparisons.png)
+
+The horizontal intervals use the mathematical C range [−4,4]; the dashed line marks no difference. These are direct differences of changes, not separate tests of individual correlations.
+
+Visual inspection found no obvious duplicate photographs or reuse of Kodak images. DIV2K 0854 and 0864 show the Colosseum from different viewpoints. The prespecified sensitivity analysis therefore samples these two photographs together as one of 47 clusters. Each sampled cluster contributes all its photographs, so the number of photographs varies across bootstrap samples; the observed estimate still uses all 48. This check addresses the identified pair and does not establish independence of every scene.
+
+The primary family has a max-error critical value of 0.504; the separate cluster sensitivity has 0.503. Whether an interval excludes zero changes for 0 of the 44 effects. The two analyses have separate alpha 0.05 families; they do not provide joint 95% coverage across both.
+
+
+</details>
+
+The follow-up tests the response to strong synthetic AWGN on these fixed-size crops. It does not independently validate the full noise-strength trajectory, sinusoidal disturbances, local CU decisions or prediction accuracy.
+
 ## Data
 
 Leave-one-image-out comparisons, GLCM parameter changes and within-image descriptor/CU changes are supplementary checks. All measurements and comparisons are retained in these tables.
@@ -294,6 +407,13 @@ Leave-one-image-out comparisons, GLCM parameter changes and within-image descrip
 | Supplementary association between within-image descriptor and CU changes | [paired_change_correlations](tables/paired_change_correlations.csv) |
 | Individual descriptor and CU changes relative to the clean image | [paired_changes](tables/paired_changes.csv) |
 | Exploratory removal of images 02/08 and single-image omission ranges | [image_omission_sensitivity](tables/image_omission_sensitivity.csv) |
+| Direct comparisons of noise responses between homogeneity and other descriptors | [exploratory_noise_comparisons](tables/exploratory_noise_comparisons.csv) |
+| Changes in image ranks and descriptor spread under AWGN | [noise_rank_diagnostics](tables/noise_rank_diagnostics.csv) |
+| DIV2K descriptors for each input stimulus | [div2k/stimulus_features](tables/div2k/stimulus_features.csv) |
+| DIV2K descriptors and final CU counts | [div2k/joined_measurements](tables/div2k/joined_measurements.csv) |
+| DIV2K source selection and crop coordinates | [div2k/selected_sources](tables/div2k/selected_sources.csv) |
+| DIV2K correlations for clean images and each AWGN realization | [div2k/correlations](tables/div2k/correlations.csv) |
+| DIV2K changes and direct comparisons with simultaneous intervals | [div2k/effects](tables/div2k/effects.csv) |
 
 ## Reproduction
 
@@ -303,7 +423,27 @@ From the repository root, regenerate the README and figures from the saved CSVs:
 python tools/reporting/report_vtm_spatial_complexity.py
 ```
 
-Use `--analysis-dir <directory>` to select another completed analysis and `--output <directory>` to write elsewhere. This command also recalculates the descriptive image-omission check; it performs no encoding or statistical resampling. To recompute the descriptors and statistical analysis from the saved input images and measurements, then verify the result:
+Use `--analysis-dir <directory>` to select another completed analysis and `--output <directory>` to write elsewhere. This command also recalculates the descriptive image-omission check; it performs no encoding or statistical resampling.
+
+To reproduce the exploratory noise comparisons and rank diagnostics using the saved paired-bootstrap cache:
+
+```powershell
+python tools/research/analyze_vtm_noise_sensitivity.py --output docs/vtm_content_partition_study/spatial_complexity/tables
+python tools/reporting/report_vtm_spatial_complexity.py
+```
+
+The noise-analysis command checks the cached correlation order and values, and replays the first two paired bootstrap draws before export. It requires the completed analysis and its local bootstrap cache; it does not generate new resamples or encodings.
+
+To reproduce the independent DIV2K analysis from the completed encodings:
+
+```powershell
+python tools/research/analyze_vtm_noise_validation.py all
+python tools/reporting/report_vtm_spatial_complexity.py --validation-dir results/vtm_noise_validation/analysis
+```
+
+The analysis verifies the completed experiment, computes the descriptors and reuses matching completed bootstrap caches. Its first statistical run generates the two sets of 99,999 paired samples. The [DIV2K encoding runner](../../../tools/research/complete_vtm_noise_validation.py) retains the pilot and full-run provenance.
+
+To recompute the Kodak descriptors and statistical analysis from the saved input images and measurements, then verify the result:
 
 ```powershell
 python tools/research/analyze_vtm_spatial_complexity.py all
@@ -315,4 +455,4 @@ The analysis writes CSV tables and bootstrap caches to the results directory sho
 
 ## Limitations
 
-The results describe 24 Kodak images in single-frame intra coding, one VTM configuration and the tested disturbances. Additional seeds reuse the same images; sinusoidal bands have one orientation and period. No temporal prediction, motion or video-sequence behavior is evaluated. The tested synthetic disturbances do not represent every acquisition artifact. The measured endpoint is final image-level CU count, not local split prediction or the encoder's search cost. A high correlation does not by itself make a descriptor a validated predictor or a fast partitioning algorithm. These associations do not establish causation, predictive accuracy, encoding speedup or improved visual quality. Validation on new images is needed before generalizing the findings.
+The results describe 24 Kodak images and 48 central DIV2K crops in single-frame intra coding, one VTM configuration and the tested disturbances. Additional seeds reuse the same images; sinusoidal bands have one orientation and period. No temporal prediction, motion or video-sequence behavior is evaluated. The tested synthetic disturbances do not represent every acquisition artifact. The measured endpoint is final image-level CU count, not local split prediction or the encoder's search cost. A high correlation does not by itself make a descriptor a validated predictor or a fast partitioning algorithm. These associations do not establish causation, predictive accuracy, encoding speedup or improved visual quality. Broader generalization requires other acquisition conditions, image domains and encoder configurations.

@@ -110,11 +110,11 @@ def test_csv_only_inputs_generate_one_research_readme_and_no_json(tmp_path) -> N
         elif line == "</details>":
             inside_details = False
         for name in ("Fig1_clean_correlations", "Fig2_disturbance_correlations", "Fig4_disturbance_changes",
-                     "Fig3_dependent_clean_comparisons", "Fig5_all_images_QP32", "awgn_correlation_trends"):
+                     "Fig3_dependent_clean_comparisons", "Fig5_all_images_QP32_manuscript", "awgn_correlation_trends"):
             if f"figures/{name}.png" in line:
                 placement[name] = inside_details
     assert not any(placement[name] for name in ("Fig1_clean_correlations", "Fig2_disturbance_correlations", "Fig4_disturbance_changes"))
-    assert all(placement[name] for name in ("Fig3_dependent_clean_comparisons", "Fig5_all_images_QP32", "awgn_correlation_trends"))
+    assert all(placement[name] for name in ("Fig3_dependent_clean_comparisons", "Fig5_all_images_QP32_manuscript", "awgn_correlation_trends"))
 
 
 def test_omission_check_reranks_remaining_images_and_reports_influence():
@@ -212,3 +212,39 @@ def test_supported_conclusions_are_generated_from_actual_intervals(tmp_path) -> 
     assert "GLCM contrast under sinusoidal bands at level 32 has a stronger direction-adjusted association at QP 27" in text
     assert "| GLCM contrast | Sine, level 32 versus clean | 27 |" in text
     assert "| GLCM homogeneity | AWGN" not in text
+
+
+def test_exploratory_noise_section_is_separate_and_keeps_four_qps(tmp_path) -> None:
+    from tools.research import analyze_vtm_noise_sensitivity as noise
+
+    analysis = tmp_path / "analysis"
+    copy_tables(analysis)
+    rows = noise.read_rows(analysis / "joined_measurements.csv")
+    cells, _, x, y = noise.build_cells(rows)
+    observed = noise.spearman_last_axis(x, y)
+    noise.write_rows(analysis / "exploratory_noise_comparisons.csv",
+                     noise.noise_comparisons(cells, observed, np.tile(observed, (3, 1))))
+    noise.write_rows(analysis / "noise_rank_diagnostics.csv", noise.noise_rank_diagnostics(rows))
+    tables = reporting.load_tables(analysis)
+    output = tmp_path / "report"
+    reporting.write_report(analysis, output, tables)
+    text = (output / "README.md").read_text(encoding="utf-8")
+    assert "selected after inspecting the original results" in text
+    assert "do not provide a joint error guarantee across both summaries" in text
+    assert "conditional on these three realizations" in text
+    assert "| GLCM homogeneity | 0.549 |" in text
+    assert "CU-count ranks have a clean–noisy correlation of 0.762" in text
+    assert "7.7–8.3% of its clean-image value" in text
+    assert "24 out of 24" in text
+    assert "analyze_vtm_noise_sensitivity.py --output" in text
+    assert text.index("## Key Findings") < text.index("Exploratory comparison of descriptor responses")
+    for name in reporting.NOISE_TABLES:
+        assert (output / "tables" / f"{name}.csv").read_bytes() == (analysis / f"{name}.csv").read_bytes()
+    comparisons = tables["exploratory_noise_comparisons"]
+    comparisons.loc[0, "excludes_zero"] = not comparisons.loc[0, "excludes_zero"]
+    comparisons.to_csv(analysis / "exploratory_noise_comparisons.csv", index=False)
+    with pytest.raises(ValueError, match="flags"):
+        reporting.load_tables(analysis)
+    (analysis / "noise_rank_diagnostics.csv").unlink()
+    with pytest.raises(ValueError, match="required together"):
+        reporting.load_tables(analysis)
