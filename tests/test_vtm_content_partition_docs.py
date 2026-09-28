@@ -47,6 +47,32 @@ def test_study_readme_documents_the_fresh_clone_workflow() -> None:
     assert "do not need to be committed" not in text
 
 
+@pytest.mark.parametrize("directory", ["vtm_content_partition_study", "vtm_spatial_complexity_study"])
+def test_sibling_study_readmes_resolve_local_links_and_images(directory: str) -> None:
+    readme = ROOT / "docs" / directory / "README.md"
+    text = readme.read_text(encoding="utf-8")
+    targets = re.findall(r"\]\(([^)]+)\)", text) + re.findall(r'<img\s[^>]*src="([^"]+)"', text)
+    for target in targets:
+        if re.match(r"https?://", target):
+            continue
+        path = target.split("#", 1)[0]
+        assert (readme.parent / path).exists(), f"Missing local target in {readme}: {target}"
+
+
+def test_analysis_and_figure_defaults_use_the_independent_spatial_study() -> None:
+    from tools.research.analyze_vtm_spatial_complexity import DEFAULT_TABLES
+    from tools.visualization import plot_vtm_partition_examples as examples
+
+    spatial = ROOT / "docs" / "vtm_spatial_complexity_study"
+    assert spatial.parent == DOCS.parent
+    assert DEFAULT_TABLES == spatial / "tables"
+    assert examples.OUTPUT == spatial / "figures"
+    assert examples.COMPLEXITY_STUDY / "tables" == DEFAULT_TABLES
+    for number in ("02", "08"):
+        assert (examples.STUDY / f"examples/sources/kodim{number}.png").exists()
+        assert (examples.STUDY / f"examples/partition_maps/complexity/kodim{number}/QP32.png").exists()
+
+
 def test_clean_measurements_cover_every_source_and_qp_once() -> None:
     rows = read_csv("clean_cu_measurements.csv")
 

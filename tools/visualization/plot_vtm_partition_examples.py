@@ -12,11 +12,12 @@ import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parents[2]
 STUDY = ROOT / "docs/vtm_content_partition_study"
-OUTPUT = STUDY / "spatial_complexity/figures"
+COMPLEXITY_STUDY = ROOT / "docs/vtm_spatial_complexity_study"
+OUTPUT = COMPLEXITY_STUDY / "figures"
 
 
 def main() -> None:
-    with (STUDY / "spatial_complexity/tables/joined_measurements.csv").open(
+    with (COMPLEXITY_STUDY / "tables/joined_measurements.csv").open(
         encoding="utf-8", newline=""
     ) as stream:
         counts = {

@@ -25,7 +25,7 @@ from vvenc_csf.study_statistics import (
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RESULTS = ROOT / "results/vtm_content_partition_four_qp/analysis_workspace/analysis"
-DEFAULT_TABLES = ROOT / "docs/vtm_content_partition_study/spatial_complexity/tables"
+DEFAULT_TABLES = ROOT / "docs/vtm_spatial_complexity_study/tables"
 DEFAULT_STIMULI = ROOT / "results/vtm_content_partition_four_qp/manifest.csv"
 SETTINGS = {
     "expected_sources": 24,

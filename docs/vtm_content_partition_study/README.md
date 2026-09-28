@@ -4,7 +4,7 @@ This study examines how source spatial information, quantization parameter (QP),
 
 ## Spatial-Complexity Extension
 
-The [spatial-complexity comparison](spatial_complexity/README.md) compares Sobel SD with luma SD, edge fraction and three GLCM descriptors. It examines their correlations with CU count and the effect of disturbances at QP 22, 27, 32 and 37. All conditions and three AWGN realizations are represented by 1,248 encodings, with image-level tables, uncertainty estimates and sensitivity checks.
+The [spatial-complexity comparison](../vtm_spatial_complexity_study/README.md) compares Sobel SD with luma SD, edge fraction and three GLCM descriptors. It examines their correlations with CU count and the effect of disturbances at QP 22, 27, 32 and 37. All conditions and three AWGN realizations are represented by 1,248 encodings, with image-level tables, uncertainty estimates and sensitivity checks.
 
 ## Key Findings
 
@@ -30,7 +30,7 @@ The PNG-to-YUV conversion is implemented in [`ImageConverter.to_yuv444p_opencv()
 
 ## Reproduction
 
-For the existing spatial-complexity tables, use the [report-only regeneration command](spatial_complexity/README.md#reproduction). It requires no VTM encoding or statistical resampling.
+For the existing spatial-complexity tables, use the [report-only regeneration command](../vtm_spatial_complexity_study/README.md#reproduction). It requires no VTM encoding or statistical resampling.
 
 The commands below describe a fresh full experiment, not a prerequisite for reading or regenerating the saved extension report. Run them from the repository root only when a new encoding run is intended. The first command installs the published Windows codec binaries; the study runner then prepares the deterministic stimuli and executes the complete baseline experiment before the reporting command regenerates the committed tables and figures. Full encoding can take substantial time; its scope and duration should be assessed before the user starts it.
 

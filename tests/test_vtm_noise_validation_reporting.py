@@ -94,7 +94,7 @@ def test_validation_text_and_figures_keep_estimands_and_scales(tmp_path, monkeyp
 def test_report_copies_validation_tables_and_links_one_readme(tmp_path, monkeypatch):
     directory = tmp_path / "validation"
     fixture_tables(directory)
-    analysis = main_report.ROOT / "docs/vtm_content_partition_study/spatial_complexity/tables"
+    analysis = main_report.ROOT / "docs/vtm_spatial_complexity_study/tables"
     tables = main_report.load_tables(analysis, directory)
     monkeypatch.setattr(main_report, "plot_validation", lambda *args: None)
     output = tmp_path / "report"

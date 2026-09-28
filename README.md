@@ -31,6 +31,8 @@ This repository is a reproducible image-only benchmark for Contrast Sensitivity 
 | Partition maps | CU PNG overlays and summaries from `D_QP` traces for VVenC and VTM |
 | Focused VTM QP study | Five grayscale + five color standard images, QP-axis charts, and per-QP partition overlays |
 | VTM scaling-list study | Baboon, Goldhill, and Peppers control run with VTM `--ScalingList=1` |
+| VTM content-partition study | Kodak partition responses to source detail, QP, noise and periodic interference |
+| VTM spatial-complexity study | Six descriptors, four QPs, paired correlation comparisons and sensitivity checks |
 | VTM validation | Historical VTM 18.0 anchor replication plus local VTM 23.0 baseline/CSF curves |
 | Report rendering | Root README and detailed benchmark report regenerated from committed artifacts |
 
@@ -87,6 +89,8 @@ A CSF decoder is intentionally not used. The CSF changes are encoder-side; the c
 | VTM partition maps | [`docs/partition_maps/vtm/`](docs/partition_maps/vtm/) |
 | Focused VTM QP study | [`docs/vtm_qp_study/`](docs/vtm_qp_study/) |
 | VTM scaling-list study | [`docs/vtm_scaling_list_study/`](docs/vtm_scaling_list_study/) |
+| VTM content-partition study | [`docs/vtm_content_partition_study/`](docs/vtm_content_partition_study/) |
+| VTM spatial-complexity study | [`docs/vtm_spatial_complexity_study/`](docs/vtm_spatial_complexity_study/) |
 | VTM validation | [`docs/vtm_validation/`](docs/vtm_validation/) |
 | Matrix evidence | [`docs/matrices/`](docs/matrices/) |
 
@@ -111,6 +115,8 @@ Current generated results show that CSF bitstreams decode correctly and reconstr
 | [`docs/image_benchmark_report.md`](docs/image_benchmark_report.md) | Main scientific report for image benchmark results |
 | [`docs/vtm_qp_study/`](docs/vtm_qp_study/) | Focused VTM-only QP-axis study for the standard grayscale/color images |
 | [`docs/vtm_scaling_list_study/`](docs/vtm_scaling_list_study/) | Focused VTM default scaling-list control study |
+| [`docs/vtm_content_partition_study/`](docs/vtm_content_partition_study/) | Sobel-based spatial information and final CU partition responses |
+| [`docs/vtm_spatial_complexity_study/`](docs/vtm_spatial_complexity_study/) | Whole-image descriptor comparison across QPs, noise and periodic interference |
 | [`binaries/README.md`](binaries/README.md) | Binary layout, download, and build instructions |
 | [`docs/vtm_validation/`](docs/vtm_validation/) | VTM anchor validation and VTM 23.0 cross-checks |
 | [`CITATION.cff`](CITATION.cff) | Citation metadata |

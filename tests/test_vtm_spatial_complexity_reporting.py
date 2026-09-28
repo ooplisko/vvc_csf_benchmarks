@@ -12,7 +12,7 @@ from tools.reporting import report_vtm_spatial_complexity as reporting
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TABLES = ROOT / "docs/vtm_content_partition_study/spatial_complexity/tables"
+TABLES = ROOT / "docs/vtm_spatial_complexity_study/tables"
 
 
 def copy_tables(destination: Path) -> None:

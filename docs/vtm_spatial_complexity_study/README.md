@@ -1,6 +1,6 @@
 # VTM Image Complexity and Block Partitioning
 
-This study extends the [content-partition study](../README.md) by comparing six image-complexity measures with the final luma coding-unit (CU) count produced by the unmodified VTM 23.0 reference encoder in single-frame intra coding.
+This study extends the [content-partition study](../vtm_content_partition_study/README.md) by comparing six image-complexity measures with the final luma coding-unit (CU) count produced by the unmodified VTM 23.0 reference encoder in single-frame intra coding.
 
 The focus of this extension is how these associations change after adding Gaussian noise and sinusoidal bands at a fixed QP. Clean-image correlations provide the reference for evaluating disturbance effects. Paired comparisons quantify the magnitude and uncertainty of the changes and identify which changes are supported in the studied sample. Together, these results characterize the sensitivity of descriptor–CU associations to the tested disturbances.
 
@@ -16,7 +16,7 @@ The focus of this extension is how these associations change after adding Gaussi
 | Item | Setting |
 | --- | --- |
 | Encoder | Unmodified VTM 23.0; trace-enabled build for final CU boundaries |
-| Configuration | Single-frame all-intra, [vtm_encoder_intra.cfg](../../../configs/vtm_encoder_intra.cfg) |
+| Configuration | Single-frame all-intra, [vtm_encoder_intra.cfg](../../configs/vtm_encoder_intra.cfg) |
 | Input | OpenCV planar YUV 4:4:4 conversion; 8-bit input, 10-bit internal processing |
 | Images | 24 Kodak images; 393,216 pixels per image |
 | Clean-image QPs | 22, 27, 32, 37 |
@@ -43,7 +43,7 @@ All descriptors are calculated from the actual input PNG, using its OpenCV 8-bit
 | GLCM entropy | Diversity of neighboring gray-level pairs | Mean over directions of `-sum(P(i,j) × ln(P(i,j)))`; `0 ln(0) = 0` |
 | GLCM homogeneity | Local similarity of gray levels | Mean over directions of `sum(P(i,j) / (1 + (i-j)^2))` |
 
-GLCM is the gray-level co-occurrence matrix: how often neighboring gray levels occur together. Y is quantized to eight levels as `floor(8 × Y / 256)`. Offsets `(row, column)` are `(0,1), (1,1), (1,0), (1,-1)`. Each matrix uses valid pairs, is symmetrized and normalized separately; the resulting feature values are averaged. The exact edge masks and formulas are in [spatial_complexity.py](../../../vvenc_csf/spatial_complexity.py). The edge masks and threshold follow [Zhao et al.](https://doi.org/10.3390/electronics11142147); the GLCM-setting comparison is motivated by [Bakkouri et al.](https://doi.org/10.3390/app16031368). The 32-level and horizontal-only GLCMs are sensitivity checks.
+GLCM is the gray-level co-occurrence matrix: how often neighboring gray levels occur together. Y is quantized to eight levels as `floor(8 × Y / 256)`. Offsets `(row, column)` are `(0,1), (1,1), (1,0), (1,-1)`. Each matrix uses valid pairs, is symmetrized and normalized separately; the resulting feature values are averaged. The exact edge masks and formulas are in [spatial_complexity.py](../../vvenc_csf/spatial_complexity.py). The edge masks and threshold follow [Zhao et al.](https://doi.org/10.3390/electronics11142147); the GLCM-setting comparison is motivated by [Bakkouri et al.](https://doi.org/10.3390/app16031368). The 32-level and horizontal-only GLCMs are sensitivity checks.
 
 ## Statistical Method
 
@@ -55,7 +55,7 @@ Pointwise 95% correlation intervals use 99,999 paired image-bootstrap samples (s
 
 Sobel SD is the reference descriptor inherited from the original study, not an established best descriptor. For descriptor k, let `s[k] = +1` for Sobel SD, Luma SD, edge fraction, contrast and entropy, and `s[k] = −1` for homogeneity. These directions were fixed before the descriptor comparison; they are not estimated from the clean correlations. Clean-image comparisons with Sobel use `A = s[k] × rho[k, clean, QP] − rho[Sobel, clean, QP]`. Disturbance comparisons use `B = s[k] × (rho[k, disturbed, QP] − rho[k, clean, QP])`. Negative B means weakening in the expected direction, not necessarily a smaller absolute correlation.
 
-Auxiliary tests of independence use 99,999 permutations (seed 20260906) with Holm correction over 168 primary correlations. They do not test differences between correlations. [study_statistics.py](../../../vvenc_csf/study_statistics.py) implements these calculations.
+Auxiliary tests of independence use 99,999 permutations (seed 20260906) with Holm correction over 168 primary correlations. They do not test differences between correlations. [study_statistics.py](../../vvenc_csf/study_statistics.py) implements these calculations.
 
 ## Clean Images
 
@@ -428,7 +428,7 @@ Use `--analysis-dir <directory>` to select another completed analysis and `--out
 To reproduce the exploratory noise comparisons and rank diagnostics using the saved paired-bootstrap cache:
 
 ```powershell
-python tools/research/analyze_vtm_noise_sensitivity.py --output docs/vtm_content_partition_study/spatial_complexity/tables
+python tools/research/analyze_vtm_noise_sensitivity.py --output docs/vtm_spatial_complexity_study/tables
 python tools/reporting/report_vtm_spatial_complexity.py
 ```
 
@@ -441,7 +441,7 @@ python tools/research/analyze_vtm_noise_validation.py all
 python tools/reporting/report_vtm_spatial_complexity.py --validation-dir results/vtm_noise_validation/analysis
 ```
 
-The analysis verifies the completed experiment, computes the descriptors and reuses matching completed bootstrap caches. Its first statistical run generates the two sets of 99,999 paired samples. The [DIV2K encoding runner](../../../tools/research/complete_vtm_noise_validation.py) retains the pilot and full-run provenance.
+The analysis verifies the completed experiment, computes the descriptors and reuses matching completed bootstrap caches. Its first statistical run generates the two sets of 99,999 paired samples. The [DIV2K encoding runner](../../tools/research/complete_vtm_noise_validation.py) retains the pilot and full-run provenance.
 
 To recompute the Kodak descriptors and statistical analysis from the saved input images and measurements, then verify the result:
 
@@ -451,7 +451,7 @@ python tools/research/verify_vtm_spatial_complexity_analysis.py --analysis-dir r
 python tools/reporting/report_vtm_spatial_complexity.py --analysis-dir results/vtm_content_partition_four_qp/analysis_workspace/analysis
 ```
 
-The analysis writes CSV tables and bootstrap caches to the results directory shown above; resampling can take time. Use the analysis command's `--output <directory>` to select another directory and pass it to the verifier. The [encoding runner](../../../tools/research/complete_vtm_four_qp_study.py) provides the VTM measurements.
+The analysis writes CSV tables and bootstrap caches to the results directory shown above; resampling can take time. Use the analysis command's `--output <directory>` to select another directory and pass it to the verifier. The [encoding runner](../../tools/research/complete_vtm_four_qp_study.py) provides the VTM measurements.
 
 ## Limitations
 

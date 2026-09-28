@@ -279,7 +279,7 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
 
     lines = [
         "# VTM Image Complexity and Block Partitioning", "",
-        "This study extends the [content-partition study](../README.md) by comparing six image-complexity measures with "
+        "This study extends the [content-partition study](../vtm_content_partition_study/README.md) by comparing six image-complexity measures with "
         "the final luma coding-unit (CU) count produced by the unmodified VTM 23.0 reference encoder in single-frame intra coding.", "",
         "The focus of this extension is how these associations change after adding Gaussian noise and sinusoidal bands at a fixed QP. "
         "Clean-image correlations provide the reference for evaluating disturbance effects. Paired comparisons quantify the magnitude "
@@ -294,7 +294,7 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
         "## Experimental Protocol", "",
         "| Item | Setting |", "| --- | --- |",
         "| Encoder | Unmodified VTM 23.0; trace-enabled build for final CU boundaries |",
-        "| Configuration | Single-frame all-intra, [vtm_encoder_intra.cfg](../../../configs/vtm_encoder_intra.cfg) |",
+        "| Configuration | Single-frame all-intra, [vtm_encoder_intra.cfg](../../configs/vtm_encoder_intra.cfg) |",
         "| Input | OpenCV planar YUV 4:4:4 conversion; 8-bit input, 10-bit internal processing |",
         "| Images | 24 Kodak images; 393,216 pixels per image |",
         "| Clean-image QPs | 22, 27, 32, 37 |",
@@ -324,7 +324,7 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
         "GLCM is the gray-level co-occurrence matrix: how often neighboring gray levels occur together. "
         "Y is quantized to eight levels as `floor(8 × Y / 256)`. Offsets `(row, column)` are `(0,1), (1,1), (1,0), (1,-1)`. "
         "Each matrix uses valid pairs, is symmetrized and normalized separately; the resulting feature values are averaged. "
-        "The exact edge masks and formulas are in [spatial_complexity.py](../../../vvenc_csf/spatial_complexity.py). "
+        "The exact edge masks and formulas are in [spatial_complexity.py](../../vvenc_csf/spatial_complexity.py). "
         "The edge masks and threshold follow [Zhao et al.](https://doi.org/10.3390/electronics11142147); "
         "the GLCM-setting comparison is motivated by [Bakkouri et al.](https://doi.org/10.3390/app16031368). "
         "The 32-level and horizontal-only GLCMs are sensitivity checks.", "",
@@ -350,7 +350,7 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
         "Negative B means weakening in the expected direction, not necessarily a smaller absolute correlation.", "",
         f"Auxiliary tests of independence use 99,999 permutations (seed 20260906) with Holm correction over {int(correlations.primary.sum())} "
         "primary correlations. They do not test differences between correlations. "
-        "[study_statistics.py](../../../vvenc_csf/study_statistics.py) implements these calculations.", "",
+        "[study_statistics.py](../../vvenc_csf/study_statistics.py) implements these calculations.", "",
         "## Clean Images", "",
         "<details>", "<summary>Image examples and all-image scatter plots at QP 32</summary>", "",
         "The two examples retain the low- and high-Sobel images used in the original study. Both maps show final CU "
@@ -501,7 +501,7 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
     if "exploratory_noise_comparisons" in tables:
         lines += ["To reproduce the exploratory noise comparisons and rank diagnostics using the saved paired-bootstrap cache:", "",
                   "```powershell",
-                  "python tools/research/analyze_vtm_noise_sensitivity.py --output docs/vtm_content_partition_study/spatial_complexity/tables",
+                  "python tools/research/analyze_vtm_noise_sensitivity.py --output docs/vtm_spatial_complexity_study/tables",
                   "python tools/reporting/report_vtm_spatial_complexity.py",
                   "```", "",
                   "The noise-analysis command checks the cached correlation order and values, and replays the first two paired bootstrap draws before export. "
@@ -512,7 +512,7 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
                   "python tools/reporting/report_vtm_spatial_complexity.py --validation-dir results/vtm_noise_validation/analysis",
                   "```", "", "The analysis verifies the completed experiment, computes the descriptors and reuses matching completed "
                   "bootstrap caches. Its first statistical run generates the two sets of 99,999 paired samples. "
-                  "The [DIV2K encoding runner](../../../tools/research/complete_vtm_noise_validation.py) retains the pilot and full-run provenance.", ""]
+                  "The [DIV2K encoding runner](../../tools/research/complete_vtm_noise_validation.py) retains the pilot and full-run provenance.", ""]
     lines += ["To recompute the Kodak descriptors and statistical analysis from the saved input images and measurements, then verify the result:", "",
               "```powershell",
               "python tools/research/analyze_vtm_spatial_complexity.py all",
@@ -521,7 +521,7 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
               "```", "",
               "The analysis writes CSV tables and bootstrap caches to the results directory shown above; resampling can take time. "
               "Use the analysis command's `--output <directory>` to select another directory and pass it to the verifier. "
-              "The [encoding runner](../../../tools/research/complete_vtm_four_qp_study.py) provides the VTM measurements.", "",
+              "The [encoding runner](../../tools/research/complete_vtm_four_qp_study.py) provides the VTM measurements.", "",
               "## Limitations", "",
               "The results describe 24 Kodak images in single-frame intra coding, one VTM configuration and the tested disturbances. "
               "Additional seeds reuse the same images; sinusoidal bands have one orientation and period. "
@@ -759,9 +759,9 @@ def build(analysis: Path, report: Path, validation: Path | None = None) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--analysis-dir", type=Path, default=ROOT / "docs/vtm_content_partition_study/spatial_complexity/tables",
+    parser.add_argument("--analysis-dir", type=Path, default=ROOT / "docs/vtm_spatial_complexity_study/tables",
                         help="Directory containing the completed CSV tables")
-    parser.add_argument("--output", type=Path, default=ROOT / "docs/vtm_content_partition_study/spatial_complexity")
+    parser.add_argument("--output", type=Path, default=ROOT / "docs/vtm_spatial_complexity_study")
     parser.add_argument("--validation-dir", type=Path, help="Completed independent DIV2K analysis; otherwise read tables/div2k when present")
     args = parser.parse_args()
     build(args.analysis_dir, args.output, args.validation_dir)
