@@ -20,6 +20,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from tools.reporting.vtm_noise_validation_report import (
     TABLES as VALIDATION_TABLES, load_validation_tables, plot_validation, validation_section,
 )
+from tools.reporting.vtm_descriptor_supplement_report import (
+    TABLES as SUPPLEMENT_TABLES, load_supplement, supplement_section,
+)
 
 LABELS = {"sobel_si": "Sobel SD", "luma_sd": "Luma SD", "edge_fraction": "Edge fraction",
           "glcm_contrast": "GLCM contrast", "glcm_entropy": "GLCM entropy",
@@ -50,11 +53,13 @@ def disturbance_qps(correlations: pd.DataFrame) -> tuple[int, ...]:
     return tuple(sorted(correlations.loc[correlations.primary & (correlations.distortion != "clean"), "qp"].unique()))
 
 
-def load_tables(analysis: Path, validation: Path | None = None) -> dict[str, pd.DataFrame]:
+def load_tables(analysis: Path, validation: Path | None = None, supplement: Path | None = None) -> dict[str, pd.DataFrame]:
     """Check the saved measurement matrix before creating report artifacts."""
 
     if validation is not None and not validation.is_dir():
         raise ValueError(f"Missing DIV2K analysis directory: {validation}")
+    if supplement is not None and not supplement.is_dir():
+        raise ValueError(f"Missing descriptor supplement directory: {supplement}")
     tables = {}
     for name in TABLE_DESCRIPTIONS:
         path = analysis / f"{name}.csv"
@@ -144,6 +149,7 @@ def load_tables(analysis: Path, validation: Path | None = None) -> dict[str, pd.
                 or set(diagnostics[["feature", "variant", "level", "seed", "qp"]].itertuples(index=False, name=None)) != expected_diagnostics):
             raise ValueError("Unexpected noise rank-diagnostic conditions")
     tables.update(load_validation_tables(validation or analysis / "div2k"))
+    tables.update(load_supplement(supplement or analysis / "supplement"))
     return tables
 
 
@@ -235,7 +241,8 @@ def image_omission_sensitivity(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], validation: Path | None = None) -> None:
+def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], validation: Path | None = None,
+                 supplement: Path | None = None, plot_figures: bool = True) -> None:
     """Export the CSVs and one research README."""
 
     table_dir = output / "tables"
@@ -244,6 +251,8 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
         source, destination = analysis / f"{name}.csv", table_dir / f"{name}.csv"
         if name.startswith("div2k/") and validation is not None:
             source = validation / f"{name.split('/')[1]}.csv"
+        if name.startswith("supplement/") and supplement is not None:
+            source = supplement / f"{name.split('/')[1]}.csv"
         destination.parent.mkdir(parents=True, exist_ok=True)
         if source.resolve() != destination.resolve():
             shutil.copyfile(source, destination)
@@ -480,6 +489,12 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
               "</details>", ""]
     lines += noise_sensitivity_section(tables)
     lines += validation_section(tables, LABELS)
+    if "supplement/quality_summary" in tables:
+        lines += ["## Supporting Measurements", "",
+                  "Saved descriptor timings, reconstruction quality and image-ranking changes provide additional context for the main correlations.", "",
+                  "<details>", "<summary>Runtime, reconstruction quality and descriptor-value changes</summary>", ""]
+        lines += supplement_section(tables, LABELS)
+        lines += ["</details>", ""]
     lines += ["## Data", "",
               "Leave-one-image-out comparisons, GLCM parameter changes and within-image descriptor/CU changes are supplementary checks. "
               "All measurements and comparisons are retained in these tables.", "",
@@ -493,11 +508,26 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
     if "div2k/effects" in tables:
         for name, description in VALIDATION_TABLES.items():
             lines.append(f"| {description} | [div2k/{name}](tables/div2k/{name}.csv) |")
+    if "supplement/quality_summary" in tables:
+        for name, description in SUPPLEMENT_TABLES.items():
+            lines.append(f"| {description} | [supplement/{name}](tables/supplement/{name}.csv) |")
     lines += ["", "## Reproduction", "",
               "From the repository root, regenerate the README and figures from the saved CSVs:", "",
               "```powershell", "python tools/reporting/report_vtm_spatial_complexity.py", "```", "",
               "Use `--analysis-dir <directory>` to select another completed analysis and `--output <directory>` to write elsewhere. "
+              "Add `--readme-only` to update text and tables while keeping existing figures. "
               "This command also recalculates the descriptive image-omission check; it performs no encoding or statistical resampling.", ""]
+    if "supplement/quality_summary" in tables:
+        lines += ["To extract saved quality logs and measure descriptor runtime:", "", "```powershell",
+                  "python tools/research/summarize_vtm_spatial_complexity.py",
+                  "python tools/benchmarking/benchmark_vtm_descriptors.py",
+                  "python tools/reporting/report_vtm_spatial_complexity.py --supplement-dir results/vtm_spatial_complexity_supplement --readme-only",
+                  "```", "", "The benchmark saves each completed input and resumes matching measurements. "
+                  "Use a new `--output` directory for a fresh timing run or changed settings. "
+                  "Raw repetitions remain in the results directory; the report copies per-image summaries and environment metadata. "
+                  "`--readme-only` reuses existing figures while updating the README and tables. "
+                  "The quality extractor verifies bitstreams and any recorded log hashes; legacy logs without a recorded hash "
+                  "are identified in the exported table and checked against the stimulus, QP and single-frame summary.", ""]
     if "exploratory_noise_comparisons" in tables:
         lines += ["To reproduce the exploratory noise comparisons and rank diagnostics using the saved paired-bootstrap cache:", "",
                   "```powershell",
@@ -538,7 +568,8 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
                  .replace("Validation on new images is needed before generalizing the findings.",
                           "Broader generalization requires other acquisition conditions, image domains and encoder configurations.")
                  for line in lines]
-        plot_validation(tables, output / "figures", LABELS, QP_STYLES)
+        if plot_figures:
+            plot_validation(tables, output / "figures", LABELS, QP_STYLES)
     lines += [
         "## References",
         "",
@@ -678,8 +709,13 @@ def plot_all_images(joined: pd.DataFrame, output: Path) -> None:
     save(figure, output, "Fig5_all_images_QP32_manuscript")
 
 
-def build(analysis: Path, report: Path, validation: Path | None = None) -> None:
-    tables = load_tables(analysis, validation)
+def build(analysis: Path, report: Path, validation: Path | None = None, supplement: Path | None = None,
+          readme_only: bool = False) -> None:
+    tables = load_tables(analysis, validation, supplement)
+    if readme_only:
+        write_report(analysis, report, tables, validation, supplement, plot_figures=False)
+        print(f"Saved research README and CSV tables in {report}; existing figures retained")
+        return
     output = report / "figures"
     output.mkdir(parents=True, exist_ok=True)
     correlations = tables["correlations"]
@@ -753,7 +789,7 @@ def build(analysis: Path, report: Path, validation: Path | None = None) -> None:
 
     plot_all_images(tables["joined_measurements"], output)
     plot_disturbance_trends(correlations, output)
-    write_report(analysis, report, tables, validation)
+    write_report(analysis, report, tables, validation, supplement)
     print(f"Saved research README, CSV tables and PDF/PNG figures in {report}")
 
 
@@ -763,5 +799,7 @@ if __name__ == "__main__":
                         help="Directory containing the completed CSV tables")
     parser.add_argument("--output", type=Path, default=ROOT / "docs/vtm_spatial_complexity_study")
     parser.add_argument("--validation-dir", type=Path, help="Completed independent DIV2K analysis; otherwise read tables/div2k when present")
+    parser.add_argument("--supplement-dir", type=Path, help="Completed timing/quality summaries; otherwise read tables/supplement when present")
+    parser.add_argument("--readme-only", action="store_true", help="Update README and CSVs using existing figures")
     args = parser.parse_args()
-    build(args.analysis_dir, args.output, args.validation_dir)
+    build(args.analysis_dir, args.output, args.validation_dir, args.supplement_dir, args.readme_only)

@@ -1,0 +1,22 @@
+setting,value
+cpu,12th Gen Intel(R) Core(TM) i7-12700F
+logical_cpus,20
+os,Windows-10-10.0.26100-SP0
+python,3.11.9
+numpy,2.4.6
+opencv,4.11.0
+opencv_threads,1
+opencl,False
+repeats,11
+warmup,2
+ordering_seed,20260919
+timer,perf_counter_ns
+input_count,168
+pixels_per_image,393216
+input,uint8 BGR PNG loaded before timing; existing OpenCV luma conversion
+scope,six standalone descriptors from luma; shared GLCM; conversion; existing full pipeline
+joined_measurements.csv_sha256,94c6130bd05aa0f6f166dee62dc289bb2d71fd6684d878ce2dba6e07e9b73811
+benchmark_vtm_descriptors.py_sha256,8aa548dd2116fd678951a62b5b0e3adc306608b3bfaf3ee88aebf6fae42851bf
+spatial_complexity.py_sha256,155014c8156d5b0c5f2de257b0a1abbd23a343d0e253122bb9ce59992ad3626c
+stimuli.py_sha256,9650ee6a908de18f5dab27acd24d1279fb68efe3852dfaa1f6c197351f9ed534
+started_utc,2026-09-19T10:00:50.434074+00:00

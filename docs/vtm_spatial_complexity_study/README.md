@@ -390,6 +390,66 @@ The primary family has a max-error critical value of 0.504; the separate cluster
 
 The follow-up tests the response to strong synthetic AWGN on these fixed-size crops. It does not independently validate the full noise-strength trajectory, sinusoidal disturbances, local CU decisions or prediction accuracy.
 
+## Supporting Measurements
+
+Saved descriptor timings, reconstruction quality and image-ranking changes provide additional context for the main correlations.
+
+<details>
+<summary>Runtime, reconstruction quality and descriptor-value changes</summary>
+
+## Computation Time
+
+Measured on 12th Gen Intel(R) Core(TM) i7-12700F with Python 3.11.9, NumPy 2.4.6 and OpenCV 4.11.0. OpenCV uses one thread and OpenCL is disabled. Each of the 168 primary inputs has 2 warmup runs and 11 timed repetitions per operation. Operation order is randomized within each repetition. PNG loading is outside the timer. Timing does not depend on QP, so the same input is measured once across the four coding settings.
+
+The table reports the median and interquartile range of the 24 per-image median times for clean Kodak images (393,216 pixels each). Individual descriptors start from the prepared 8-bit luma plane. Every standalone GLCM time includes quantization and construction of all four directional matrices. The shared row builds these matrices once for all three features. Preparation and the existing full pipeline are timed separately; its internal conversions are retained. Do not add these overlapping rows together.
+
+| Operation | Median (ms/image) | Interquartile range (ms/image) |
+| --- | ---: | ---: |
+| Sobel SD | 5.864 | 5.765–5.995 |
+| Luma SD | 1.678 | 1.641–1.721 |
+| Edge fraction | 10.489 | 10.405–10.922 |
+| GLCM contrast | 9.795 | 9.522–10.168 |
+| GLCM entropy | 9.802 | 9.586–10.141 |
+| GLCM homogeneity | 9.854 | 9.518–10.230 |
+| Three GLCM features together | 9.907 | 9.526–10.265 |
+| BGR-to-luma preparation | 0.625 | 0.621–0.636 |
+| Existing six-descriptor pipeline from BGR | 28.776 | 28.445–29.814 |
+
+These measurements describe the tested implementations on this computer. Isolated edge/GLCM calculations use the same operations and are checked against the existing pipeline and saved feature values on every input. Timings for every disturbance condition and per-image variation are retained in the CSVs. They do not measure an encoder speedup or establish a hardware-independent ranking.
+
+## Reconstruction Quality at the Tested QPs
+
+PSNR is extracted from the saved VTM 23.0 single-frame summaries for Y, U and V in 4:4:4 coding. The reference is the actual encoder input, including any added disturbance. These values therefore describe compression error; they do not measure noise removal relative to the clean original. The table shows clean-image medians, with the full range across 24 images in parentheses, in dB.
+
+| QP | Y-PSNR | U-PSNR | V-PSNR |
+| --- | ---: | ---: | ---: |
+| 22 | 42.25 (41.21–44.17) | 49.67 (46.26–51.09) | 47.50 (45.87–49.21) |
+| 27 | 38.57 (36.67–41.15) | 47.85 (43.81–49.69) | 45.74 (43.45–47.93) |
+| 32 | 34.98 (31.93–38.32) | 45.93 (41.68–48.21) | 43.95 (40.95–46.58) |
+| 37 | 31.67 (27.73–35.59) | 44.13 (39.65–46.39) | 41.65 (38.55–44.83) |
+
+PSNR quantifies sample error and does not establish whether distortion is invisible or non-annoying. The full tables retain all seven input conditions and four QPs, component PSNR, file size and recorded encoding time. File bpp uses the complete bitstream byte count divided by image area, including file overhead. Recorded VTM times come from trace-enabled runs with different concurrent workloads, so they are not used as a controlled speed comparison with the descriptor benchmark.
+
+<details>
+<summary>Descriptor values and image ordering under disturbances</summary>
+
+The correlations below compare clean and disturbed rankings by the same descriptor, not rankings by CU count. They use 24 paired sources and the primary AWGN realization. The input descriptor does not depend on QP. The strongest tested conditions illustrate ordering changes; all six disturbance levels are retained in the CSV.
+
+| Measure | Clean vs AWGN 30 rank correlation | Clean vs Sine 32 rank correlation |
+| --- | ---: | ---: |
+| Sobel SD | 0.998 | 0.993 |
+| Luma SD | 0.986 | 0.994 |
+| Edge fraction | 0.848 | 0.870 |
+| GLCM contrast | 0.864 | 0.978 |
+| GLCM entropy | 0.683 | 0.922 |
+| GLCM homogeneity | 0.549 | 0.987 |
+
+For example, median edge fraction rises from 0.293 to 0.875 under AWGN 30, while its clean–disturbed rank correlation remains 0.848. Changes in values, changes in ordering, and changes in association with CU count are different questions. These descriptive summaries contain no new significance tests and do not validate a threshold for choosing a codec.
+
+</details>
+
+</details>
+
 ## Data
 
 Leave-one-image-out comparisons, GLCM parameter changes and within-image descriptor/CU changes are supplementary checks. All measurements and comparisons are retained in these tables.
@@ -414,6 +474,12 @@ Leave-one-image-out comparisons, GLCM parameter changes and within-image descrip
 | DIV2K source selection and crop coordinates | [div2k/selected_sources](tables/div2k/selected_sources.csv) |
 | DIV2K correlations for clean images and each AWGN realization | [div2k/correlations](tables/div2k/correlations.csv) |
 | DIV2K changes and direct comparisons with simultaneous intervals | [div2k/effects](tables/div2k/effects.csv) |
+| Descriptor runtime by input condition | [supplement/descriptor_timing_summary](tables/supplement/descriptor_timing_summary.csv) |
+| Repeated-runtime summaries for each of the 168 inputs | [supplement/descriptor_timing_images](tables/supplement/descriptor_timing_images.csv) |
+| Runtime settings, software, hardware and input hashes | [supplement/descriptor_timing_environment](tables/supplement/descriptor_timing_environment.csv) |
+| VTM-reported component PSNR and file size for 672 primary encodings | [supplement/quality_measurements](tables/supplement/quality_measurements.csv) |
+| Quality and file-size summaries at each condition and QP | [supplement/quality_summary](tables/supplement/quality_summary.csv) |
+| Changes in descriptor values and image rankings for the primary disturbances | [supplement/descriptor_changes](tables/supplement/descriptor_changes.csv) |
 
 ## Reproduction
 
@@ -423,7 +489,17 @@ From the repository root, regenerate the README and figures from the saved CSVs:
 python tools/reporting/report_vtm_spatial_complexity.py
 ```
 
-Use `--analysis-dir <directory>` to select another completed analysis and `--output <directory>` to write elsewhere. This command also recalculates the descriptive image-omission check; it performs no encoding or statistical resampling.
+Use `--analysis-dir <directory>` to select another completed analysis and `--output <directory>` to write elsewhere. Add `--readme-only` to update text and tables while keeping existing figures. This command also recalculates the descriptive image-omission check; it performs no encoding or statistical resampling.
+
+To extract saved quality logs and measure descriptor runtime:
+
+```powershell
+python tools/research/summarize_vtm_spatial_complexity.py
+python tools/benchmarking/benchmark_vtm_descriptors.py
+python tools/reporting/report_vtm_spatial_complexity.py --supplement-dir results/vtm_spatial_complexity_supplement --readme-only
+```
+
+The benchmark saves each completed input and resumes matching measurements. Use a new `--output` directory for a fresh timing run or changed settings. Raw repetitions remain in the results directory; the report copies per-image summaries and environment metadata. `--readme-only` reuses existing figures while updating the README and tables. The quality extractor verifies bitstreams and any recorded log hashes; legacy logs without a recorded hash are identified in the exported table and checked against the stimulus, QP and single-frame summary.
 
 To reproduce the exploratory noise comparisons and rank diagnostics using the saved paired-bootstrap cache:
 
