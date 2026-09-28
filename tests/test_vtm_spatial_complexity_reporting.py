@@ -209,7 +209,7 @@ def test_supported_conclusions_are_generated_from_actual_intervals(tmp_path) -> 
     output = tmp_path / "report"
     reporting.write_report(analysis, output, tables)
     text = (output / "README.md").read_text(encoding="utf-8")
-    assert "GLCM contrast under sinusoidal bands at level 32 has a stronger direction-adjusted association at QP 27" in text
+    assert "GLCM contrast under sinusoidal interference at level 32 has a stronger direction-adjusted association at QP 27" in text
     assert "| GLCM contrast | Sine, level 32 versus clean | 27 |" in text
     assert "| GLCM homogeneity | AWGN" not in text
 

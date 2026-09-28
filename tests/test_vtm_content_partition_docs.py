@@ -35,13 +35,14 @@ def test_study_readme_uses_only_reproducible_canonical_references() -> None:
 
 def test_study_readme_documents_the_fresh_clone_workflow() -> None:
     text = README.read_text(encoding="utf-8")
+    fresh_clone = text.split("<summary>Run the full original experiment from a fresh clone</summary>", 1)[1]
 
     commands = (
         "python tools/data_prep/download_binaries.py",
         "python tools/research/run_vtm_content_partition_study.py all",
         "python tools/reporting/report_vtm_content_partition_study.py",
     )
-    positions = [text.index(command) for command in commands]
+    positions = [fresh_clone.index(command) for command in commands]
     assert positions == sorted(positions)
     assert "Intermediate bitstreams, reconstructions, traces, and progress files are written under `results/`." in text
     assert "do not need to be committed" not in text

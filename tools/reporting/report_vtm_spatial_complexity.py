@@ -268,7 +268,8 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
     superiority = supported[supported.family.eq("RQ1") & (supported.simultaneous_low > 0)]
     rq2 = supported[supported.family.eq("RQ2")]
     winners = clean.loc[clean.groupby("qp").rho.idxmax()]
-    winner_text = (f"{LABELS[winners.feature.iloc[0]]} has the largest positive point correlation at every clean-image QP."
+    winner_text = (f"{LABELS[winners.feature.iloc[0]]} has the largest positive point correlation at every clean-image QP, "
+                   f"reaching {winners.rho.max():.3f}; Sobel SD reaches {clean.loc[clean.feature.eq('sobel_si'), 'rho'].max():.3f}."
                    if winners.feature.nunique() == 1 else
                    "The descriptor with the largest positive point correlation varies with QP; the clean-image table gives every value.")
     superiority_text = ("The simultaneous comparisons do not establish that any candidate has a stronger association than Sobel."
@@ -282,39 +283,49 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
             for direction, rows in (("weaker", group[group.simultaneous_high < 0]),
                                     ("stronger", group[group.simultaneous_low > 0])):
                 if not rows.empty:
-                    name = "AWGN" if distortion == "awgn" else "sinusoidal bands"
+                    name = "AWGN" if distortion == "awgn" else "sinusoidal interference"
                     effects.append(f"{LABELS[feature]} under {name} at level {level:g} has a {direction} direction-adjusted association at QP {', '.join(map(str, sorted(rows.qp)))}")
         disturbance_text = "; ".join(effects) + ". Other disturbance comparisons remain inconclusive."
 
     lines = [
-        "# VTM Image Complexity and Block Partitioning", "",
-        "This study extends the [content-partition study](../vtm_content_partition_study/README.md) by comparing six image-complexity measures with "
-        "the final luma coding-unit (CU) count produced by the unmodified VTM 23.0 reference encoder in single-frame intra coding.", "",
-        "The focus of this extension is how these associations change after adding Gaussian noise and sinusoidal bands at a fixed QP. "
-        "Clean-image correlations provide the reference for evaluating disturbance effects. Paired comparisons quantify the magnitude "
-        "and uncertainty of the changes and identify which changes are supported in the studied sample. "
-        "Together, these results characterize the sensitivity of descriptor–CU associations to the tested disturbances.", "",
+        "# VTM Spatial-Complexity Study", "",
+        "Versatile Video Coding (VVC) adapts its block partitioning to image content. A useful preliminary content indicator "
+        "should describe information relevant to those decisions and remain useful when the input contains noise or periodic interference. "
+        "Here, we examine this relationship through the final luma coding-unit (CU) count from the VVC Test Model (VTM) 23.0 reference encoder.", "",
+        "The study compares six whole-image descriptors at quantization parameter (QP) values 22, 27, 32 and 37, "
+        "covering different coding settings instead of assuming that one QP represents the full range. "
+        "We first compare clean images, then examine how noise and periodic interference change each descriptor's association with CU count at fixed QP. "
+        "Paired comparisons quantify the magnitude and uncertainty of the changes. "
+        "This is a preliminary step toward content-based codec selection; compressed-size prediction and a VVC/JPEG decision rule require separate validation.", "",
+        "The [content-partition study](../vtm_content_partition_study/README.md) examines Sobel-based spatial information "
+        "and partition responses. This separate study adds luma standard deviation (SD), edge fraction and gray-level "
+        "co-occurrence matrix (GLCM) descriptors, with all four QPs covered for every Kodak condition and "
+        "additive white Gaussian noise (AWGN) realization. "
+        "The contribution is the joint comparison of whole-image descriptors with final CU partitioning across QPs, "
+        "including sensitivity to noise and periodic interference.", "",
         "## Key Findings", "",
         f"- {winner_text}",
-        "- GLCM contrast and entropy have positive clean-image correlations; homogeneity has a negative correlation. "
-        "Brightness spread (Luma SD) is less strongly associated with CU count in these images.",
+        f"- Luma SD has much smaller clean-image correlations, {clean.loc[clean.feature.eq('luma_sd'), 'rho'].min():.3f}–"
+        f"{clean.loc[clean.feature.eq('luma_sd'), 'rho'].max():.3f}. GLCM contrast and entropy have positive correlations; homogeneity has a negative correlation.",
         f"- {superiority_text}",
         f"- {disturbance_text}", "",
         "## Experimental Protocol", "",
         "| Item | Setting |", "| --- | --- |",
-        "| Encoder | Unmodified VTM 23.0; trace-enabled build for final CU boundaries |",
+        "| Encoder | VTM 23.0; trace-enabled build for final CU boundaries |",
         "| Configuration | Single-frame all-intra, [vtm_encoder_intra.cfg](../../configs/vtm_encoder_intra.cfg) |",
         "| Input | OpenCV planar YUV 4:4:4 conversion; 8-bit input, 10-bit internal processing |",
         "| Images | 24 Kodak images; 393,216 pixels per image |",
         "| Clean-image QPs | 22, 27, 32, 37 |",
         f"| Disturbance QPs | {qp_text} |",
-        "| Gaussian noise (AWGN) | Nominal sigma 5, 15, 30; base seeds 20260811, 20260812, 20260813 |",
-        "| Sinusoidal bands | Horizontal; amplitude 8, 16, 32; period 16 pixels; phase zero |",
+        "| Additive white Gaussian noise (AWGN) | Nominal sigma 5, 15, 30; base seeds 20260811, 20260812, 20260813 |",
+        "| Sinusoidal interference | Horizontal; amplitude 8, 16, 32; period 16 pixels; phase zero |",
         f"| Measurements | 312 saved stimuli; {len(joined):,} encodings |",
         "| Consistency checks | Decoder output matches encoder reconstruction; CU rectangles cover the coded image |", "",
-        "AWGN adds the same random field to each color channel before rounding and clipping. Noise levels for one image "
-        "and base seed scale the same field. Nominal sigma and amplitude differ from the actual luma RMS after clipping; "
-        "the measured RMS is included in the CSVs.", "",
+        "AWGN and sinusoidal interference are separate input conditions. Each adds the same field to the three color channels "
+        "before rounding and clipping to the 8-bit range. Noise levels for one image and base seed scale the same random field. "
+        "Nominal sigma and amplitude differ from the actual luma root mean square (RMS) change after clipping; "
+        "the measured RMS is included in the CSVs. Only final leaf luma CUs are counted, excluding chroma units and candidate splits. "
+        "For image area S pixels and CU count N, mean CU area is S/N.", "",
         "## Complexity Measures", "",
         "[Zhang et al., *An Adaptive Infrared Image Preprocessing Method Based on Background Complexity Descriptors*]"
         "(https://doi.org/10.1109/IMCCC.2018.00079) compares GLCM entropy, edge-pixel ratio, GLCM contrast, GLCM correlation "
@@ -335,8 +346,9 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
         "Each matrix uses valid pairs, is symmetrized and normalized separately; the resulting feature values are averaged. "
         "The exact edge masks and formulas are in [spatial_complexity.py](../../vvenc_csf/spatial_complexity.py). "
         "The edge masks and threshold follow [Zhao et al.](https://doi.org/10.3390/electronics11142147); "
-        "the GLCM-setting comparison is motivated by [Bakkouri et al.](https://doi.org/10.3390/app16031368). "
-        "The 32-level and horizontal-only GLCMs are sensitivity checks.", "",
+        "[Bakkouri et al.](https://doi.org/10.3390/app16031368) provide another example of GLCM use in VVC inter-coding decisions. "
+        "Here, 32-level and horizontal-only GLCMs are sensitivity checks for our intra-coding study. "
+        "Gray-level quantization in a GLCM is separate from encoder QP.", "",
         "## Statistical Method", "",
         "For each fixed QP, disturbance level and seed, Spearman rho compares the ordering of the same 24 images by "
         "a descriptor and by CU count. Near +1 means larger descriptor values tend to accompany more CUs; "
@@ -346,11 +358,11 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
         "The primary AWGN realization uses base seed 20260811. Seeds 20260812 and 20260813 are analyzed separately. "
         "QP, noise levels and seeds do not increase the number of independent images beyond 24.", "",
         "Pointwise 95% correlation intervals use 99,999 paired image-bootstrap samples (seed 20260905), "
-        "with average ranks for ties and reranking within each sample. The same sampled images are used across conditions. "
+        "with average ranks for ties, reranking within each sample and the same sampled images across conditions. "
         f"Simultaneous comparisons cover 20 candidate-versus-Sobel contrasts and {int(contrasts.family.eq('RQ2').sum())} "
-        "disturbed-versus-clean contrasts. Basic maximum-error intervals use alpha 0.025 per family, for a combined nominal "
-        "error rate of 0.05. Finite-sample coverage is approximate. Direction is positive for five descriptors and negative "
-        "for homogeneity; raw signed correlations are shown throughout. An interval containing zero is inconclusive.", "",
+        "disturbed-versus-clean contrasts, using basic maximum-error intervals with alpha 0.025 per family "
+        "and a combined nominal error rate of 0.05. Coverage is approximate, and a difference interval containing zero is inconclusive.", "",
+        "<details>", "<summary>Direction conventions and additional statistical details</summary>", "",
         "Sobel SD is the reference descriptor inherited from the original study, not an established best descriptor. "
         "For descriptor k, let `s[k] = +1` for Sobel SD, Luma SD, edge fraction, contrast and entropy, and `s[k] = −1` "
         "for homogeneity. These directions were fixed before the descriptor comparison; they are not estimated from the clean correlations. "
@@ -360,13 +372,15 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
         f"Auxiliary tests of independence use 99,999 permutations (seed 20260906) with Holm correction over {int(correlations.primary.sum())} "
         "primary correlations. They do not test differences between correlations. "
         "[study_statistics.py](../../vvenc_csf/study_statistics.py) implements these calculations.", "",
+        "</details>", "",
         "## Clean Images", "",
-        "<details>", "<summary>Image examples and all-image scatter plots at QP 32</summary>", "",
         "The two examples retain the low- and high-Sobel images used in the original study. Both maps show final CU "
-        "boundaries at QP 32. More CUs mean smaller blocks on average.", "",
+        "boundaries at QP 32. Image 02 has large uniform regions; image 08 contains many windows, roof edges and other fine structures. "
+        "With equal image area, more CUs mean smaller blocks on average. Correlations below use all 24 images.", "",
         "![Kodak images 02 and 08 with final CU boundaries at QP 32](figures/Kodak_partition_examples_QP32.png)", "",
         "[PDF](figures/Kodak_partition_examples_QP32.pdf) · [SVG](figures/Kodak_partition_examples_QP32.svg). "
         "Generate from the repository root with `python -m tools.visualization.plot_vtm_partition_examples`.", "",
+        "<details>", "<summary>Descriptor values and all-image scatter plots at QP 32</summary>", "",
         "| | kodim02.png | kodim08.png |", "| --- | :---: | :---: |",
     ]
     examples = joined[joined.distortion.eq("clean") & joined.qp.eq(32)].set_index("source")
@@ -398,7 +412,11 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
               "![Clean candidate-versus-Sobel comparisons](figures/Fig3_dependent_clean_comparisons.png)", "",
               "These are simultaneous intervals for A. Luma SD has a weaker association than Sobel at QP 32 and 37. "
               "The remaining candidate comparisons are inconclusive; that does not establish equivalence to Sobel.", "", "</details>", "",
-              "## Disturbance Effects", "",
+              "## Noise and Periodic Interference", "",
+              "Noise changes both the descriptor values and the final CU partition selected by VTM. "
+              f"For example, at QP 22 Sobel SD correlation rises from {clean.loc[clean.feature.eq('sobel_si') & clean.qp.eq(22), 'rho'].iloc[0]:.3f} "
+              f"to {correlations.loc[correlations.primary & correlations.feature.eq('sobel_si') & correlations.qp.eq(22) & correlations.distortion.eq('awgn') & correlations.level.eq(15), 'rho'].iloc[0]:.3f} "
+              "under AWGN sigma 15. This can reflect their joint response to noise and does not mean a better estimate of image content complexity.", "",
               "The first map shows signed correlations for every primary condition, with a shared −1 to +1 color scale. "
               "Each cell compares the same 24 images at one QP. The clean column is the reference for the change map.", "",
               "![All primary correlation cells](figures/Fig2_disturbance_correlations.png)", "",
@@ -419,7 +437,7 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
               "These curves show the primary AWGN realization, base seed 20260811. The other two realizations are "
               "reported separately in the sensitivity table below and the complete correlation CSV. We do not pool seeds as independent images.", "",
               "![Correlation versus AWGN strength at each QP](figures/awgn_correlation_trends.png)", "",
-              "### Sinusoidal Bands", "",
+              "### Sinusoidal Interference", "",
               "![Correlation versus sinusoidal amplitude at each QP](figures/sine_correlation_trends.png)", "",
               "</details>", "", "<details>", "<summary>Magnified trends for reading close QP curves</summary>", "",
               "These supplementary views use a separate vertical range for each descriptor. Compare QPs within a panel; "
@@ -512,11 +530,15 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
         for name, description in SUPPLEMENT_TABLES.items():
             lines.append(f"| {description} | [supplement/{name}](tables/supplement/{name}.csv) |")
     lines += ["", "## Reproduction", "",
+              "Reports and figures are stored in `docs/vtm_spatial_complexity_study/`; "
+              "encoding outputs and statistical caches remain under `results/`. "
+              "The [original study](../vtm_content_partition_study/README.md) retains its own report and example maps.", "",
               "From the repository root, regenerate the README and figures from the saved CSVs:", "",
               "```powershell", "python tools/reporting/report_vtm_spatial_complexity.py", "```", "",
               "Use `--analysis-dir <directory>` to select another completed analysis and `--output <directory>` to write elsewhere. "
               "Add `--readme-only` to update text and tables while keeping existing figures. "
-              "This command also recalculates the descriptive image-omission check; it performs no encoding or statistical resampling.", ""]
+              "This command also recalculates the descriptive image-omission check; it performs no encoding or statistical resampling.", "",
+              "<details>", "<summary>Recompute measurements or run supplementary analyses</summary>", ""]
     if "supplement/quality_summary" in tables:
         lines += ["To extract saved quality logs and measure descriptor runtime:", "", "```powershell",
                   "python tools/research/summarize_vtm_spatial_complexity.py",
@@ -552,13 +574,15 @@ def write_report(analysis: Path, output: Path, tables: dict[str, pd.DataFrame], 
               "The analysis writes CSV tables and bootstrap caches to the results directory shown above; resampling can take time. "
               "Use the analysis command's `--output <directory>` to select another directory and pass it to the verifier. "
               "The [encoding runner](../../tools/research/complete_vtm_four_qp_study.py) provides the VTM measurements.", "",
+              "</details>", "",
               "## Limitations", "",
               "The results describe 24 Kodak images in single-frame intra coding, one VTM configuration and the tested disturbances. "
-              "Additional seeds reuse the same images; sinusoidal bands have one orientation and period. "
-              "No temporal prediction, motion or video-sequence behavior is evaluated. The tested synthetic disturbances do not represent every acquisition artifact. "
-              "The measured endpoint is final image-level CU count, not local split prediction or the encoder's search cost. "
-              "A high correlation does not by itself make a descriptor a validated predictor or a fast partitioning algorithm. "
-              "These associations do not establish causation, predictive accuracy, encoding speedup or improved visual quality. "
+              "Additional seeds reuse the same images. The shared RGB field changes only luma before rounding and clipping, "
+              "while subsequent processing can also affect chroma; channel-independent noise and chromatic interference were not tested. "
+              "Sinusoidal interference has one orientation and phase, with period 16 pixels, which is a multiple of smaller "
+              "VVC block dimensions and a divisor of larger ones. Other period-to-block relationships may give different responses.", "",
+              "VTM is a reference implementation; its final CU counts do not represent every VVC encoder or measure search cost. "
+              "High correlation alone does not validate prediction, a codec-selection threshold or robustness to other acquisition artifacts. "
               "Validation on new images is needed before generalizing the findings.", ""]
     if "div2k/effects" in tables:
         lines = [line.replace("## Key Findings", "## Key Findings on Kodak")

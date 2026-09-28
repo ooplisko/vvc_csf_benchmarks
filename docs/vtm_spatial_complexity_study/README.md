@@ -1,13 +1,15 @@
-# VTM Image Complexity and Block Partitioning
+# VTM Spatial-Complexity Study
 
-This study extends the [content-partition study](../vtm_content_partition_study/README.md) by comparing six image-complexity measures with the final luma coding-unit (CU) count produced by the unmodified VTM 23.0 reference encoder in single-frame intra coding.
+Versatile Video Coding (VVC) adapts its block partitioning to image content. A useful preliminary content indicator should describe information relevant to those decisions and remain useful when the input contains noise or periodic interference. Here, we examine this relationship through the final luma coding-unit (CU) count from the VVC Test Model (VTM) 23.0 reference encoder.
 
-The focus of this extension is how these associations change after adding Gaussian noise and sinusoidal bands at a fixed QP. Clean-image correlations provide the reference for evaluating disturbance effects. Paired comparisons quantify the magnitude and uncertainty of the changes and identify which changes are supported in the studied sample. Together, these results characterize the sensitivity of descriptor–CU associations to the tested disturbances.
+The study compares six whole-image descriptors at quantization parameter (QP) values 22, 27, 32 and 37, covering different coding settings instead of assuming that one QP represents the full range. We first compare clean images, then examine how noise and periodic interference change each descriptor's association with CU count at fixed QP. Paired comparisons quantify the magnitude and uncertainty of the changes. This is a preliminary step toward content-based codec selection; compressed-size prediction and a VVC/JPEG decision rule require separate validation.
+
+The [content-partition study](../vtm_content_partition_study/README.md) examines Sobel-based spatial information and partition responses. This separate study adds luma standard deviation (SD), edge fraction and gray-level co-occurrence matrix (GLCM) descriptors, with all four QPs covered for every Kodak condition and additive white Gaussian noise (AWGN) realization. The contribution is the joint comparison of whole-image descriptors with final CU partitioning across QPs, including sensitivity to noise and periodic interference.
 
 ## Key Findings on Kodak
 
-- Edge fraction has the largest positive point correlation at every clean-image QP.
-- GLCM contrast and entropy have positive clean-image correlations; homogeneity has a negative correlation. Brightness spread (Luma SD) is less strongly associated with CU count in these images.
+- Edge fraction has the largest positive point correlation at every clean-image QP, reaching 0.897; Sobel SD reaches 0.783.
+- Luma SD has much smaller clean-image correlations, 0.111–0.216. GLCM contrast and entropy have positive correlations; homogeneity has a negative correlation.
 - The simultaneous comparisons do not establish that any candidate has a stronger association than Sobel.
 - GLCM homogeneity under AWGN at level 30 has a weaker direction-adjusted association at QP 22, 32. Other disturbance comparisons remain inconclusive.
 
@@ -15,18 +17,18 @@ The focus of this extension is how these associations change after adding Gaussi
 
 | Item | Setting |
 | --- | --- |
-| Encoder | Unmodified VTM 23.0; trace-enabled build for final CU boundaries |
+| Encoder | VTM 23.0; trace-enabled build for final CU boundaries |
 | Configuration | Single-frame all-intra, [vtm_encoder_intra.cfg](../../configs/vtm_encoder_intra.cfg) |
 | Input | OpenCV planar YUV 4:4:4 conversion; 8-bit input, 10-bit internal processing |
 | Images | 24 Kodak images; 393,216 pixels per image |
 | Clean-image QPs | 22, 27, 32, 37 |
 | Disturbance QPs | 22, 27, 32, 37 |
-| Gaussian noise (AWGN) | Nominal sigma 5, 15, 30; base seeds 20260811, 20260812, 20260813 |
-| Sinusoidal bands | Horizontal; amplitude 8, 16, 32; period 16 pixels; phase zero |
+| Additive white Gaussian noise (AWGN) | Nominal sigma 5, 15, 30; base seeds 20260811, 20260812, 20260813 |
+| Sinusoidal interference | Horizontal; amplitude 8, 16, 32; period 16 pixels; phase zero |
 | Measurements | 312 saved stimuli; 1,248 encodings |
 | Consistency checks | Decoder output matches encoder reconstruction; CU rectangles cover the coded image |
 
-AWGN adds the same random field to each color channel before rounding and clipping. Noise levels for one image and base seed scale the same field. Nominal sigma and amplitude differ from the actual luma RMS after clipping; the measured RMS is included in the CSVs.
+AWGN and sinusoidal interference are separate input conditions. Each adds the same field to the three color channels before rounding and clipping to the 8-bit range. Noise levels for one image and base seed scale the same random field. Nominal sigma and amplitude differ from the actual luma root mean square (RMS) change after clipping; the measured RMS is included in the CSVs. Only final leaf luma CUs are counted, excluding chroma units and candidate splits. For image area S pixels and CU count N, mean CU area is S/N.
 
 ## Complexity Measures
 
@@ -43,7 +45,7 @@ All descriptors are calculated from the actual input PNG, using its OpenCV 8-bit
 | GLCM entropy | Diversity of neighboring gray-level pairs | Mean over directions of `-sum(P(i,j) × ln(P(i,j)))`; `0 ln(0) = 0` |
 | GLCM homogeneity | Local similarity of gray levels | Mean over directions of `sum(P(i,j) / (1 + (i-j)^2))` |
 
-GLCM is the gray-level co-occurrence matrix: how often neighboring gray levels occur together. Y is quantized to eight levels as `floor(8 × Y / 256)`. Offsets `(row, column)` are `(0,1), (1,1), (1,0), (1,-1)`. Each matrix uses valid pairs, is symmetrized and normalized separately; the resulting feature values are averaged. The exact edge masks and formulas are in [spatial_complexity.py](../../vvenc_csf/spatial_complexity.py). The edge masks and threshold follow [Zhao et al.](https://doi.org/10.3390/electronics11142147); the GLCM-setting comparison is motivated by [Bakkouri et al.](https://doi.org/10.3390/app16031368). The 32-level and horizontal-only GLCMs are sensitivity checks.
+GLCM is the gray-level co-occurrence matrix: how often neighboring gray levels occur together. Y is quantized to eight levels as `floor(8 × Y / 256)`. Offsets `(row, column)` are `(0,1), (1,1), (1,0), (1,-1)`. Each matrix uses valid pairs, is symmetrized and normalized separately; the resulting feature values are averaged. The exact edge masks and formulas are in [spatial_complexity.py](../../vvenc_csf/spatial_complexity.py). The edge masks and threshold follow [Zhao et al.](https://doi.org/10.3390/electronics11142147); [Bakkouri et al.](https://doi.org/10.3390/app16031368) provide another example of GLCM use in VVC inter-coding decisions. Here, 32-level and horizontal-only GLCMs are sensitivity checks for our intra-coding study. Gray-level quantization in a GLCM is separate from encoder QP.
 
 ## Statistical Method
 
@@ -51,22 +53,27 @@ For each fixed QP, disturbance level and seed, Spearman rho compares the orderin
 
 The primary AWGN realization uses base seed 20260811. Seeds 20260812 and 20260813 are analyzed separately. QP, noise levels and seeds do not increase the number of independent images beyond 24.
 
-Pointwise 95% correlation intervals use 99,999 paired image-bootstrap samples (seed 20260905), with average ranks for ties and reranking within each sample. The same sampled images are used across conditions. Simultaneous comparisons cover 20 candidate-versus-Sobel contrasts and 144 disturbed-versus-clean contrasts. Basic maximum-error intervals use alpha 0.025 per family, for a combined nominal error rate of 0.05. Finite-sample coverage is approximate. Direction is positive for five descriptors and negative for homogeneity; raw signed correlations are shown throughout. An interval containing zero is inconclusive.
+Pointwise 95% correlation intervals use 99,999 paired image-bootstrap samples (seed 20260905), with average ranks for ties, reranking within each sample and the same sampled images across conditions. Simultaneous comparisons cover 20 candidate-versus-Sobel contrasts and 144 disturbed-versus-clean contrasts, using basic maximum-error intervals with alpha 0.025 per family and a combined nominal error rate of 0.05. Coverage is approximate, and a difference interval containing zero is inconclusive.
+
+<details>
+<summary>Direction conventions and additional statistical details</summary>
 
 Sobel SD is the reference descriptor inherited from the original study, not an established best descriptor. For descriptor k, let `s[k] = +1` for Sobel SD, Luma SD, edge fraction, contrast and entropy, and `s[k] = −1` for homogeneity. These directions were fixed before the descriptor comparison; they are not estimated from the clean correlations. Clean-image comparisons with Sobel use `A = s[k] × rho[k, clean, QP] − rho[Sobel, clean, QP]`. Disturbance comparisons use `B = s[k] × (rho[k, disturbed, QP] − rho[k, clean, QP])`. Negative B means weakening in the expected direction, not necessarily a smaller absolute correlation.
 
 Auxiliary tests of independence use 99,999 permutations (seed 20260906) with Holm correction over 168 primary correlations. They do not test differences between correlations. [study_statistics.py](../../vvenc_csf/study_statistics.py) implements these calculations.
 
+</details>
+
 ## Clean Images
 
-<details>
-<summary>Image examples and all-image scatter plots at QP 32</summary>
-
-The two examples retain the low- and high-Sobel images used in the original study. Both maps show final CU boundaries at QP 32. More CUs mean smaller blocks on average.
+The two examples retain the low- and high-Sobel images used in the original study. Both maps show final CU boundaries at QP 32. Image 02 has large uniform regions; image 08 contains many windows, roof edges and other fine structures. With equal image area, more CUs mean smaller blocks on average. Correlations below use all 24 images.
 
 ![Kodak images 02 and 08 with final CU boundaries at QP 32](figures/Kodak_partition_examples_QP32.png)
 
 [PDF](figures/Kodak_partition_examples_QP32.pdf) · [SVG](figures/Kodak_partition_examples_QP32.svg). Generate from the repository root with `python -m tools.visualization.plot_vtm_partition_examples`.
+
+<details>
+<summary>Descriptor values and all-image scatter plots at QP 32</summary>
 
 | | kodim02.png | kodim08.png |
 | --- | :---: | :---: |
@@ -114,7 +121,9 @@ These are simultaneous intervals for A. Luma SD has a weaker association than So
 
 </details>
 
-## Disturbance Effects
+## Noise and Periodic Interference
+
+Noise changes both the descriptor values and the final CU partition selected by VTM. For example, at QP 22 Sobel SD correlation rises from 0.554 to 0.846 under AWGN sigma 15. This can reflect their joint response to noise and does not mean a better estimate of image content complexity.
 
 The first map shows signed correlations for every primary condition, with a shared −1 to +1 color scale. Each cell compares the same 24 images at one QP. The clean column is the reference for the change map.
 
@@ -137,7 +146,7 @@ These curves show the primary AWGN realization, base seed 20260811. The other tw
 
 ![Correlation versus AWGN strength at each QP](figures/awgn_correlation_trends.png)
 
-### Sinusoidal Bands
+### Sinusoidal Interference
 
 ![Correlation versus sinusoidal amplitude at each QP](figures/sine_correlation_trends.png)
 
@@ -483,6 +492,8 @@ Leave-one-image-out comparisons, GLCM parameter changes and within-image descrip
 
 ## Reproduction
 
+Reports and figures are stored in `docs/vtm_spatial_complexity_study/`; encoding outputs and statistical caches remain under `results/`. The [original study](../vtm_content_partition_study/README.md) retains its own report and example maps.
+
 From the repository root, regenerate the README and figures from the saved CSVs:
 
 ```powershell
@@ -490,6 +501,9 @@ python tools/reporting/report_vtm_spatial_complexity.py
 ```
 
 Use `--analysis-dir <directory>` to select another completed analysis and `--output <directory>` to write elsewhere. Add `--readme-only` to update text and tables while keeping existing figures. This command also recalculates the descriptive image-omission check; it performs no encoding or statistical resampling.
+
+<details>
+<summary>Recompute measurements or run supplementary analyses</summary>
 
 To extract saved quality logs and measure descriptor runtime:
 
@@ -529,9 +543,13 @@ python tools/reporting/report_vtm_spatial_complexity.py --analysis-dir results/v
 
 The analysis writes CSV tables and bootstrap caches to the results directory shown above; resampling can take time. Use the analysis command's `--output <directory>` to select another directory and pass it to the verifier. The [encoding runner](../../tools/research/complete_vtm_four_qp_study.py) provides the VTM measurements.
 
+</details>
+
 ## Limitations
 
-The results describe 24 Kodak images and 48 central DIV2K crops in single-frame intra coding, one VTM configuration and the tested disturbances. Additional seeds reuse the same images; sinusoidal bands have one orientation and period. No temporal prediction, motion or video-sequence behavior is evaluated. The tested synthetic disturbances do not represent every acquisition artifact. The measured endpoint is final image-level CU count, not local split prediction or the encoder's search cost. A high correlation does not by itself make a descriptor a validated predictor or a fast partitioning algorithm. These associations do not establish causation, predictive accuracy, encoding speedup or improved visual quality. Broader generalization requires other acquisition conditions, image domains and encoder configurations.
+The results describe 24 Kodak images and 48 central DIV2K crops in single-frame intra coding, one VTM configuration and the tested disturbances. Additional seeds reuse the same images. The shared RGB field changes only luma before rounding and clipping, while subsequent processing can also affect chroma; channel-independent noise and chromatic interference were not tested. Sinusoidal interference has one orientation and phase, with period 16 pixels, which is a multiple of smaller VVC block dimensions and a divisor of larger ones. Other period-to-block relationships may give different responses.
+
+VTM is a reference implementation; its final CU counts do not represent every VVC encoder or measure search cost. High correlation alone does not validate prediction, a codec-selection threshold or robustness to other acquisition artifacts. Broader generalization requires other acquisition conditions, image domains and encoder configurations.
 
 ## References
 
